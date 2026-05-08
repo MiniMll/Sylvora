@@ -4,6 +4,7 @@ import { getStockCritico, getLotes, agregarLote, getSiguienteNumeroLote, elimina
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { toast } from 'sonner'
 import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { Spinner } from '@/components/ui/Spinner'
 
 function stockColor(actual: number, min: number) {
   if (actual === 0) return '#888898'
@@ -142,11 +143,7 @@ export default function StockPage() {
     fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)'
   }
 
-  if (cargando) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}>
-      ⏳ Cargando stock...
-    </div>
-  )
+  if (cargando) return <Spinner texto="Cargando stock..." />
 
   return (
     <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>

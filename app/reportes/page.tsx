@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { getVentas, getProductos } from '@/lib/supabase/productos'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { TrendingUp, DollarSign, Receipt, Package, Medal } from 'lucide-react'
+import { Spinner } from '@/components/ui/Spinner'
 
 function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
@@ -64,11 +66,7 @@ export default function ReportesPage() {
   })
   const topProductos = Object.values(itemsCount).sort((a, b) => b.total - a.total).slice(0, 6)
 
-  if (cargando) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72' }}>
-      ⏳ Cargando reportes...
-    </div>
-  )
+  if (cargando) return <Spinner texto="Cargando reportes..." />
 
   return (
     <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
@@ -80,20 +78,29 @@ export default function ReportesPage() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
         {[
-          { label: 'Ventas totales', value: formatPeso(totalMes), sub: `${ventas.length} transacciones`, color: '#5b4cff' },
-          { label: 'Ganancia estimada', value: formatPeso(ganancia), sub: `Margen ${margenProm}%`, color: '#00c896' },
-          { label: 'Ticket promedio', value: formatPeso(ticketProm), sub: 'Por transacción', color: '#ff6b35' },
-          { label: 'Productos activos', value: productos.length.toString(), sub: 'En catálogo', color: '#ffd23f' },
-        ].map(k => (
-          <div key={k.label} style={{ background: 'var(--card)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
-            <div style={{ fontSize: 10, color: '#6b6b72', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', marginBottom: 3 }}>{k.value}</div>
-            <div style={{ fontSize: 11, color: '#6b6b72' }}>{k.sub}</div>
-          </div>
-        ))}
-      </div>
-
+          { label: 'Ventas totales', value: formatPeso(totalMes), sub: `${ventas.length} transacciones`, color: '#5b4cff', icon: TrendingUp },
+          { label: 'Ganancia estimada', value: formatPeso(ganancia), sub: `Margen ${margenProm}%`, color: '#00c896', icon: DollarSign },
+          { label: 'Ticket promedio', value: formatPeso(ticketProm), sub: 'Por transacción', color: '#ff6b35', icon: Receipt },
+          { label: 'Productos activos', value: productos.length.toString(), sub: 'En catálogo', color: '#ffd23f', icon: Package },
+        ].map(k => {
+          const Icon = k.icon
+          return (
+            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', marginBottom: 3, color: 'var(--text)' }}>{k.value}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text2)' }}>{k.sub}</div>
+                </div>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon size={15} color={k.color} />
+                </div>
+              </div>
+            </div>
+          )
+        })}
+    </div>
 
 
       {/* Gráfico ventas por mes */}
@@ -173,8 +180,8 @@ export default function ReportesPage() {
 
       {/* Tabla top productos */}
       <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}>
-          🏆 Ranking de productos más vendidos
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Medal size={15} color="#ffd23f" /> Ranking de productos más vendidos
         </div>
         {topProductos.length === 0 ? (
           <div style={{ padding: 24, textAlign: 'center', color: '#6b6b72', fontSize: 12 }}>Sin ventas registradas todavía</div>

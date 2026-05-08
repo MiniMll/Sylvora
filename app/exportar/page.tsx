@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { getProductos, getVentas } from '@/lib/supabase/productos'
 import { toast } from 'sonner'
-import { FileText, Table, Receipt, BarChart2, AlertTriangle } from 'lucide-react'
+import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info } from 'lucide-react'
 
 function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
@@ -282,8 +282,9 @@ export default function ExportarPage() {
         })}
       </div>
 
-      <div style={{ marginTop: 16, background: 'rgba(91,76,255,0.05)', border: '1px solid rgba(91,76,255,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 11, color: '#6b6b72' }}>
-        💡 <b style={{ color: 'var(--text)' }}>Tip:</b> Los archivos PDF se abren en el navegador. Los Excel se descargan automáticamente. Podés enviarlos directamente a tu contador.
+      <div style={{ marginTop: 16, background: 'rgba(91,76,255,0.05)', border: '1px solid rgba(91,76,255,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 11, color: 'var(--text2)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <Info size={14} color="#5b4cff" style={{ flexShrink: 0, marginTop: 1 }} />
+        <span><b style={{ color: 'var(--text)' }}>Tip:</b> Los archivos PDF se abren en el navegador. Los Excel se descargan automáticamente. Podés enviarlos directamente a tu contador.</span>
       </div>
     </div>
   )
