@@ -4,6 +4,8 @@ import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja } from '@/lib/sup
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { MinusCircle, Wallet, TrendingDown, TrendingUp, Clock, CheckCircle, X, DollarSign } from 'lucide-react'
 import { toast } from 'sonner'
+import { Spinner } from '@/components/ui/Spinner'
+<Spinner texto="Cargando productos..." />
 
 function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
@@ -89,11 +91,6 @@ export default function CajaPage() {
     setGuardando(false)
   }
 
-  if (cargando) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72' }}>
-      ⏳ Cargando caja...
-    </div>
-  )
 
   return (
     <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

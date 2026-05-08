@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { guardarProducto, agregarLote } from '@/lib/supabase/productos'
 import { toast } from 'sonner'
+import { Package, DollarSign, Layers, Info } from 'lucide-react'
 
 interface Lote { id: string; numero: string; cantidad: string; vencimiento: string }
 
@@ -125,7 +126,9 @@ export default function NuevoProductoPage() {
       <div style={{ maxWidth: 680 }}>
         {/* Info básica */}
         <div style={sec}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14, color: 'var(--text)' }}>◈ Información básica</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
+            <Info size={15} color="#5b4cff" /> Información básica
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={lbl}>Nombre del producto *</label>
@@ -179,7 +182,9 @@ export default function NuevoProductoPage() {
 
         {/* Precios */}
         <div style={sec}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14, color: 'var(--text)' }}>💰 Precios</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
+            <DollarSign size={15} color="#5b4cff" /> Precios
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={lbl}>Precio de compra (costo)</label>
@@ -231,7 +236,9 @@ export default function NuevoProductoPage() {
 
         {/* Stock y lotes */}
         <div style={sec}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>📦 Stock y lotes</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
+            <Layers size={15} color="#5b4cff" /> Stock y lotes
+          </div>
           <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 14, background: 'rgba(91,76,255,0.06)', borderRadius: 8, padding: '8px 12px', border: '1px solid rgba(91,76,255,0.15)' }}>
             💡 El stock se calcula automáticamente sumando las cantidades de los lotes que cargues abajo.
             {esKg && ' Para productos por kilo, ingresá el peso en kg de cada lote.'}

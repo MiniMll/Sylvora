@@ -209,31 +209,6 @@ export default function POSPage() {
   const cobrar = async () => {
     if (!store.items.length) { toast.error('El ticket está vacío'); return }
     await cobrarConMetodo(store.metodoPago)
-    const itemsParaVenta = store.items.map(i => {
-      const productoIdReal = i.producto_id.includes('_') ? i.producto_id.split('_')[0] : i.producto_id
-      return {
-        producto_id: productoIdReal,
-        nombre_producto: i.nombre,
-        precio_unitario: i.precio_unitario,
-        cantidad: i.cantidad,
-        subtotal: i.subtotal,
-        peso_kg: i.peso_kg,
-      }
-    })
-    console.log('Items a vender:', itemsParaVenta) // debug
-    await guardarVenta({
-      subtotal: store.subtotal(),
-      descuento_porcentaje: store.descuentoPct,
-      descuento_monto: store.descuentoMonto(),
-      recargo_porcentaje: store.recargoPct,
-      recargo_monto: store.recargoMonto(),
-      total: store.total(),
-      metodo_pago: store.metodoPago,
-      items: itemsParaVenta,
-    })
-    setCobrado(true)
-    toast.success(`Venta de ${formatPeso(store.total())} registrada`)
-    setTimeout(() => { setCobrado(false); store.limpiarTicket() }, 2000)
   }
 
   const card: React.CSSProperties = {

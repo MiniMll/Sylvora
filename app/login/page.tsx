@@ -77,11 +77,13 @@ export default function LoginPage() {
         <div style={{ marginTop: 20, padding: 12, background: 'var(--bg3)', borderRadius: 8, fontSize: 11, color: '#6b6b72' }}>
           <b>Demo:</b> admin@micomercio.com / facilstock123
         </div>
+        <div style={{ marginTop: 16, textAlign: 'center', fontSize: 12, color: 'var(--text2)' }}>
+          ¿No tenés cuenta?{' '}
+          <a href="/registro" style={{ color: '#5b4cff', textDecoration: 'none', fontWeight: 500 }}>
+            Crear cuenta gratis →
+          </a>
+        </div>
       </div>
-      <div style={{ marginTop: 16, textAlign: 'center', fontSize: 12, color: 'var(--text2)' }}>
-  ¿No tenés cuenta?{' '}
-  <a href="/registro" style={{ color: '#5b4cff', textDecoration: 'none', fontWeight: 500 }}>Crear cuenta gratis →</a>
-</div>
     </div>
   )
 }
