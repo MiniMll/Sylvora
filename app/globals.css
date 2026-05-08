@@ -1,0 +1,117 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f4f0;
+  --bg2: #ffffff;
+  --bg3: #eceae4;
+  --text: #1a1a1e;
+  --text2: #6b6b72;
+  --border: rgba(0,0,0,0.08);
+  --card: #ffffff;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --ac: #5b4cff;
+  --g: #00c896;
+  --r: #ff4757;
+  --w: #ffb800;
+  --o: #ff6b35;
+}
+
+.dark {
+  --bg: #0e0e13;
+  --bg2: #16161f;
+  --bg3: #1c1c28;
+  --text: #e8e8f0;
+  --text2: #888898;
+  --border: rgba(255,255,255,0.07);
+  --card: #1c1c28;
+  --shadow: 0 2px 20px rgba(0,0,0,0.35);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.2s, color 0.2s;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Cards y componentes que usan variables */
+.card-bg { background: var(--card) !important; border-color: var(--border) !important; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .mobile-full { width: 100% !important; }
+}
+
+/* Desktop sidebar visible, mobile hidden */
+.desktop-sidebar { display: block; }
+.mobile-menu-btn { display: none !important; }
+
+@media (max-width: 768px) {
+  .desktop-sidebar { display: none !important; }
+  .mobile-menu-btn { display: flex !important; }
+}
+
+/* Modo oscuro automático para elementos comunes */
+.dark body { background: var(--bg); color: var(--text); }
+
+.dark [style*="background: white"],
+.dark [style*="background:'white'"],
+.dark [style*='background: "white"'] {
+  background: var(--card) !important;
+}
+
+/* Override manual para modo oscuro */
+.dark .auto-card {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+.dark .auto-bg {
+  background: var(--bg) !important;
+}
+
+.dark .auto-bg2 {
+  background: var(--bg2) !important;
+}
+
+.dark .auto-bg3 {
+  background: var(--bg3) !important;
+}
+
+.dark .auto-text {
+  color: var(--text) !important;
+}
+
+.dark .auto-text2 {
+  color: var(--text2) !important;
+}
+
+.dark .auto-border {
+  border-color: var(--border) !important;
+}
+
+/* Tablas en modo oscuro */
+.dark table { color: var(--text); }
+.dark thead tr { background: var(--bg3) !important; }
+.dark tbody tr:hover { background: var(--bg3) !important; }
+.dark th, .dark td { border-color: var(--border) !important; color: var(--text) !important; }
+
+/* Inputs en modo oscuro */
+.dark input, .dark select, .dark textarea {
+  background: var(--bg2) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Modales en modo oscuro */
+.dark .modal-dark {
+  background: var(--card) !important;
+  color: var(--text) !important;
+}
