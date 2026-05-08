@@ -186,7 +186,7 @@ export default function StockPage() {
       )}
       {criticos.length > 0 && (
         <div style={{ background: 'rgba(255,71,87,0.06)', border: '1px solid rgba(255,71,87,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#ff4757' }}>
-          ⛔ <b>{criticos.length} crítico{criticos.length > 1 ? 's' : ''}:</b> {criticos.map(p => p.nombre).join(', ')}
+          <b>{criticos.length} crítico{criticos.length > 1 ? 's' : ''}:</b> {criticos.map(p => p.nombre).join(', ')}
         </div>
       )}
 
@@ -287,7 +287,7 @@ export default function StockPage() {
                             <div style={{ fontSize: 12, fontWeight: 600, fontFamily: 'monospace', color: 'var(--text)' }}>{lote.numero_lote}</div>
                             {lote.fecha_vencimiento && (
                               <div style={{ fontSize: 10, color: vencido ? '#ff4757' : 'var(--text2)', marginTop: 2 }}>
-                                {vencido ? '⛔ Vencido: ' : 'Vence: '}
+                                {vencido ? 'Vencido: ' : 'Vence: '}
                                 {new Date(lote.fecha_vencimiento).toLocaleDateString('es-AR')}
                               </div>
                             )}
@@ -348,7 +348,7 @@ export default function StockPage() {
                 </div>
                 <button onClick={guardarNuevoLote} disabled={guardandoLote}
                   style={{ padding: '10px', borderRadius: 9, background: '#00c896', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
-                  {guardandoLote ? '⏳ Agregando...' : '✓ Agregar lote al stock'}
+                  {guardandoLote ? 'Agregando...' : 'Agregar lote al stock'}
                 </button>
               </div>
             </div>

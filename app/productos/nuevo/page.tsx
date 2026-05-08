@@ -167,7 +167,7 @@ export default function NuevoProductoPage() {
                 <label style={{ width: 100, height: 80, border: `2px dashed ${imgPreview ? '#5b4cff' : 'var(--border)'}`, borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', flexShrink: 0, background: 'var(--bg3)' }}>
                   {imgPreview
                     ? <img src={imgPreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <><span style={{ fontSize: 24 }}>📷</span><span style={{ fontSize: 10, color: 'var(--text2)', marginTop: 4 }}>Subir imagen</span></>
+                    : <><svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5'><path d='M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z'/><circle cx='12' cy='13' r='4'/></svg><span style={{ fontSize: 10, color: 'var(--text2)', marginTop: 4 }}>Subir imagen</span></>
                   }
                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImagen} />
                 </label>
@@ -240,7 +240,7 @@ export default function NuevoProductoPage() {
             <Layers size={15} color="#5b4cff" /> Stock y lotes
           </div>
           <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 14, background: 'rgba(91,76,255,0.06)', borderRadius: 8, padding: '8px 12px', border: '1px solid rgba(91,76,255,0.15)' }}>
-            💡 El stock se calcula automáticamente sumando las cantidades de los lotes que cargues abajo.
+            El stock se calcula automáticamente sumando las cantidades de los lotes que cargues abajo.
             {esKg && ' Para productos por kilo, ingresá el peso en kg de cada lote.'}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
@@ -295,7 +295,7 @@ export default function NuevoProductoPage() {
         <div style={{ display: 'flex', gap: 8, paddingBottom: 24 }}>
           <button onClick={guardar} disabled={guardando}
             style={{ padding: '10px 24px', borderRadius: 8, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: guardando ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-            {guardando ? '⏳ Guardando...' : '✓ Guardar producto'}
+            {guardando ? 'Guardando...' : 'Guardar producto'}
           </button>
           <button onClick={() => router.back()}
             style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>

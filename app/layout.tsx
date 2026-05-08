@@ -3,7 +3,7 @@ import { Toaster } from 'sonner'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Fácil Stock',
+  title: 'Sylvora',
   description: 'Gestión inteligente para tu comercio',
 }
 

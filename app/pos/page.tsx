@@ -6,9 +6,9 @@ import { toast } from 'sonner'
 import { Camera, Keyboard, Search, Scale, Beaker, Ruler, X, ShoppingCart, CheckCircle } from 'lucide-react'
 
 const METODOS = [
-  { id: 'efectivo', label: '💵 Efectivo' },
-  { id: 'transferencia', label: '📱 Transferencia' },
-  { id: 'debito', label: '💳 Débito' },
+  { id: 'efectivo', label: 'Efectivo' },
+  { id: 'transferencia', label: 'Transferencia' },
+  { id: 'debito', label: 'Débito' },
   { id: 'mercadopago', label: '📲 Mercado Pago' },
 ]
 
@@ -156,7 +156,7 @@ export default function POSPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         total: store.total(),
-        descripcion: `Venta Fácil Stock — ${store.items.length} productos`,
+        descripcion: `Venta Sylvora — ${store.items.length} productos`,
         external_reference: ref,
       })
     })
@@ -295,7 +295,7 @@ export default function POSPage() {
                     <div style={{ width: 52, height: 52, borderRadius: 8, overflow: 'hidden', background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {p.imagen_url
                         ? <img src={p.imagen_url} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
-                        : <span style={{ fontSize: 22, opacity: 0.3 }}>📦</span>
+                        : <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5' style={{opacity: 0.3}}><path d='M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z'/></svg>
                       }
                     </div>
                     {/* Info */}
@@ -430,7 +430,7 @@ export default function POSPage() {
         <div style={{ padding: '8px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <button onClick={cobrar}
             style={{ width: '100%', padding: '12px', borderRadius: 10, background: '#00c896', color: 'white', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {cobrado ? '✓ ¡Cobrado!' : '✓ Cobrar en efectivo'}
+            {cobrado ? '¡Cobrado!' : 'Cobrar en efectivo'}
           </button>
           <button onClick={iniciarPagoMP}
             style={{ width: '100%', padding: '10px', borderRadius: 10, background: '#009ee3', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
@@ -484,7 +484,7 @@ export default function POSPage() {
               </button>
               <button onClick={agregarConCantidad}
                 style={{ flex: 2, padding: '11px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                ✓ Agregar al ticket
+                Agregar al ticket
               </button>
             </div>
           </div>
@@ -545,7 +545,7 @@ export default function POSPage() {
                       />
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 16 }}>
-                      {verificandoPago ? '🔄 Verificando pago...' : '⏳ Esperando pago...'}
+                      {verificandoPago ? 'Verificando pago...' : 'Esperando pago...'}
                     </div>
                     <a href={pagoUrl} target="_blank" rel="noopener noreferrer"
                       style={{ display: 'block', padding: '10px', borderRadius: 9, background: '#009ee3', color: 'white', textDecoration: 'none', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
@@ -586,7 +586,7 @@ export default function POSPage() {
               autoFocus />
             <button onClick={() => agregarPorCodigo(codigoManual)}
               style={{ width: '100%', padding: '10px', borderRadius: 8, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-              ✓ Agregar producto
+              Agregar producto
             </button>
           </div>
         </div>

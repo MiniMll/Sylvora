@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { getVentas, getProductos } from '@/lib/supabase/productos'
 import Link from 'next/link'
+import { Spinner } from '@/components/ui/Spinner'
 import { TrendingUp, ShoppingBag, AlertTriangle, Package } from 'lucide-react'
 
 function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
@@ -62,9 +63,7 @@ export default function DashboardPage() {
   const alertasStock = productos.filter(p => p.stock_actual <= p.stock_minimo).slice(0, 5)
 
   if (cargando) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72' }}>
-      ⏳ Cargando dashboard...
-    </div>
+    <Spinner texto="Cargando dashboard..." />
   )
 
   const kpis = [
@@ -195,11 +194,11 @@ export default function DashboardPage() {
 , overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)'
 , fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>⚠️ Alertas de stock</span>
-            <Link href="/stock" style={{ fontSize: 11, color: '#5b4cff', textDecoration: 'none' }}>Ver todo →</Link>
+            <span><AlertTriangle size={13} /> Alertas de stock</span>
+            <Link href="/stock" style={{ fontSize: 11, color: '#5b4cff', textDecoration: 'none' }}>Ver todo</Link>
           </div>
           {alertasStock.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: '#00c896', fontSize: 12 }}>✅ Todo el stock está OK</div>
+            <div style={{ padding: 24, textAlign: 'center', color: '#00c896', fontSize: 12 }}><CheckCircle size={13} color="#00c896" style={{marginRight:4}}/> Todo el stock está OK</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>

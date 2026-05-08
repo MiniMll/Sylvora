@@ -69,11 +69,11 @@ export default function RegistroPage() {
 
     // 4. Crear categorías por defecto
     const cats = [
-      { nombre: 'Bebidas', icono: '🥤', color: '#5b4cff' },
-      { nombre: 'Almacén', icono: '🛒', color: '#00c896' },
-      { nombre: 'Lácteos', icono: '🥛', color: '#ff6b35' },
-      { nombre: 'Limpieza', icono: '🧹', color: '#ffd23f' },
-      { nombre: 'Ferretería', icono: '🔩', color: '#ff4757' },
+      { nombre: 'Bebidas', icono: 'BV', color: '#5b4cff' },
+      { nombre: 'Almacén', icono: 'AL', color: '#00c896' },
+      { nombre: 'Lácteos', icono: 'LC', color: '#ff6b35' },
+      { nombre: 'Limpieza', icono: 'LM', color: '#ffd23f' },
+      { nombre: 'Ferretería', icono: 'FR', color: '#ff4757' },
     ]
     await supabase.from('categorias').insert(cats.map(c => ({ ...c, comercio_id: comercio.id })))
 
@@ -89,9 +89,9 @@ export default function RegistroPage() {
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#5b4cff,#9b8fff)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: 16 }}>F</div>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#5b4cff,#9b8fff)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: 16 }}>S</div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Fácil Stock</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Sylvora</div>
             <div style={{ fontSize: 11, color: 'var(--text2)' }}>Crear cuenta gratis</div>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function RegistroPage() {
 
             {error && (
               <div style={{ marginTop: 12, background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.2)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#ff4757' }}>
-                ⚠️ {error}
+                {error}
               </div>
             )}
 
@@ -139,7 +139,7 @@ export default function RegistroPage() {
               setError(''); setPaso(2)
             }}
               style={{ width: '100%', marginTop: 20, padding: '11px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-              Siguiente →
+              Siguiente
             </button>
           </>
         )}
@@ -157,11 +157,11 @@ export default function RegistroPage() {
               <div>
                 <label style={lbl}>Tipo de comercio</label>
                 <select style={inp} value={form.tipo} onChange={e => set('tipo', e.target.value)}>
-                  <option value="kiosco">🥤 Kiosco</option>
-                  <option value="almacen">🛒 Almacén / Despensa</option>
-                  <option value="ferreteria">🔩 Ferretería</option>
-                  <option value="supermercado">🏪 Supermercado chico</option>
-                  <option value="otro">📦 Otro</option>
+                  <option value="kiosco">Kiosco</option>
+                  <option value="almacen">Almacén / Despensa</option>
+                  <option value="ferreteria">Ferretería</option>
+                  <option value="supermercado">Supermercado chico</option>
+                  <option value="otro">Otro</option>
                 </select>
               </div>
               <div>
@@ -172,18 +172,18 @@ export default function RegistroPage() {
 
             {error && (
               <div style={{ marginTop: 12, background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.2)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#ff4757' }}>
-                ⚠️ {error}
+                {error}
               </div>
             )}
 
             <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
               <button onClick={() => { setError(''); setPaso(1) }}
                 style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
-                ← Atrás
+                Atrás
               </button>
               <button onClick={registrar} disabled={cargando}
                 style={{ flex: 2, padding: '11px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: cargando ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-                {cargando ? '⏳ Creando cuenta...' : '✓ Crear cuenta gratis'}
+                {cargando ? 'Creando cuenta...' : 'Crear cuenta gratis'}
               </button>
             </div>
           </>

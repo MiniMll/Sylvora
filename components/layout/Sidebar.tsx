@@ -135,7 +135,7 @@ export function Sidebar() {
             <Store size={14} color="white" />
           </div>
           <div>
-            <div style={{ color: 'white', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Fácil Stock</div>
+            <div style={{ color: 'white', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Sylvora</div>
             <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontFamily: 'monospace' }}>Gestión inteligente</div>
           </div>
         </div>
@@ -193,8 +193,8 @@ export function Sidebar() {
     <>
       <div className="desktop-sidebar"><Inner /></div>
       <button onClick={() => setOpen(true)} className="mobile-menu-btn"
-        style={{ position: 'fixed', top: 12, left: 12, zIndex: 200, width: 36, height: 36, borderRadius: 9, background: '#13131a', border: 'none', color: 'white', cursor: 'pointer', fontSize: 18, display: 'none', alignItems: 'center', justifyContent: 'center' }}>
-        ☰
+        style={{ position: 'fixed', top: 12, left: 12, zIndex: 200, width: 36, height: 36, borderRadius: 9, background: '#13131a', border: 'none', color: 'white', cursor: 'pointer', display: 'none', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' strokeWidth='2'><line x1='3' y1='6' x2='21' y2='6'/><line x1='3' y1='12' x2='21' y2='12'/><line x1='3' y1='18' x2='21' y2='18'/></svg>
       </button>
       {open && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex' }}>

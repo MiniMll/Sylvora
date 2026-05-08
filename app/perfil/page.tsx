@@ -148,7 +148,7 @@ export default function PerfilPage() {
         {/* Plan */}
         <div style={sec}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-            ⭐ Plan activo
+            Plan activo
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #5b4cff, #9b8fff)', borderRadius: 12, padding: '16px 20px' }}>
             <div>

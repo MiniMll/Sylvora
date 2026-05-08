@@ -2,10 +2,9 @@
 import { useEffect, useState } from 'react'
 import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja } from '@/lib/supabase/productos'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { MinusCircle, Wallet, TrendingDown, TrendingUp, Clock, CheckCircle, X, DollarSign } from 'lucide-react'
+import { TrendingDown, CheckCircle, X, Loader2, AlertCircle, Banknote, Smartphone, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/Spinner'
-<Spinner texto="Cargando productos..." />
 
 function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
@@ -31,7 +30,9 @@ export default function CajaPage() {
   useEffect(() => {
     getCierresCaja().then(data => setCierresAnteriores(data))
   }, [])
-  
+
+  if (cargando) return <Spinner texto="Cargando caja..." />
+
   const totalVentas = ventas.reduce((s, v) => s + Number(v.total), 0)
   const totalEgresos = movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + Number(m.monto), 0)
   const saldo = totalVentas - totalEgresos
@@ -54,7 +55,7 @@ export default function CajaPage() {
 
   const handleCerrarCaja = async () => {
     setCerrando(true)
-    const porMetodo = (metodo: string) =>
+    const porMetodoFn = (metodo: string) =>
       ventas.filter(v => v.metodo_pago === metodo).reduce((s, v) => s + Number(v.total), 0)
 
     const ok = await cerrarCaja({
@@ -62,10 +63,10 @@ export default function CajaPage() {
       total_egresos: totalEgresos,
       saldo_neto: saldo,
       cantidad_ventas: ventas.length,
-      efectivo: porMetodo('efectivo'),
-      transferencia: porMetodo('transferencia'),
-      debito: porMetodo('debito'),
-      mercadopago: porMetodo('mercadopago'),
+      efectivo: porMetodoFn('efectivo'),
+      transferencia: porMetodoFn('transferencia'),
+      debito: porMetodoFn('debito'),
+      mercadopago: porMetodoFn('mercadopago'),
     })
 
     if (ok) {
@@ -78,6 +79,7 @@ export default function CajaPage() {
     setCerrando(false)
     setModalCierre(false)
   }
+
   const guardarEgreso = async () => {
     if (!egreso.descripcion || !egreso.monto) { alert('Completá descripción y monto'); return }
     setGuardando(true)
@@ -91,29 +93,31 @@ export default function CajaPage() {
     setGuardando(false)
   }
 
-
   return (
-    <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-      <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Caja Diaria</h1>
-        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>
-          {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </p>
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={() => setModalEgreso(true)}
-          style={{ padding: '8px 16px', borderRadius: 8, background: '#ff4757', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <TrendingDown size={14} /> Registrar egreso
-        </button>
-        <button onClick={() => setModalCierre(true)}
-          style={{ padding: '8px 16px', borderRadius: 8, background: '#5b4cff', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <CheckCircle size={14} /> Cerrar caja
-        </button>
-      </div>
+    <div style={{ padding: 20, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Caja Diaria</h1>
+          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>
+            {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setModalEgreso(true)}
+            style={{ padding: '8px 16px', borderRadius: 8, background: '#ff4757', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <TrendingDown size={14} /> Registrar egreso
+          </button>
+          <button onClick={() => setModalCierre(true)}
+            style={{ padding: '8px 16px', borderRadius: 8, background: '#5b4cff', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <CheckCircle size={14} /> Cerrar caja
+          </button>
+        </div>
+      </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
         {[
           { label: 'Total ventas', value: formatPeso(totalVentas), sub: `${ventas.length} operaciones`, color: '#5b4cff' },
           { label: 'Egresos', value: formatPeso(totalEgresos), sub: `${movimientos.filter(m => m.tipo === 'egreso').length} movimientos`, color: '#ff6b35' },
@@ -130,7 +134,7 @@ export default function CajaPage() {
       </div>
 
       {/* Gráfico flujo */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
+      <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)' }}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Flujo de caja del día</div>
         <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 12 }}>Ingresos y egresos por hora</div>
         {ventas.length === 0 ? (
@@ -153,9 +157,7 @@ export default function CajaPage() {
 
       {/* Por método + movimientos */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
-        <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)'
-
- }}>
+        <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>Por método de pago</div>
           {Object.entries(porMetodo).length === 0 ? (
             <div style={{ color: '#6b6b72', fontSize: 12 }}>Sin ventas hoy</div>
@@ -191,7 +193,6 @@ export default function CajaPage() {
                 </tr>
               </thead>
               <tbody>
-                {/* Ventas */}
                 {ventas.map((v: any) => (
                   <tr key={v.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 10, color: '#6b6b72' }}>
@@ -205,7 +206,6 @@ export default function CajaPage() {
                     <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontWeight: 600, color: '#00c896' }}>+{formatPeso(v.total)}</td>
                   </tr>
                 ))}
-                {/* Egresos */}
                 {movimientos.filter(m => m.tipo === 'egreso').map((m: any) => (
                   <tr key={m.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 10, color: '#6b6b72' }}>
@@ -225,53 +225,9 @@ export default function CajaPage() {
         </div>
       </div>
 
-      {/* Modal egreso */}
-      {modalEgreso && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>💸 Registrar egreso</div>
-              <button onClick={() => setModalEgreso(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#6b6b72' }}>✕</button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Descripción *</label>
-                <input value={egreso.descripcion} onChange={e => setEgreso(p => ({ ...p, descripcion: e.target.value }))}
-                  placeholder="Ej: Compra de mercadería"
-                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Monto *</label>
-                <input value={egreso.monto} onChange={e => setEgreso(p => ({ ...p, monto: e.target.value }))}
-                  type="number" placeholder="$ 0.00"
-                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'monospace' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Método de pago</label>
-                <select value={egreso.metodo} onChange={e => setEgreso(p => ({ ...p, metodo: e.target.value }))}
-                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}>
-                  <option value="efectivo">💵 Efectivo</option>
-                  <option value="transferencia">📱 Transferencia</option>
-                  <option value="debito">💳 Débito</option>
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-              <button onClick={() => setModalEgreso(false)}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.1)', background: 'var(--card)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cancelar
-              </button>
-              <button onClick={guardarEgreso} disabled={guardando}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, background: '#ff4757', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {guardando ? '⏳ Guardando...' : '✓ Registrar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Historial cierres */}
       {cierresAnteriores.length > 0 && (
-        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden', marginTop: 16 }}>
+        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
             Historial de cierres
           </div>
@@ -306,6 +262,56 @@ export default function CajaPage() {
         </div>
       )}
 
+      {/* Modal egreso */}
+      {modalEgreso && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <TrendingDown size={16} color="#ff4757" /> Registrar egreso
+              </div>
+              <button onClick={() => setModalEgreso(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b6b72' }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Descripción *</label>
+                <input value={egreso.descripcion} onChange={e => setEgreso(p => ({ ...p, descripcion: e.target.value }))}
+                  placeholder="Ej: Compra de mercadería"
+                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Monto *</label>
+                <input value={egreso.monto} onChange={e => setEgreso(p => ({ ...p, monto: e.target.value }))}
+                  type="number" placeholder="$ 0.00"
+                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'monospace' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Método de pago</label>
+                <select value={egreso.metodo} onChange={e => setEgreso(p => ({ ...p, metodo: e.target.value }))}
+                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}>
+                  <option value="efectivo">Efectivo</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="debito">Débito</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+              <button onClick={() => setModalEgreso(false)}
+                style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.1)', background: 'var(--card)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Cancelar
+              </button>
+              <button onClick={guardarEgreso} disabled={guardando}
+                style={{ flex: 1, padding: '11px', borderRadius: 9, background: '#ff4757', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                {guardando ? <><Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> Guardando...</> : 'Registrar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal cierre de caja */}
       {modalCierre && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 420 }}>
@@ -318,7 +324,6 @@ export default function CajaPage() {
               </button>
             </div>
 
-            {/* Resumen */}
             <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Resumen del día</div>
               {[
@@ -339,7 +344,6 @@ export default function CajaPage() {
               </div>
             </div>
 
-            {/* Por método */}
             <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
               <div style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Por método de pago</div>
               {['efectivo', 'transferencia', 'debito', 'mercadopago'].map(metodo => {
@@ -363,13 +367,16 @@ export default function CajaPage() {
               </button>
               <button onClick={handleCerrarCaja} disabled={cerrando}
                 style={{ flex: 2, padding: '11px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <CheckCircle size={14} />
-                {cerrando ? 'Cerrando...' : 'Confirmar cierre de caja'}
+                {cerrando
+                  ? <><Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> Cerrando...</>
+                  : <><CheckCircle size={14} /> Confirmar cierre</>
+                }
               </button>
             </div>
           </div>
         </div>
       )}
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 }

@@ -2,7 +2,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { getProductos, eliminarProducto, actualizarProducto, subirImagen, getLotes, agregarLote, getSiguienteNumeroLote, eliminarLote } from '@/lib/supabase/productos'
 import { toast } from 'sonner'
-import { Pencil, Trash2, Plus, Search, LayoutGrid, List, Package } from 'lucide-react'
+import { Pencil, Trash2, Plus, Search, LayoutGrid, List, Package, X, AlertTriangle, CheckCircle, Camera, Layers } from 'lucide-react'
+import { Spinner } from '@/components/ui/Spinner'
 
 function formatPeso(n: number) { return '$' + n.toLocaleString('es-AR') }
 function margen(costo: number, venta: number) { return venta ? Math.round((1 - costo / venta) * 100) : 0 }
@@ -219,11 +220,7 @@ export default function ProductosPage() {
     setBorrandoLote(null)
   }
 
-  if (cargando) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}>
-      ⏳ Cargando productos...
-    </div>
-  )
+  if (cargando) return <Spinner texto="Cargando productos..." />
 
   const mg = detalle ? margen(detalle.precio_costo, detalle.precio_venta) : 0
 
@@ -238,7 +235,7 @@ export default function ProductosPage() {
       {/* Toolbar */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
         <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
-          placeholder="🔍 Buscar por nombre, código, SKU..."
+          placeholder="Buscar por nombre, código, SKU..."
           style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12, outline: 'none', fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)' }} />
         <select value={categoria} onChange={e => setCategoria(e.target.value)}
           style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12, background: 'var(--bg2)', color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
@@ -276,7 +273,7 @@ export default function ProductosPage() {
                   {p.imagen_url
                     ? <img src={p.imagen_url} alt={p.nombre}
                         style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: 8 }} />
-                    : <span style={{ opacity: 0.3 }}>📦</span>
+                    : <Package size={40} color="var(--border)" style={{ opacity: 0.5 }} />
                   }
                   {p.unidad_venta !== 'unidad' && (
                     <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(91,76,255,0.9)', color: 'white', fontSize: 9, padding: '3px 7px', borderRadius: 5, fontWeight: 700 }}>
@@ -329,6 +326,78 @@ export default function ProductosPage() {
         </div>
       )}
 
+      {/* LISTA VIEW */}
+      {vista === 'lista' && (
+        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: 'var(--bg3)' }}>
+                {['Producto', 'SKU / Código', 'Categoría', 'Precio', 'Stock', 'Estado', ''].map(h => (
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtrados.map((p: any) => {
+                const sc = stockColor(p.stock_actual, p.stock_minimo, p.unidad_venta)
+                const sl = stockLabel(p.stock_actual, p.stock_minimo, p.unidad_venta)
+                return (
+                  <tr key={p.id} style={{ borderTop: '1px solid var(--border)', cursor: 'pointer' }}
+                    onClick={() => abrirDetalle(p)}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg3)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
+                    <td style={{ padding: '10px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg3)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {p.imagen_url
+                            ? <img src={p.imagen_url} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <Package size={16} color="var(--border)" />
+                          }
+                        </div>
+                        <span style={{ fontWeight: 500, color: 'var(--text)' }}>{p.nombre}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: 'var(--text2)', fontSize: 11 }}>{p.sku || p.codigo_barras || '—'}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text2)' }}>{p.categoria || '—'}</td>
+                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#5b4cff' }}>
+                      {p.unidad_venta === 'kg'
+                        ? `${formatPeso(p.precio_por_kg || 0)}/kg`
+                        : p.unidad_venta === 'litro'
+                        ? `${formatPeso(p.precio_venta)}/L`
+                        : formatPeso(p.precio_venta)
+                      }
+                    </td>
+                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: sc }}>
+                      {formatStock(p.stock_actual, p.unidad_venta)}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ background: sc + '22', color: sc, padding: '3px 8px', borderRadius: 5, fontSize: 10, fontWeight: 700 }}>{sl}</span>
+                    </td>
+                    <td style={{ padding: '10px 14px' }} onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button onClick={() => abrirEditar(p)}
+                          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Pencil size={11} color="var(--text2)" />
+                        </button>
+                        <button onClick={() => setConfirmarBorrar(p)}
+                          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.25)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Trash2 size={11} color="#ff4757" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          {filtrados.length === 0 && (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text2)', fontSize: 13 }}>
+              No se encontraron productos
+            </div>
+          )}
+        </div>
+      )}
+
       {/* MODAL DETALLE */}
       {detalle && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
@@ -336,10 +405,10 @@ export default function ProductosPage() {
             <div style={{ height: 180, background: 'var(--bg3)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, position: 'relative' }}>
               {detalle.imagen_url
                 ? <img src={detalle.imagen_url} alt={detalle.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : '📦'
+                : <Package size={48} color="rgba(255,255,255,0.3)" />
               }
               <button onClick={() => setDetalle(null)}
-                style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
             </div>
             <div style={{ padding: 20 }}>
               <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>{detalle.nombre}</div>
@@ -396,7 +465,7 @@ export default function ProductosPage() {
               {/* Lotes */}
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>📦 Lotes</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 5 }}><Layers size={12} /> Lotes</div>
                   <button onClick={() => setModalLote(detalle)}
                     style={{ padding: '4px 10px', borderRadius: 7, background: '#5b4cff', color: 'white', border: 'none', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                     + Agregar lote
@@ -419,7 +488,7 @@ export default function ProductosPage() {
                             <div style={{ fontSize: 11, fontWeight: 600, fontFamily: 'monospace', color: 'var(--text)' }}>{lote.numero_lote}</div>
                             {lote.fecha_vencimiento && (
                               <div style={{ fontSize: 10, color: vencido ? '#ff4757' : proxVencer ? '#ffb800' : 'var(--text2)' }}>
-                                {vencido ? '⛔ Vencido: ' : proxVencer ? '⚠️ Vence pronto: ' : 'Vence: '}
+                                {vencido ? 'Vencido: ' : proxVencer ? 'Vence pronto: ' : 'Vence: '}
                                 {new Date(lote.fecha_vencimiento).toLocaleDateString('es-AR')}
                               </div>
                             )}
@@ -472,7 +541,7 @@ export default function ProductosPage() {
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Imagen</label>
               <label style={{ width: 80, height: 70, borderRadius: 10, overflow: 'hidden', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--bg3)', fontSize: 28 }}>
-                {imgEditPreview ? <img src={imgEditPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📷'}
+                {imgEditPreview ? <img src={imgEditPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5' style={{color:'var(--text2)'}}><path d='M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z'/><circle cx='12' cy='13' r='4'/></svg>}
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImgEdit} />
               </label>
             </div>
@@ -509,7 +578,7 @@ export default function ProductosPage() {
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <button onClick={guardarEdicion} disabled={guardandoEdit}
                 style={{ flex: 1, padding: '10px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {guardandoEdit ? '⏳ Guardando...' : '✓ Guardar cambios'}
+                {guardandoEdit ? 'Guardando...' : 'Guardar cambios'}
               </button>
               <button onClick={() => setEditando(null)}
                 style={{ padding: '10px 16px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
@@ -525,7 +594,7 @@ export default function ProductosPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: 'var(--card)', borderRadius: 20, padding: 24, width: 380 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>📦 Agregar lote</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}><svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z'/></svg> Agregar lote</div>
               <button onClick={() => setModalLote(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text2)' }}>✕</button>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 14, background: 'var(--bg3)', padding: '8px 12px', borderRadius: 8 }}>
@@ -557,7 +626,7 @@ export default function ProductosPage() {
               </button>
               <button onClick={guardarNuevoLote} disabled={guardandoLote}
                 style={{ flex: 1, padding: '11px', borderRadius: 9, background: '#00c896', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {guardandoLote ? '⏳ Guardando...' : '✓ Agregar lote'}
+                {guardandoLote ? 'Guardando...' : 'Agregar lote'}
               </button>
             </div>
           </div>
@@ -574,7 +643,7 @@ export default function ProductosPage() {
               {confirmarBorrar.nombre}
             </div>
             <div style={{ fontSize: 12, color: '#ff4757', background: 'rgba(255,71,87,0.06)', borderRadius: 8, padding: '8px 12px', marginBottom: 20 }}>
-              ⚠️ Esta acción no se puede deshacer
+              Esta acción no se puede deshacer
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setConfirmarBorrar(null)}

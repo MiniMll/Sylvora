@@ -31,7 +31,7 @@ export default function ExportarPage() {
   const fecha = new Date().toLocaleDateString('es-AR')
 
   doc.setFontSize(20); doc.setTextColor(91, 76, 255)
-  doc.text('Fácil Stock', 14, 18)
+  doc.text('Sylvora', 14, 18)
   doc.setFontSize(13); doc.setTextColor(40, 40, 40)
   doc.text('Reporte de Stock', 14, 27)
   doc.setFontSize(9); doc.setTextColor(120, 120, 120)
@@ -118,7 +118,7 @@ export default function ExportarPage() {
 
   XLSX.writeFile(wb, `stock-${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.xlsx`)
   setCargando(null)
-  toast.success('📊 Stock Excel descargado')
+  toast.success('Stock Excel descargado')
 }
 
   const exportarVentasPDF = async () => {
@@ -132,7 +132,7 @@ export default function ExportarPage() {
 
     doc.setFontSize(20)
     doc.setTextColor(91, 76, 255)
-    doc.text('Fácil Stock', 14, 18)
+    doc.text('Sylvora', 14, 18)
     doc.setFontSize(13)
     doc.setTextColor(40, 40, 40)
     doc.text('Historial de Ventas', 14, 27)
@@ -184,7 +184,7 @@ export default function ExportarPage() {
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Ventas')
     XLSX.writeFile(wb, `ventas-${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.xlsx`)
-    toast.success('📊 Stock Excel descargado')
+    toast.success('Stock Excel descargado')
   }
 
   const exportarAlertasPDF = async () => {
@@ -198,7 +198,7 @@ export default function ExportarPage() {
 
     doc.setFontSize(20)
     doc.setTextColor(91, 76, 255)
-    doc.text('Fácil Stock', 14, 18)
+    doc.text('Sylvora', 14, 18)
     doc.setFontSize(13)
     doc.setTextColor(40, 40, 40)
     doc.text('Alertas de Stock — Lista de reposición', 14, 27)
@@ -274,7 +274,7 @@ export default function ExportarPage() {
                 <Icon size={20} color={r.color} />
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 5, color: 'var(--text)' }}>
-                {cargando === r.id ? '⏳ Generando...' : r.titulo}
+                {cargando === r.id ? 'Generando...' : r.titulo}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text2)', lineHeight: 1.5 }}>{r.desc}</div>
             </button>

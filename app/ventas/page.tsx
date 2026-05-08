@@ -152,7 +152,7 @@ export default function VentasPage() {
                       {v.estado}
                     </span>
                   </td>
-                  <td style={{ padding: '9px 12px', color: '#5b4cff', fontSize: 11 }}>Ver →</td>
+                  <td style={{ padding: '9px 12px', color: '#5b4cff', fontSize: 11 }}>Ver</td>
                 </tr>
               ))}
             </tbody>
