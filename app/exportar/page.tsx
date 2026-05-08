@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { getProductos, getVentas } from '@/lib/supabase/productos'
 import { toast } from 'sonner'
 import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info } from 'lucide-react'
+import { Spinner } from '@/components/ui/Spinner'
 
 function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
@@ -12,6 +13,9 @@ export default function ExportarPage() {
   const [periodo, setPeriodo] = useState('mes')
   const [cargando, setCargando] = useState<string | null>(null)
 
+  if (cargando) return (
+      <Spinner texto="Cargando dashboard..." />
+    )
   const exportar = async (id: string, fn: () => Promise<void>) => {
     setCargando(id)
     try {
