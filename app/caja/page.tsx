@@ -96,19 +96,24 @@ export default function CajaPage() {
   )
 
   return (
-    <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Caja Diaria</h1>
-          <p style={{ color: '#6b6b72', fontSize: 13, margin: '2px 0 0' }}>
-            {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
-        </div>
+    <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Caja Diaria</h1>
+        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>
+          {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </p>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={() => setModalEgreso(true)}
           style={{ padding: '8px 16px', borderRadius: 8, background: '#ff4757', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <MinusCircle size={14} /> Registrar egreso
+          <TrendingDown size={14} /> Registrar egreso
+        </button>
+        <button onClick={() => setModalCierre(true)}
+          style={{ padding: '8px 16px', borderRadius: 8, background: '#5b4cff', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <CheckCircle size={14} /> Cerrar caja
         </button>
       </div>
+
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>

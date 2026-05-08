@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { getProductos, guardarVenta } from '@/lib/supabase/productos'
 import { usePOSStore } from '@/lib/store'
 import { toast } from 'sonner'
-import { Camera, Keyboard, Search, Scale, Beaker, Ruler, X, ShoppingCart } from 'lucide-react'
+import { Camera, Keyboard, Search, Scale, Beaker, Ruler, X, ShoppingCart, CheckCircle } from 'lucide-react'
 
 const METODOS = [
   { id: 'efectivo', label: '💵 Efectivo' },
