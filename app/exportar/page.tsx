@@ -273,7 +273,7 @@ export default function ExportarPage() {
               <div style={{ width: 40, height: 40, borderRadius: 10, background: r.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
                 <Icon size={20} color={r.color} />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, letterSpacing: '-0.2px', color: 'var(--text)', color: 'var(--text)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, letterSpacing: '-0.2px', color: 'var(--text)',}}>
                 {cargando === r.id ? 'Generando...' : r.titulo}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text2)', lineHeight: 1.5 }}>{r.desc}</div>
