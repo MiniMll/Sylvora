@@ -91,7 +91,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="admin@micomercio.com"
+              placeholder="tu@email.com"
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
               onFocus={e => { e.target.style.borderColor = '#5b4cff'; e.target.style.boxShadow = '0 0 0 3px rgba(91,76,255,0.1)' }}
               onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,0.12)'; e.target.style.boxShadow = 'none' }}
@@ -162,10 +162,6 @@ export default function LoginPage() {
             : <>Ingresar <ArrowRight size={15} /></>
           }
         </button>
-
-        <div style={{ marginTop: 20, padding: '11px 14px', background: '#f8f8f6', borderRadius: 10, fontSize: 12, color: '#888898', border: '1px solid rgba(0,0,0,0.05)' }}>
-          <b style={{ color: '#6b6b72' }}>Demo:</b> admin@micomercio.com / facilstock123
-        </div>
 
         <div style={{ marginTop: 22, textAlign: 'center', fontSize: 13, color: '#888898' }}>
           ¿No tenés cuenta?{' '}

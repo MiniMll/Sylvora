@@ -43,9 +43,17 @@ export default function POSPage() {
   const [esperandoQRMesa, setEsperandoQRMesa] = useState(false)
   const [pagoQRMesa, setPagoQRMesa] = useState<any>(null)
   const qrMesaChannelRef = useRef<any>(null)
+  const pagoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pagoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const limpiarPollingMP = () => {
+    if (pagoIntervalRef.current) { clearInterval(pagoIntervalRef.current); pagoIntervalRef.current = null }
+    if (pagoTimeoutRef.current) { clearTimeout(pagoTimeoutRef.current); pagoTimeoutRef.current = null }
+  }
 
   useEffect(() => {
     getProductos().then(data => { setProductos(data); setCargando(false) })
+    return () => { limpiarPollingMP() }
   }, [])
 
   // Filtrar productos al buscar
@@ -168,15 +176,18 @@ export default function POSPage() {
     const data = await res.json()
     setPagoUrl(data.sandbox_init_point || data.init_point)
 
+    // Asegurar limpieza si quedó algún polling previo
+    limpiarPollingMP()
+
     // Verificar cada 3 segundos
-    const interval = setInterval(async () => {
+    pagoIntervalRef.current = setInterval(async () => {
       setVerificandoPago(true)
       const check = await fetch(`/api/mp/verificar?external_reference=${ref}`)
       const resultado = await check.json()
       setVerificandoPago(false)
       if (resultado.pagado) {
         setPagoEstado('aprobado')
-        clearInterval(interval)
+        limpiarPollingMP()
         // Guardar venta
         await cobrarConMetodo('mercadopago')
         setTimeout(() => { setModalPago(false); setPagoEstado(null) }, 3000)
@@ -184,7 +195,7 @@ export default function POSPage() {
     }, 3000)
 
     // Cancelar después de 10 minutos
-    setTimeout(() => clearInterval(interval), 10 * 60 * 1000)
+    pagoTimeoutRef.current = setTimeout(() => limpiarPollingMP(), 10 * 60 * 1000)
   }
 
   const cobrarConMetodo = async (metodo: string) => {
@@ -606,7 +617,7 @@ export default function POSPage() {
                   <div style={{ padding: '30px 0', color: 'var(--text2)', fontSize: 13 }}>Generando QR...</div>
                 )}
 
-                <button onClick={() => { setModalPago(false); setPagoEstado(null); setPagoUrl('') }}
+                <button onClick={() => { limpiarPollingMP(); setModalPago(false); setPagoEstado(null); setPagoUrl('') }}
                   style={{ width: '100%', padding: '10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
                   Cancelar
                 </button>

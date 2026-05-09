@@ -189,24 +189,16 @@ export async function guardarVenta(venta: {
   }))
   await supabase.from('items_venta').insert(items)
 
-for (const item of venta.items) {
-  const { data: prod } = await supabase
-    .from('productos')
-    .select('stock_actual')
-    .eq('id', item.producto_id)
-    .single()
-  if (prod) {
+  // Descontar stock de forma atómica vía RPC (evita race conditions)
+  await Promise.all(venta.items.map(item => {
     const aDescontar = (item.peso_kg !== undefined && item.peso_kg !== null)
       ? Number(item.peso_kg)
       : Number(item.cantidad)
-    const nuevoStock = Math.max(0, Number(prod.stock_actual) - aDescontar)
-    console.log(`Descontando ${aDescontar} de ${item.producto_id} — stock: ${prod.stock_actual} → ${nuevoStock}`)
-    await supabase
-      .from('productos')
-      .update({ stock_actual: nuevoStock })
-      .eq('id', item.producto_id)
-  }
-}
+    return supabase.rpc('descontar_stock', {
+      p_producto_id: item.producto_id,
+      p_cantidad: aDescontar,
+    })
+  }))
 
   return ventaData
 }
