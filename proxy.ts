@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const RUTAS_PUBLICAS = ['/login', '/registro']
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -22,14 +24,16 @@ export async function proxy(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const pathname = request.nextUrl.pathname
+  const esPublica = RUTAS_PUBLICAS.some(r => pathname.startsWith(r))
 
   // Si no está logueado y trata de entrar a una ruta protegida, redirigir al login
-  if (!user && !request.nextUrl.pathname.startsWith('/login')) {
+  if (!user && !esPublica) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Si está logueado y va al login, redirigir al dashboard
-  if (user && request.nextUrl.pathname.startsWith('/login')) {
+  if (user && pathname.startsWith('/login')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
@@ -37,5 +41,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/mp/webhook).*)'],
 }
