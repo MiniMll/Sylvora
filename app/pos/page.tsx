@@ -3,13 +3,14 @@ import { useEffect, useState, useRef } from 'react'
 import { getProductos, guardarVenta } from '@/lib/supabase/productos'
 import { usePOSStore } from '@/lib/store'
 import { toast } from 'sonner'
-import { Camera, Keyboard, Search, Scale, Beaker, Ruler, X, ShoppingCart, CheckCircle } from 'lucide-react'
+import { Camera, Keyboard, Search, Scale, Beaker, Ruler, X, ShoppingCart, CheckCircle, QrCode, Wifi } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 const METODOS = [
   { id: 'efectivo', label: 'Efectivo' },
   { id: 'transferencia', label: 'Transferencia' },
   { id: 'debito', label: 'Débito' },
-  { id: 'mercadopago', label: '📲 Mercado Pago' },
+  { id: 'mercadopago', label: 'Mercado Pago' },
 ]
 
 const PRESETS_DESC = [5, 10, 15]
@@ -38,6 +39,10 @@ export default function POSPage() {
   const [pagoId, setPagoId] = useState('')
   const [verificandoPago, setVerificandoPago] = useState(false)
   const [pagoEstado, setPagoEstado] = useState<'pendiente' | 'aprobado' | 'error' | null>(null)
+  const [modalQRMesa, setModalQRMesa] = useState(false)
+  const [esperandoQRMesa, setEsperandoQRMesa] = useState(false)
+  const [pagoQRMesa, setPagoQRMesa] = useState<any>(null)
+  const qrMesaChannelRef = useRef<any>(null)
 
   useEffect(() => {
     getProductos().then(data => { setProductos(data); setCargando(false) })
@@ -209,6 +214,45 @@ export default function POSPage() {
   const cobrar = async () => {
     if (!store.items.length) { toast.error('El ticket está vacío'); return }
     await cobrarConMetodo(store.metodoPago)
+  }
+
+  const iniciarEsperaQRMesa = () => {
+    if (!store.items.length) { toast.error('El ticket está vacío'); return }
+    setModalQRMesa(true)
+    setEsperandoQRMesa(true)
+    setPagoQRMesa(null)
+    const totalEsperado = store.total()
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel('qr-mesa-pos-' + Date.now())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pagos_mp' }, async (payload) => {
+        const pago = payload.new as any
+        // Margen de ±1 peso para redondeos
+        if (Math.abs(pago.monto - totalEsperado) <= 1) {
+          setEsperandoQRMesa(false)
+          setPagoQRMesa(pago)
+          supabase.removeChannel(channel)
+          // Marcar el pago como registrado
+          await supabase.from('pagos_mp').update({ estado: 'registrado' }).eq('id', pago.id)
+          // Registrar la venta
+          await cobrarConMetodo('mercadopago')
+          setTimeout(() => { setModalQRMesa(false); setPagoQRMesa(null) }, 3000)
+        }
+      })
+      .subscribe()
+    qrMesaChannelRef.current = channel
+  }
+
+  const cancelarEsperaQRMesa = () => {
+    if (qrMesaChannelRef.current) {
+      const supabase = createClient()
+      supabase.removeChannel(qrMesaChannelRef.current)
+      qrMesaChannelRef.current = null
+    }
+    setModalQRMesa(false)
+    setEsperandoQRMesa(false)
+    setPagoQRMesa(null)
   }
 
   const card: React.CSSProperties = {
@@ -432,10 +476,16 @@ export default function POSPage() {
             style={{ width: '100%', padding: '12px', borderRadius: 10, background: '#00c896', color: 'white', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
             {cobrado ? '¡Cobrado!' : 'Cobrar en efectivo'}
           </button>
-          <button onClick={iniciarPagoMP}
-            style={{ width: '100%', padding: '10px', borderRadius: 10, background: '#009ee3', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            📲 Pagar con Mercado Pago
-          </button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <button onClick={iniciarPagoMP}
+              style={{ padding: '10px', borderRadius: 10, background: '#009ee3', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+              <QrCode size={13} /> QR con monto
+            </button>
+            <button onClick={iniciarEsperaQRMesa}
+              style={{ padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg,#009ee3,#0070ba)', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+              <Wifi size={13} /> QR de mesa
+            </button>
+          </div>
         </div>
 
       </div>
@@ -565,6 +615,48 @@ export default function POSPage() {
           </div>
         </div>
       )}
+
+      {/* Modal QR de mesa */}
+      {modalQRMesa && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 32, width: 340, textAlign: 'center' }}>
+            {pagoQRMesa ? (
+              <>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(0,200,150,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <CheckCircle size={32} color="#00c896" />
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#00c896', marginBottom: 6 }}>¡Pago recibido!</div>
+                <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'monospace', color: 'var(--text)', marginBottom: 4 }}>{formatPeso(pagoQRMesa.monto)}</div>
+                {pagoQRMesa.pagador && (
+                  <div style={{ fontSize: 12, color: 'var(--text2)' }}>De: {pagoQRMesa.pagador}</div>
+                )}
+              </>
+            ) : (
+              <>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(0,158,227,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <Wifi size={26} color="#009ee3" style={{ animation: 'pulse 1.5s ease-in-out infinite' }} />
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Esperando pago por QR</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>
+                  El cliente debe escanear el QR del mostrador y pagar exactamente
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'monospace', color: '#009ee3', marginBottom: 20 }}>
+                  {formatPeso(store.total())}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, color: 'var(--text2)', marginBottom: 20 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#009ee3', animation: 'pulse 1s ease-in-out infinite' }} />
+                  Conectado · Detectando pago automáticamente
+                </div>
+                <button onClick={cancelarEsperaQRMesa}
+                  style={{ width: '100%', padding: '10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+                  Cancelar
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
 
       {/* Modal lector físico */}
       {modalScanner && (

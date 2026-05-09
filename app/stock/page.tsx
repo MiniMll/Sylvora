@@ -192,7 +192,7 @@ export default function StockPage() {
 
       {/* Gráfico */}
       <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.2px', color: 'var(--text)'}}>Stock por producto</div>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.2px', color: 'var(--text)', color: 'var(--text)' }}>Stock por producto</div>
         <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Stock actual vs mínimo</div>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={productos.slice(0, 10).map(p => ({

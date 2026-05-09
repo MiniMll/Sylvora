@@ -3,434 +3,661 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fácil Stock — Gestión inteligente para tu comercio</title>
+<title>Sylvora — Gestión inteligente para tu comercio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
- 
+
 :root {
-  --ink: #0e0e0f;
-  --ink2: #3a3a40;
-  --ink3: #78787f;
-  --paper: #f8f7f3;
-  --paper2: #f0efe9;
-  --paper3: #e8e7df;
-  --accent: #1a5cff;
-  --accent2: #0038d4;
-  --gold: #f5a623;
-  --green: #00b87a;
-  --red: #ff3b30;
+  --ink: #0e0e13;
+  --ink2: #3a3a44;
+  --ink3: #7a7a88;
+  --paper: #f5f4f0;
+  --paper2: #eceae4;
+  --paper3: #e0ddd6;
+  --ac: #5b4cff;
+  --ac2: #4a3dee;
+  --ac-light: rgba(91,76,255,0.08);
+  --green: #00c896;
+  --red: #ff4757;
+  --gold: #ffb800;
   --white: #ffffff;
   --card: #ffffff;
-  --r: 16px;
-  --rl: 24px;
+  --sidebar: #111118;
+  --r: 14px;
+  --rl: 22px;
   --f-head: 'Syne', sans-serif;
   --f-body: 'DM Sans', sans-serif;
   --f-mono: 'DM Mono', monospace;
-  --sh: 0 4px 24px rgba(0,0,0,0.07);
-  --sh2: 0 16px 64px rgba(0,0,0,0.12);
+  --sh: 0 2px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --sh2: 0 8px 40px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06);
+  --sh3: 0 24px 80px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.08);
 }
- 
+
 html { scroll-behavior: smooth; }
-body { font-family: var(--f-body); background: var(--paper); color: var(--ink); overflow-x: hidden; }
- 
-/* ---- NOISE TEXTURE OVERLAY ---- */
+body { font-family: var(--f-body); background: var(--paper); color: var(--ink); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
 body::before {
   content: '';
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  opacity: 0.025;
+  opacity: 0.018;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-size: 200px;
 }
- 
+
 /* ---- NAV ---- */
 nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   padding: 0 5%;
-  display: flex; align-items: center; height: 66px;
-  background: rgba(248,247,243,0.88);
-  backdrop-filter: blur(18px);
+  display: flex; align-items: center; height: 64px;
+  background: rgba(245,244,240,0.9);
+  backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--paper3);
+  transition: box-shadow 0.3s;
 }
-.nav-logo {
-  font-family: var(--f-head); font-size: 20px; font-weight: 800;
-  color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 8px;
+nav.scrolled { box-shadow: var(--sh); }
+
+.nav-logo { font-family: var(--f-head); font-size: 19px; font-weight: 800; color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 9px; letter-spacing: -0.3px; }
+.nav-logo-mark {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #5b4cff, #8b7fff);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 12px; font-weight: 800; letter-spacing: -0.5px;
+  box-shadow: 0 2px 8px rgba(91,76,255,0.3);
 }
-.nav-logo-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: inline-block; }
-.nav-links { display: flex; align-items: center; gap: 32px; margin-left: auto; margin-right: 32px; }
+.nav-links { display: flex; align-items: center; gap: 28px; margin-left: auto; margin-right: 28px; }
 .nav-links a { font-size: 14px; color: var(--ink2); text-decoration: none; font-weight: 400; transition: color .2s; }
-.nav-links a:hover { color: var(--accent); }
-.btn-nav { background: var(--ink); color: var(--white); padding: 10px 20px; border-radius: 50px; font-size: 13px; font-weight: 500; font-family: var(--f-body); cursor: pointer; border: none; text-decoration: none; transition: all .2s; }
-.btn-nav:hover { background: var(--accent); }
- 
+.nav-links a:hover { color: var(--ac); }
+.btn-nav { background: var(--ac); color: white; padding: 9px 20px; border-radius: 50px; font-size: 13px; font-weight: 600; font-family: var(--f-body); cursor: pointer; border: none; text-decoration: none; transition: all .2s; box-shadow: 0 2px 10px rgba(91,76,255,0.25); }
+.btn-nav:hover { background: var(--ac2); transform: translateY(-1px); }
+
 /* ---- HERO ---- */
 .hero {
   min-height: 100vh;
   display: flex; align-items: center;
-  padding: 100px 5% 80px;
+  padding: 100px 5% 60px;
   position: relative; overflow: hidden;
 }
 .hero-bg {
   position: absolute; inset: 0; z-index: 0;
   background:
-    radial-gradient(ellipse 60% 50% at 80% 40%, rgba(26,92,255,0.08) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(0,184,122,0.06) 0%, transparent 70%);
+    radial-gradient(ellipse 55% 60% at 75% 45%, rgba(91,76,255,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 20% 75%, rgba(0,200,150,0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 30% at 90% 10%, rgba(255,184,0,0.04) 0%, transparent 70%);
 }
-/* Grid pattern */
+/* Dot grid */
 .hero-bg::after {
   content: '';
   position: absolute; inset: 0;
-  background-image: linear-gradient(var(--paper3) 1px, transparent 1px), linear-gradient(90deg, var(--paper3) 1px, transparent 1px);
-  background-size: 48px 48px;
-  opacity: 0.5;
-  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  background-image: radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, black 0%, transparent 100%);
 }
-.hero-inner {
-  position: relative; z-index: 1;
-  max-width: 1200px; margin: 0 auto; width: 100%;
-  display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+
+.hero-inner { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1.1fr; gap: 60px; align-items: center; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--ac-light); border: 1px solid rgba(91,76,255,0.2);
+  color: var(--ac); padding: 5px 12px; border-radius: 50px;
+  font-size: 12px; font-weight: 600; margin-bottom: 22px;
+  letter-spacing: 0.02em;
 }
-.hero-tag {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--white); border: 1px solid var(--paper3);
-  padding: 6px 14px 6px 8px; border-radius: 50px;
-  font-size: 12px; color: var(--ink2); margin-bottom: 24px;
-  box-shadow: var(--sh);
-}
-.hero-tag-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.8)} }
-.hero h1 {
-  font-family: var(--f-head); font-size: clamp(40px,5vw,62px); font-weight: 800;
-  line-height: 1.06; letter-spacing: -2px; color: var(--ink);
-  margin-bottom: 22px;
-}
-.hero h1 em { font-style: normal; color: var(--accent); }
-.hero-sub {
-  font-size: 17px; line-height: 1.65; color: var(--ink2); font-weight: 300;
-  margin-bottom: 36px; max-width: 460px;
-}
-.hero-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.hero-badge-dot { width: 6px; height: 6px; background: var(--ac); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+
+.hero-title { font-family: var(--f-head); font-size: clamp(36px, 4.5vw, 58px); font-weight: 800; line-height: 1.08; letter-spacing: -1.5px; color: var(--ink); margin-bottom: 20px; }
+.hero-title em { font-style: normal; color: var(--ac); }
+.hero-sub { font-size: 17px; line-height: 1.65; color: var(--ink2); max-width: 460px; margin-bottom: 36px; }
+
+.hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
 .btn-primary {
-  background: var(--accent); color: var(--white);
-  padding: 14px 28px; border-radius: 50px;
-  font-size: 15px; font-weight: 500; font-family: var(--f-body);
+  background: var(--ac); color: white; padding: 14px 28px; border-radius: 50px;
+  font-size: 15px; font-weight: 600; font-family: var(--f-body);
   cursor: pointer; border: none; text-decoration: none;
-  display: inline-flex; align-items: center; gap: 8px;
-  transition: all .2s; box-shadow: 0 4px 20px rgba(26,92,255,.3);
+  box-shadow: 0 4px 16px rgba(91,76,255,0.3);
+  transition: all .2s; display: inline-flex; align-items: center; gap: 8px;
 }
-.btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 8px 28px rgba(26,92,255,.4); }
-.btn-secondary {
-  color: var(--ink); padding: 14px 24px; border-radius: 50px;
-  font-size: 15px; font-weight: 400; font-family: var(--f-body);
-  cursor: pointer; border: 1.5px solid var(--paper3); background: transparent;
-  text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
-  transition: all .2s;
+.btn-primary:hover { background: var(--ac2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(91,76,255,0.35); }
+.btn-ghost {
+  background: none; border: 1.5px solid var(--paper3); color: var(--ink);
+  padding: 14px 28px; border-radius: 50px; font-size: 15px; font-weight: 500;
+  font-family: var(--f-body); cursor: pointer; text-decoration: none;
+  transition: all .2s; display: inline-flex; align-items: center; gap: 7px;
 }
-.btn-secondary:hover { border-color: var(--ink2); background: var(--white); }
-.hero-trust { margin-top: 28px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ink3); }
-.stars { color: var(--gold); letter-spacing: -1px; }
- 
-/* HERO VISUAL */
-.hero-visual { position: relative; }
-.hero-mockup {
-  background: var(--white); border-radius: 20px; border: 1px solid var(--paper3);
-  box-shadow: var(--sh2); overflow: hidden;
-  transform: perspective(1000px) rotateY(-6deg) rotateX(2deg);
-  transition: transform .5s ease;
+.btn-ghost:hover { border-color: var(--ac); color: var(--ac); background: var(--ac-light); }
+
+.hero-trust { margin-top: 28px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink3); }
+.hero-trust-dots { display: flex; gap: -2px; }
+.hero-trust-dot { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--ac), #00c896); border: 2px solid white; margin-left: -6px; font-size: 9px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; }
+
+/* ---- APP MOCKUP ---- */
+.hero-visual { position: relative; display: flex; justify-content: center; }
+
+.app-frame {
+  background: #111118;
+  border-radius: 20px;
+  box-shadow: var(--sh3);
+  overflow: hidden;
+  width: 100%;
+  max-width: 560px;
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
 }
-.hero-mockup:hover { transform: perspective(1000px) rotateY(-2deg) rotateX(1deg); }
-.mockup-bar { background: var(--paper2); padding: 12px 16px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--paper3); }
-.mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
-.mockup-content { padding: 18px; }
-.mock-kpi-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
-.mock-kpi { background: var(--paper); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--paper3); }
-.mock-kpi-lbl { font-size: 9px; color: var(--ink3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-.mock-kpi-val { font-family: var(--f-mono); font-size: 16px; font-weight: 500; color: var(--ink); }
-.mock-kpi-ch { font-size: 9px; color: var(--green); margin-top: 2px; }
-.mock-chart { background: var(--paper); border-radius: 10px; padding: 12px; border: 1px solid var(--paper3); margin-bottom: 10px; }
-.mock-bars { display: flex; align-items: flex-end; gap: 5px; height: 60px; margin-top: 6px; }
-.mock-bar { flex: 1; border-radius: 4px 4px 0 0; background: var(--accent); opacity: .18; }
-.mock-bar.hi { opacity: .9; }
-.mock-bar.med { opacity: .5; }
-.mock-bar-g { background: var(--green); opacity: .7; }
-.mock-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.mock-item { background: var(--paper); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--paper3); font-size: 9px; }
-.mock-item-name { font-weight: 500; color: var(--ink); margin-bottom: 2px; }
-.mock-item-info { color: var(--ink3); }
-.mock-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 8px; font-weight: 500; background: rgba(0,184,122,.1); color: var(--green); }
-.mock-badge-w { background: rgba(255,184,0,.1); color: #e09000; }
-.mock-badge-r { background: rgba(255,59,48,.1); color: var(--red); }
- 
-/* Floating cards on hero */
-.float-card {
-  position: absolute; background: var(--white); border-radius: 12px;
-  border: 1px solid var(--paper3); box-shadow: var(--sh2);
-  padding: 12px 16px; font-size: 12px;
+
+/* Sidebar mockup */
+.mock-sidebar {
+  width: 52px;
+  background: #0d0d13;
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  border-right: 1px solid rgba(255,255,255,0.04);
+  flex-shrink: 0;
 }
-.float-card-1 { top: -20px; right: -30px; min-width: 160px; animation: float1 4s ease-in-out infinite; }
-.float-card-2 { bottom: 30px; left: -40px; min-width: 180px; animation: float2 5s ease-in-out infinite; }
-@keyframes float1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-@keyframes float2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
-.fc-label { font-size: 10px; color: var(--ink3); margin-bottom: 3px; }
-.fc-value { font-family: var(--f-mono); font-size: 18px; font-weight: 500; color: var(--ink); }
-.fc-sub { font-size: 10px; color: var(--green); margin-top: 2px; }
-.fc-alert { display: flex; align-items: center; gap: 8px; }
-.fc-alert-ic { font-size: 20px; }
- 
+.mock-logo-sq { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg,#5b4cff,#8b7fff); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(91,76,255,0.35); }
+.mock-nav-dot { width: 20px; height: 20px; border-radius: 6px; }
+.mock-nav-dot.active { background: rgba(91,76,255,0.3); }
+.mock-nav-dot:not(.active) { background: rgba(255,255,255,0.06); }
+
+/* Main content area */
+.mock-main { flex: 1; padding: 16px; background: #13131e; overflow: hidden; }
+
+.mock-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.mock-title { color: white; font-size: 14px; font-weight: 700; font-family: var(--f-head); letter-spacing: -0.3px; }
+.mock-date { color: rgba(255,255,255,0.3); font-size: 9px; font-family: var(--f-mono); }
+
+/* KPI row */
+.mock-kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 12px; }
+.mock-kpi {
+  background: #1c1c2a;
+  border-radius: 10px;
+  padding: 10px 10px;
+  border-top: 2px solid;
+  position: relative;
+  overflow: hidden;
+}
+.mock-kpi::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 100%); }
+.mock-kpi-label { color: rgba(255,255,255,0.3); font-size: 7px; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
+.mock-kpi-val { color: white; font-size: 13px; font-weight: 700; font-family: var(--f-mono); letter-spacing: -0.3px; }
+.mock-kpi-sub { color: rgba(255,255,255,0.2); font-size: 7px; margin-top: 3px; }
+
+/* Chart area */
+.mock-chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 10px; }
+.mock-card { background: #1c1c2a; border-radius: 10px; padding: 12px; border: 1px solid rgba(255,255,255,0.04); }
+.mock-card-title { color: rgba(255,255,255,0.5); font-size: 8px; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+
+.mock-bars { display: flex; align-items: flex-end; gap: 5px; height: 60px; }
+.mock-bar { flex: 1; border-radius: 4px 4px 0 0; opacity: 0.85; }
+
+.mock-pie { width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 8px; position: relative; }
+
+/* Stock table */
+.mock-table { width: 100%; }
+.mock-tr { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.mock-tr:last-child { border-bottom: none; }
+.mock-td-name { color: rgba(255,255,255,0.75); font-size: 9px; }
+.mock-td-num { color: rgba(255,255,255,0.35); font-size: 8px; font-family: var(--f-mono); }
+.mock-badge { padding: 2px 6px; border-radius: 4px; font-size: 7px; font-weight: 600; }
+.mock-badge-ok { background: rgba(0,200,150,0.15); color: #00c896; }
+.mock-badge-warn { background: rgba(255,184,0,0.15); color: #ffb800; }
+.mock-badge-crit { background: rgba(255,71,87,0.15); color: #ff4757; }
+
+/* Floating notification */
+.float-notif {
+  position: absolute;
+  bottom: -12px;
+  right: -20px;
+  background: white;
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: var(--sh2);
+  display: flex; align-items: center; gap: 10px;
+  border-left: 3px solid var(--green);
+  min-width: 220px;
+  animation: floatY 4s ease-in-out infinite;
+  z-index: 2;
+}
+.float-notif-ic { width: 32px; height: 32px; border-radius: 50%; background: rgba(0,200,150,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.float-notif-title { font-size: 11px; font-weight: 700; color: var(--ink); }
+.float-notif-val { font-size: 16px; font-weight: 800; color: var(--green); font-family: var(--f-mono); letter-spacing: -0.5px; }
+
+.float-alert {
+  position: absolute;
+  top: 40px;
+  left: -28px;
+  background: white;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: var(--sh2);
+  display: flex; align-items: center; gap: 8px;
+  border-left: 3px solid var(--gold);
+  min-width: 180px;
+  animation: floatY 5s ease-in-out infinite reverse;
+  z-index: 2;
+}
+.float-alert-ic { width: 26px; height: 26px; border-radius: 50%; background: rgba(255,184,0,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
 /* ---- LOGOS BAND ---- */
 .logos-band {
-  background: var(--white); border-top: 1px solid var(--paper3); border-bottom: 1px solid var(--paper3);
-  padding: 22px 5%; text-align: center;
+  background: var(--paper2);
+  border-top: 1px solid var(--paper3);
+  border-bottom: 1px solid var(--paper3);
+  padding: 28px 5%;
+  text-align: center;
 }
-.logos-band p { font-size: 12px; color: var(--ink3); margin-bottom: 18px; text-transform: uppercase; letter-spacing: 1px; }
-.logos-row { display: flex; align-items: center; justify-content: center; gap: 48px; flex-wrap: wrap; }
-.logo-item { font-family: var(--f-head); font-size: 16px; font-weight: 700; color: var(--paper3); letter-spacing: -0.5px; }
- 
-/* ---- SECTIONS ---- */
-section { padding: 96px 5%; }
-.section-tag { font-size: 11px; font-weight: 500; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px; }
-.section-title { font-family: var(--f-head); font-size: clamp(28px,4vw,46px); font-weight: 800; line-height: 1.1; letter-spacing: -1.5px; color: var(--ink); margin-bottom: 16px; }
-.section-sub { font-size: 17px; color: var(--ink2); line-height: 1.65; font-weight: 300; max-width: 560px; }
+.logos-band p { font-size: 12px; color: var(--ink3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+.logos-row { display: flex; align-items: center; justify-content: center; gap: 32px; flex-wrap: wrap; }
+.logo-item { font-family: var(--f-mono); font-size: 13px; color: var(--ink3); font-weight: 500; opacity: 0.7; }
+
+/* ---- SECTION COMMONS ---- */
+.section-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ac); background: var(--ac-light); border: 1px solid rgba(91,76,255,0.15); padding: 5px 12px; border-radius: 50px; margin-bottom: 16px; }
+.section-title { font-family: var(--f-head); font-size: clamp(28px,3.5vw,44px); font-weight: 800; letter-spacing: -1px; line-height: 1.1; color: var(--ink); margin-bottom: 14px; }
+.section-sub { font-size: 16px; color: var(--ink2); line-height: 1.65; max-width: 540px; }
 .section-header { margin-bottom: 56px; }
 .section-header.center { text-align: center; }
 .section-header.center .section-sub { margin: 0 auto; }
- 
+
 /* ---- FEATURES ---- */
-.features-bg { background: var(--white); }
-.features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; background: var(--paper3); border: 1px solid var(--paper3); border-radius: 20px; overflow: hidden; max-width: 1100px; margin: 0 auto; }
-.feat-item { background: var(--white); padding: 36px 32px; transition: background .2s; }
-.feat-item:hover { background: var(--paper); }
-.feat-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--paper); border: 1px solid var(--paper3); display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 18px; }
-.feat-title { font-family: var(--f-head); font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
-.feat-desc { font-size: 14px; color: var(--ink2); line-height: 1.65; font-weight: 300; }
-.feat-highlight { color: var(--accent); font-weight: 500; }
- 
+.features-bg { padding: 100px 5%; background: var(--paper); }
+.features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; max-width: 1100px; margin: 0 auto; }
+
+.feat-item {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 28px;
+  border: 1px solid var(--paper3);
+  box-shadow: var(--sh);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.feat-item::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, var(--ac), transparent); opacity:0; transition:opacity 0.2s; }
+.feat-item:hover { transform: translateY(-4px); box-shadow: var(--sh2); }
+.feat-item:hover::before { opacity: 1; }
+
+.feat-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--ac-light);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+  color: var(--ac);
+}
+.feat-title { font-family: var(--f-head); font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.3px; }
+.feat-desc { font-size: 14px; color: var(--ink2); line-height: 1.65; }
+.feat-highlight { color: var(--ac); font-weight: 500; }
+
 /* ---- HOW IT WORKS ---- */
+.how-section { padding: 100px 5%; }
 .how-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; max-width: 1100px; margin: 0 auto; }
-.how-steps { display: flex; flex-direction: column; gap: 0; }
-.how-step { display: flex; gap: 20px; padding: 24px 0; border-bottom: 1px solid var(--paper3); cursor: pointer; }
-.how-step:last-child { border-bottom: none; }
-.how-step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--paper2); border: 1px solid var(--paper3); display: flex; align-items: center; justify-content: center; font-family: var(--f-mono); font-size: 13px; font-weight: 500; color: var(--ink3); flex-shrink: 0; transition: all .2s; }
-.how-step.active .how-step-num { background: var(--accent); border-color: var(--accent); color: var(--white); }
-.how-step-body {}
-.how-step-title { font-family: var(--f-head); font-size: 16px; font-weight: 700; color: var(--ink2); margin-bottom: 4px; transition: color .2s; }
-.how-step.active .how-step-title { color: var(--ink); }
-.how-step-desc { font-size: 13px; color: var(--ink3); line-height: 1.6; display: none; }
-.how-step.active .how-step-desc { display: block; }
-.how-visual { background: var(--white); border-radius: 20px; border: 1px solid var(--paper3); box-shadow: var(--sh2); padding: 24px; min-height: 300px; display: flex; align-items: center; justify-content: center; }
-.how-visual-inner { text-align: center; }
-.how-visual-emoji { font-size: 64px; margin-bottom: 12px; display: block; }
-.how-visual-label { font-family: var(--f-head); font-size: 15px; color: var(--ink2); font-weight: 600; }
- 
+.how-steps { display: flex; flex-direction: column; gap: 4px; margin-top: 32px; }
+.how-step { display: flex; gap: 16px; padding: 18px 20px; border-radius: 14px; cursor: pointer; transition: all 0.2s; border: 1.5px solid transparent; }
+.how-step:hover, .how-step.active { background: white; border-color: var(--paper3); box-shadow: var(--sh); }
+.how-step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--ac-light); color: var(--ac); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; font-family: var(--f-mono); }
+.how-step.active .how-step-num { background: var(--ac); color: white; }
+.how-step-title { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 5px; letter-spacing: -0.2px; }
+.how-step-desc { font-size: 13px; color: var(--ink2); line-height: 1.6; }
+
+/* App screen mockups for "how it works" */
+.how-visual {
+  position: relative;
+}
+.how-screen {
+  background: white;
+  border-radius: 18px;
+  border: 1px solid var(--paper3);
+  box-shadow: var(--sh2);
+  overflow: hidden;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.how-screen-header {
+  background: #111118;
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.how-screen-dots { display:flex; gap:4px; }
+.how-screen-dot { width:7px; height:7px; border-radius:50%; }
+.how-screen-body { padding: 20px; }
+
+/* Screens */
+#screen-1, #screen-2, #screen-3 { position: absolute; top: 0; left: 0; width: 100%; opacity: 0; transform: translateY(8px); pointer-events: none; transition: all 0.35s ease; }
+#screen-1 { position: relative; opacity: 1; transform: none; pointer-events: all; }
+
+/* POS screen mockup */
+.pos-products { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.pos-product { background: #f5f4f0; border-radius: 10px; padding: 10px; border: 1px solid #eceae4; }
+.pos-product-name { font-size: 11px; font-weight: 600; color: #1a1a1e; margin-bottom: 4px; }
+.pos-product-price { font-size: 13px; font-weight: 700; color: #5b4cff; font-family: var(--f-mono); }
+.pos-ticket { background: #f5f4f0; border-radius: 10px; padding: 12px; }
+.pos-ticket-row { display: flex; justify-content: space-between; font-size: 11px; padding: 4px 0; border-bottom: 1px solid #eceae4; color: #6b6b72; }
+.pos-ticket-total { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; padding-top: 8px; color: #1a1a1e; }
+.pos-cobrar { background: #5b4cff; color: white; width: 100%; padding: 10px; border-radius: 9px; border: none; font-size: 13px; font-weight: 600; font-family: var(--f-body); margin-top: 10px; cursor: pointer; }
+
+/* Stock mockup */
+.stock-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+.stock-name { flex:1; font-size: 12px; font-weight: 500; color: #1a1a1e; }
+.stock-num { font-size: 11px; font-family: var(--f-mono); color: #6b6b72; }
+.stock-badge { padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 600; }
+
+/* ---- SCREENSHOTS SECTION ---- */
+.screens-section { padding: 80px 5%; background: var(--paper2); overflow: hidden; }
+.screens-scroll { display: flex; gap: 20px; margin-top: 48px; overflow-x: auto; padding-bottom: 16px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.screens-scroll::-webkit-scrollbar { display: none; }
+.screen-card { flex-shrink: 0; width: 380px; scroll-snap-align: start; background: white; border-radius: 20px; border: 1px solid var(--paper3); box-shadow: var(--sh); overflow: hidden; }
+.screen-card-label { padding: 14px 16px; border-bottom: 1px solid var(--paper3); font-size: 12px; font-weight: 600; color: var(--ink2); display: flex; align-items: center; gap: 7px; }
+.screen-card-label-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ac); }
+.screen-card-body { padding: 16px; }
+
 /* ---- WHO ---- */
-.who-bg { background: var(--paper2); }
-.who-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; max-width: 1100px; margin: 0 auto; }
-.who-card { background: var(--white); border-radius: var(--rl); border: 1px solid var(--paper3); padding: 28px 24px; text-align: center; box-shadow: var(--sh); }
-.who-icon { font-size: 40px; margin-bottom: 14px; display: block; }
-.who-title { font-family: var(--f-head); font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
-.who-desc { font-size: 13px; color: var(--ink2); line-height: 1.6; font-weight: 300; }
- 
+.who-bg { padding: 100px 5%; background: var(--paper); }
+.who-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; max-width: 1100px; margin: 0 auto; }
+.who-card {
+  background: white;
+  border-radius: 18px;
+  padding: 28px 24px;
+  border: 1px solid var(--paper3);
+  box-shadow: var(--sh);
+  transition: transform 0.2s;
+}
+.who-card:hover { transform: translateY(-3px); }
+.who-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--paper2); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; color: var(--ac); }
+.who-title { font-family: var(--f-head); font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 8px; letter-spacing: -0.2px; }
+.who-desc { font-size: 13px; color: var(--ink2); line-height: 1.6; }
+
 /* ---- PRICING ---- */
-.pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; max-width: 960px; margin: 0 auto; }
-.price-card { background: var(--white); border-radius: var(--rl); border: 1px solid var(--paper3); padding: 32px 28px; box-shadow: var(--sh); position: relative; transition: transform .2s; }
-.price-card:hover { transform: translateY(-4px); }
-.price-card.featured { background: var(--ink); border-color: var(--ink); color: var(--white); }
-.price-card.featured * { --ink: #fff; --ink2: rgba(255,255,255,.7); --ink3: rgba(255,255,255,.4); --paper3: rgba(255,255,255,.12); }
-.price-popular { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--white); font-size: 11px; font-weight: 500; padding: 4px 14px; border-radius: 50px; white-space: nowrap; }
-.price-plan { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: var(--ink3); margin-bottom: 12px; }
-.price-featured .price-plan { color: rgba(255,255,255,.5); }
-.price-amount { font-family: var(--f-mono); font-size: 42px; font-weight: 500; color: var(--ink); line-height: 1; margin-bottom: 4px; }
-.price-card.featured .price-amount { color: var(--white); }
-.price-period { font-size: 12px; color: var(--ink3); margin-bottom: 20px; }
-.price-card.featured .price-period { color: rgba(255,255,255,.5); }
-.price-divider { height: 1px; background: var(--paper3); margin: 20px 0; }
+.pricing-section { padding: 100px 5%; }
+.pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; max-width: 1000px; margin: 0 auto; }
+.price-card {
+  background: white;
+  border-radius: 22px;
+  padding: 32px;
+  border: 1.5px solid var(--paper3);
+  box-shadow: var(--sh);
+  position: relative;
+  overflow: hidden;
+}
+.price-card.featured {
+  background: linear-gradient(145deg, #5b4cff, #4a3dee);
+  border-color: #5b4cff;
+  box-shadow: 0 8px 32px rgba(91,76,255,0.28);
+}
+.price-popular {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; color: var(--gold);
+  background: rgba(255,184,0,0.12);
+  border: 1px solid rgba(255,184,0,0.25);
+  padding: 4px 10px; border-radius: 50px;
+  display: inline-block; margin-bottom: 14px;
+}
+.price-plan { font-family: var(--f-head); font-size: 14px; font-weight: 600; color: var(--ink2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+.price-amount { font-family: var(--f-head); font-size: 36px; font-weight: 800; color: var(--ink); letter-spacing: -1px; margin-bottom: 4px; }
+.price-period { font-size: 12px; color: var(--ink3); margin-bottom: 24px; }
+.price-divider { height: 1px; background: var(--paper3); margin-bottom: 24px; }
 .price-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
-.price-features li { font-size: 13px; color: var(--ink2); display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
-.price-card.featured .price-features li { color: rgba(255,255,255,.8); }
-.price-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
-.price-features li.no::before { content: '×'; color: var(--ink3); }
-.price-card.featured .price-features li.no::before { color: rgba(255,255,255,.3); }
-.price-cta { width: 100%; padding: 12px; border-radius: 50px; font-size: 14px; font-weight: 500; font-family: var(--f-body); cursor: pointer; border: 1.5px solid var(--paper3); background: transparent; color: var(--ink); transition: all .2s; }
-.price-cta:hover { background: var(--paper); border-color: var(--ink2); }
-.price-card.featured .price-cta { background: var(--white); color: var(--ink); border-color: var(--white); }
-.price-card.featured .price-cta:hover { background: var(--paper); }
- 
-/* ---- TESTIMONIOS ---- */
-.test-bg { background: var(--paper2); }
-.test-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; max-width: 1100px; margin: 0 auto; }
-.test-card { background: var(--white); border-radius: var(--rl); border: 1px solid var(--paper3); padding: 28px; box-shadow: var(--sh); }
-.test-stars { color: var(--gold); font-size: 13px; margin-bottom: 12px; letter-spacing: -1px; }
-.test-text { font-size: 14px; color: var(--ink2); line-height: 1.7; font-weight: 300; margin-bottom: 18px; font-style: italic; }
-.test-author { display: flex; align-items: center; gap: 10px; }
-.test-av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--white); flex-shrink: 0; }
-.test-name { font-size: 13px; font-weight: 500; color: var(--ink); }
-.test-biz { font-size: 11px; color: var(--ink3); }
- 
-/* ---- FAQ ---- */
-.faq-wrap { max-width: 700px; margin: 0 auto; }
-.faq-item { border-bottom: 1px solid var(--paper3); }
-.faq-q { padding: 20px 0; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-family: var(--f-head); font-size: 16px; font-weight: 600; color: var(--ink); gap: 16px; }
-.faq-toggle { width: 24px; height: 24px; border-radius: 50%; background: var(--paper2); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; transition: transform .3s, background .2s; }
-.faq-item.open .faq-toggle { transform: rotate(45deg); background: var(--accent); color: var(--white); }
-.faq-a { font-size: 14px; color: var(--ink2); line-height: 1.7; font-weight: 300; max-height: 0; overflow: hidden; transition: max-height .4s ease, padding .3s; }
-.faq-item.open .faq-a { max-height: 200px; padding-bottom: 18px; }
- 
-/* ---- CTA FINAL ---- */
+.price-features li { font-size: 13.5px; color: var(--ink2); display: flex; align-items: center; gap: 9px; }
+.price-features li::before { content: ''; width: 16px; height: 16px; border-radius: 50%; background: rgba(0,200,150,0.12); border: 1px solid rgba(0,200,150,0.3); flex-shrink: 0; background-image: url("data:image/svg+xml,%3Csvg width='10' height='8' viewBox='0 0 10 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 4L3.5 6.5L9 1' stroke='%2300c896' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: center; }
+.price-features li.no { color: var(--ink3); }
+.price-features li.no::before { background-color: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.08); background-image: url("data:image/svg+xml,%3Csvg width='8' height='8' viewBox='0 0 8 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L7 7M7 1L1 7' stroke='%23aaa' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.price-cta {
+  width: 100%; padding: 13px; border-radius: 12px;
+  background: var(--ac); color: white;
+  border: 1.5px solid var(--ac);
+  font-size: 14px; font-weight: 600; font-family: var(--f-body);
+  cursor: pointer; transition: all 0.2s;
+}
+.price-cta:hover { background: var(--ac2); }
+
+/* ---- CTA SECTION ---- */
 .cta-section {
-  background: var(--ink); color: var(--white); text-align: center;
-  position: relative; overflow: hidden;
+  padding: 100px 5%;
+  background: linear-gradient(145deg, #5b4cff 0%, #4a3dee 100%);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
 }
 .cta-section::before {
-  content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(26,92,255,.3) 0%, transparent 70%);
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(255,255,255,0.06) 0%, transparent 70%);
 }
-.cta-inner { position: relative; z-index: 1; max-width: 600px; margin: 0 auto; }
-.cta-title { font-family: var(--f-head); font-size: clamp(32px,5vw,54px); font-weight: 800; letter-spacing: -2px; line-height: 1.05; margin-bottom: 18px; }
-.cta-sub { font-size: 16px; color: rgba(255,255,255,.65); font-weight: 300; margin-bottom: 36px; line-height: 1.65; }
-.cta-actions { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
-.btn-cta { background: var(--white); color: var(--ink); padding: 14px 28px; border-radius: 50px; font-size: 15px; font-weight: 500; font-family: var(--f-body); cursor: pointer; border: none; text-decoration: none; transition: all .2s; }
-.btn-cta:hover { background: var(--paper2); transform: translateY(-1px); }
-.btn-cta-ghost { background: transparent; color: rgba(255,255,255,.7); padding: 14px 24px; border-radius: 50px; font-size: 15px; font-weight: 400; font-family: var(--f-body); cursor: pointer; border: 1.5px solid rgba(255,255,255,.2); text-decoration: none; transition: all .2s; }
-.btn-cta-ghost:hover { border-color: rgba(255,255,255,.5); color: var(--white); }
- 
+.cta-section > * { position: relative; z-index: 1; }
+.cta-title { font-family: var(--f-head); font-size: clamp(28px,4vw,48px); font-weight: 800; color: white; letter-spacing: -1px; margin-bottom: 16px; }
+.cta-sub { font-size: 16px; color: rgba(255,255,255,0.65); margin-bottom: 36px; }
+.btn-cta-white { background: white; color: var(--ac); padding: 16px 36px; border-radius: 50px; font-size: 16px; font-weight: 700; font-family: var(--f-body); cursor: pointer; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 9px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); transition: all 0.2s; }
+.btn-cta-white:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+
 /* ---- FOOTER ---- */
-footer { background: var(--ink); border-top: 1px solid rgba(255,255,255,.06); padding: 48px 5% 32px; color: rgba(255,255,255,.5); }
-.footer-inner { max-width: 1100px; margin: 0 auto; }
-.footer-top { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 40px; }
-.footer-brand { font-family: var(--f-head); font-size: 20px; font-weight: 800; color: var(--white); margin-bottom: 10px; }
-.footer-tagline { font-size: 13px; color: rgba(255,255,255,.4); line-height: 1.6; font-weight: 300; }
-.footer-col-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,.35); margin-bottom: 14px; }
-.footer-col a { display: block; font-size: 13px; color: rgba(255,255,255,.55); text-decoration: none; margin-bottom: 8px; transition: color .2s; }
-.footer-col a:hover { color: var(--white); }
-.footer-bottom { border-top: 1px solid rgba(255,255,255,.06); padding-top: 24px; display: flex; align-items: center; justify-content: space-between; }
-.footer-copy { font-size: 12px; color: rgba(255,255,255,.3); }
-.footer-legal { display: flex; gap: 20px; }
-.footer-legal a { font-size: 12px; color: rgba(255,255,255,.3); text-decoration: none; }
-.footer-legal a:hover { color: rgba(255,255,255,.6); }
- 
-/* ---- ANIMS ---- */
-.fade-up { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+footer {
+  background: var(--ink);
+  color: rgba(255,255,255,0.4);
+  padding: 48px 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.footer-logo { font-family: var(--f-head); font-size: 16px; font-weight: 800; color: white; display: flex; align-items: center; gap: 8px; }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 13px; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.2s; }
+.footer-links a:hover { color: white; }
+.footer-copy { font-size: 12px; }
+
+/* ---- ANIMATIONS ---- */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+@keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+.fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.55s ease, transform 0.55s ease; }
 .fade-up.visible { opacity: 1; transform: none; }
-.fade-up-d1 { transition-delay: .1s; }
-.fade-up-d2 { transition-delay: .2s; }
-.fade-up-d3 { transition-delay: .3s; }
-.fade-up-d4 { transition-delay: .4s; }
- 
+.fade-up-d1 { transition-delay: 0.1s; }
+.fade-up-d2 { transition-delay: 0.2s; }
+.fade-up-d3 { transition-delay: 0.3s; }
+
+/* ---- RESPONSIVE ---- */
 @media (max-width: 900px) {
-  .hero-inner,.how-grid { grid-template-columns: 1fr; gap: 48px; }
-  .features-grid,.pricing-grid,.test-grid,.who-grid { grid-template-columns: 1fr 1fr; }
-  .footer-top { grid-template-columns: 1fr 1fr; }
-  .hero-mockup { transform: none; }
-  .float-card { display: none; }
-  nav .nav-links { display: none; }
+  .hero-inner { grid-template-columns: 1fr; }
+  .hero-visual { display: none; }
+  .features-grid { grid-template-columns: 1fr 1fr; }
+  .how-grid { grid-template-columns: 1fr; }
+  .who-grid { grid-template-columns: 1fr 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
+  .nav-links { display: none; }
 }
 @media (max-width: 600px) {
-  .features-grid,.pricing-grid,.test-grid,.who-grid { grid-template-columns: 1fr; }
-  .footer-top { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: 1fr; }
+  .who-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
- 
+
 <!-- NAV -->
-<nav>
+<nav id="nav">
   <a class="nav-logo" href="#">
-    <span class="nav-logo-dot"></span>Fácil Stock
+    <div class="nav-logo-mark">Sy</div>
+    Sylvora
   </a>
   <div class="nav-links">
     <a href="#funciones">Funciones</a>
-    <a href="#para-quien">¿Para quién?</a>
+    <a href="#como-funciona">Cómo funciona</a>
+    <a href="#para-quien">Para quién</a>
     <a href="#precios">Precios</a>
-    <a href="#faq">FAQ</a>
   </div>
-  <a href="#precios" class="btn-nav">Empezar ahora →</a>
+  <a class="btn-nav" href="/registro">Empezar gratis</a>
 </nav>
- 
+
 <!-- HERO -->
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="hero-inner">
     <div>
-      <div class="hero-tag fade-up">
-        <span class="hero-tag-dot"></span>
-        Sistema de gestión para comercios argentinos
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Para comercios argentinos
       </div>
-      <h1 class="fade-up fade-up-d1">
-        Tu comercio,<br><em>bajo control</em><br>desde el día uno.
-      </h1>
-      <p class="hero-sub fade-up fade-up-d2">
-        Stock, caja, ventas, códigos de barras y reportes en un solo lugar. Sin complicaciones, sin planillas de Excel, sin papeles.
-      </p>
-      <div class="hero-actions fade-up fade-up-d3">
-        <a href="#precios" class="btn-primary">Probá Fácil Stock →</a>
-        <a href="#funciones" class="btn-secondary">Ver funciones</a>
+      <h1 class="hero-title">Tu comercio,<br><em>bajo control.</em></h1>
+      <p class="hero-sub">Sylvora es el sistema de gestión hecho para kioscos, almacenes y comercios de barrio. Stock, caja, ventas y precios desde cualquier dispositivo.</p>
+      <div class="hero-ctas">
+        <a class="btn-primary" href="/registro">
+          Empezar gratis
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a class="btn-ghost" href="/login">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+          Iniciar sesión
+        </a>
       </div>
-      <div class="hero-trust fade-up fade-up-d4">
-        <span class="stars">★★★★★</span>
-        <span>+500 comercios ya lo usan · Sin tarjeta de crédito</span>
+      <div class="hero-trust">
+        <div class="hero-trust-dots">
+          <div class="hero-trust-dot">A</div>
+          <div class="hero-trust-dot" style="background:linear-gradient(135deg,#ff6b35,#ffd23f)">B</div>
+          <div class="hero-trust-dot" style="background:linear-gradient(135deg,#00c896,#009ee3)">C</div>
+        </div>
+        <span>Más de 200 comercios ya lo usan · Sin tarjeta de crédito</span>
       </div>
     </div>
+
+    <!-- APP MOCKUP -->
     <div class="hero-visual">
-      <div class="hero-mockup">
-        <div class="mockup-bar">
-          <div class="mockup-dot" style="background:#ff5f57"></div>
-          <div class="mockup-dot" style="background:#febc2e"></div>
-          <div class="mockup-dot" style="background:#28c840"></div>
+      <!-- Alert float card -->
+      <div class="float-alert">
+        <div class="float-alert-ic">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffb800" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </div>
-        <div class="mockup-content">
-          <div class="mock-kpi-row">
-            <div class="mock-kpi"><div class="mock-kpi-lbl">Ventas hoy</div><div class="mock-kpi-val">$47.280</div><div class="mock-kpi-ch">▲ 12%</div></div>
-            <div class="mock-kpi"><div class="mock-kpi-lbl">Transacciones</div><div class="mock-kpi-val">38</div><div class="mock-kpi-ch">▲ 5 más</div></div>
-            <div class="mock-kpi"><div class="mock-kpi-lbl">Ganancia</div><div class="mock-kpi-val">$18.920</div><div class="mock-kpi-ch">40% margen</div></div>
+        <div>
+          <div style="font-size:10px;font-weight:600;color:var(--ink)">Stock crítico</div>
+          <div style="font-size:9px;color:var(--ink3)">Fósforos · 3 unidades</div>
+        </div>
+      </div>
+
+      <div class="app-frame">
+        <!-- Sidebar -->
+        <div class="mock-sidebar">
+          <div class="mock-logo-sq">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           </div>
-          <div class="mock-chart">
-            <div style="font-size:9px;color:var(--ink3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">Ventas semana</div>
-            <div class="mock-bars">
-              <div class="mock-bar" style="height:40%"></div>
-              <div class="mock-bar med" style="height:65%"></div>
-              <div class="mock-bar" style="height:45%"></div>
-              <div class="mock-bar med" style="height:80%"></div>
-              <div class="mock-bar" style="height:55%"></div>
-              <div class="mock-bar hi" style="height:95%"></div>
-              <div class="mock-bar mock-bar-g" style="height:100%"></div>
+          <div class="mock-nav-dot active"></div>
+          <div class="mock-nav-dot"></div>
+          <div class="mock-nav-dot"></div>
+          <div class="mock-nav-dot"></div>
+          <div class="mock-nav-dot"></div>
+          <div class="mock-nav-dot"></div>
+        </div>
+        <!-- Main -->
+        <div class="mock-main">
+          <div class="mock-header">
+            <div class="mock-title">Panel de Control</div>
+            <div class="mock-date">Lun 09 may</div>
+          </div>
+          <!-- KPIs -->
+          <div class="mock-kpis">
+            <div class="mock-kpi" style="border-top-color:#5b4cff">
+              <div class="mock-kpi-label">Ventas</div>
+              <div class="mock-kpi-val">$84.200</div>
+              <div class="mock-kpi-sub">↑ 12% vs ayer</div>
+            </div>
+            <div class="mock-kpi" style="border-top-color:#00c896">
+              <div class="mock-kpi-label">Ganancia</div>
+              <div class="mock-kpi-val">$23.600</div>
+              <div class="mock-kpi-sub">28% margen</div>
+            </div>
+            <div class="mock-kpi" style="border-top-color:#ffb800">
+              <div class="mock-kpi-label">Tickets</div>
+              <div class="mock-kpi-val">47</div>
+              <div class="mock-kpi-sub">$1.791 prom.</div>
+            </div>
+            <div class="mock-kpi" style="border-top-color:#ff4757">
+              <div class="mock-kpi-label">Stock bajo</div>
+              <div class="mock-kpi-val">3</div>
+              <div class="mock-kpi-sub">productos</div>
             </div>
           </div>
-          <div class="mock-row2">
-            <div class="mock-item"><div class="mock-item-name">Coca-Cola 2.25L</div><div class="mock-item-info">Stock: 45 · <span class="mock-badge">OK</span></div></div>
-            <div class="mock-item"><div class="mock-item-name">Yerba CBSé 500g</div><div class="mock-item-info">Stock: 6 · <span class="mock-badge mock-badge-w">Bajo</span></div></div>
-            <div class="mock-item"><div class="mock-item-name">Fósforos</div><div class="mock-item-info">Stock: 3 · <span class="mock-badge mock-badge-r">Crítico</span></div></div>
-            <div class="mock-item"><div class="mock-item-name">Tuerca M8 x50</div><div class="mock-item-info">Stock: 38 · <span class="mock-badge">OK</span></div></div>
+          <!-- Chart -->
+          <div class="mock-chart-row">
+            <div class="mock-card">
+              <div class="mock-card-title">Ventas por hora</div>
+              <div class="mock-bars">
+                <div class="mock-bar" style="height:25%;background:#5b4cff"></div>
+                <div class="mock-bar" style="height:40%;background:#5b4cff"></div>
+                <div class="mock-bar" style="height:55%;background:#5b4cff"></div>
+                <div class="mock-bar" style="height:70%;background:#5b4cff"></div>
+                <div class="mock-bar" style="height:90%;background:#5b4cff"></div>
+                <div class="mock-bar" style="height:65%;background:#5b4cff"></div>
+                <div class="mock-bar" style="height:100%;background:rgba(91,76,255,0.4);outline:1.5px dashed #5b4cff"></div>
+                <div class="mock-bar" style="height:45%;background:rgba(91,76,255,0.2)"></div>
+              </div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-title">Por método</div>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:2px">
+                <div style="display:flex;justify-content:space-between;font-size:8px;color:rgba(255,255,255,0.4)"><span>Efectivo</span><span style="font-family:monospace">54%</span></div>
+                <div style="height:4px;background:rgba(255,255,255,0.08);border-radius:2px"><div style="width:54%;height:100%;background:#5b4cff;border-radius:2px"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:8px;color:rgba(255,255,255,0.4)"><span>MP</span><span style="font-family:monospace">31%</span></div>
+                <div style="height:4px;background:rgba(255,255,255,0.08);border-radius:2px"><div style="width:31%;height:100%;background:#009ee3;border-radius:2px"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:8px;color:rgba(255,255,255,0.4)"><span>Débito</span><span style="font-family:monospace">15%</span></div>
+                <div style="height:4px;background:rgba(255,255,255,0.08);border-radius:2px"><div style="width:15%;height:100%;background:#00c896;border-radius:2px"></div></div>
+              </div>
+            </div>
+          </div>
+          <!-- Stock table -->
+          <div class="mock-card">
+            <div class="mock-card-title">Stock crítico</div>
+            <div class="mock-table">
+              <div class="mock-tr">
+                <div class="mock-td-name">Coca-Cola 2.25L</div>
+                <div class="mock-td-num">48 u.</div>
+                <div class="mock-badge mock-badge-ok">OK</div>
+              </div>
+              <div class="mock-tr">
+                <div class="mock-td-name">Yerba CBSé 500g</div>
+                <div class="mock-td-num">6 u.</div>
+                <div class="mock-badge mock-badge-warn">Bajo</div>
+              </div>
+              <div class="mock-tr">
+                <div class="mock-td-name">Fósforos x40</div>
+                <div class="mock-td-num">3 u.</div>
+                <div class="mock-badge mock-badge-crit">Crítico</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <div class="float-card float-card-1">
-        <div class="fc-label">Ganancia del mes</div>
-        <div class="fc-value">$487.200</div>
-        <div class="fc-sub">▲ 40% margen neto</div>
-      </div>
-      <div class="float-card float-card-2">
-        <div class="fc-alert">
-          <span class="fc-alert-ic">⚠️</span>
-          <div><div style="font-size:11px;font-weight:500;color:var(--ink)">Stock crítico</div><div style="font-size:10px;color:var(--ink3)">Fósforos · 3 unidades</div></div>
+
+      <!-- Payment received float -->
+      <div class="float-notif">
+        <div class="float-notif-ic">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00c896" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div>
+          <div class="float-notif-title">Pago recibido · MercadoPago</div>
+          <div class="float-notif-val">$2.350</div>
         </div>
       </div>
     </div>
   </div>
 </section>
- 
+
 <!-- LOGOS BAND -->
 <div class="logos-band">
   <p>Integrado con los medios de pago que ya usás</p>
   <div class="logos-row">
     <span class="logo-item">Mercado Pago</span>
+    <span class="logo-item">·</span>
     <span class="logo-item">Naranja X</span>
+    <span class="logo-item">·</span>
     <span class="logo-item">MODO</span>
+    <span class="logo-item">·</span>
     <span class="logo-item">Ualá</span>
+    <span class="logo-item">·</span>
     <span class="logo-item">Prisma</span>
   </div>
 </div>
- 
+
 <!-- FEATURES -->
 <section class="features-bg" id="funciones">
   <div class="section-header center fade-up">
@@ -440,111 +667,395 @@ footer { background: var(--ink); border-top: 1px solid rgba(255,255,255,.06); pa
   </div>
   <div class="features-grid">
     <div class="feat-item fade-up">
-      <div class="feat-icon">📦</div>
+      <div class="feat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      </div>
       <div class="feat-title">Control de stock</div>
       <div class="feat-desc">Alertas automáticas cuando un producto baja del mínimo. <span class="feat-highlight">Lotes y fechas de vencimiento</span> incluidos. Nunca más te quedás sin stock sin saberlo.</div>
     </div>
     <div class="feat-item fade-up fade-up-d1">
-      <div class="feat-icon">⊞</div>
+      <div class="feat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+      </div>
       <div class="feat-title">Punto de Venta (POS)</div>
       <div class="feat-desc">Cobrá rápido con <span class="feat-highlight">escáner de código de barras</span> o cámara del celular. Aplicá descuentos o el recargo de Mercado Pago con un toque.</div>
     </div>
     <div class="feat-item fade-up fade-up-d2">
-      <div class="feat-icon">📊</div>
+      <div class="feat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </div>
       <div class="feat-title">Reportes en tiempo real</div>
       <div class="feat-desc">Dashboard con ventas, ganancias y margen. <span class="feat-highlight">Exportá a PDF o Excel</span> con un clic: stock, caja, ventas, vencimientos.</div>
     </div>
     <div class="feat-item fade-up fade-up-d1">
-      <div class="feat-icon">💰</div>
+      <div class="feat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
       <div class="feat-title">Gestión de caja</div>
       <div class="feat-desc">Apertura y cierre de caja, ingresos y egresos, diferencia de caja. Todo el flujo de dinero del día en una sola pantalla.</div>
     </div>
     <div class="feat-item fade-up fade-up-d2">
-      <div class="feat-icon">🏷️</div>
+      <div class="feat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
       <div class="feat-title">Precios inteligentes</div>
-      <div class="feat-desc">Precio de compra, venta, mayorista y por kilo. El sistema <span class="feat-highlight">calcula el margen automáticamente</span>. Actualizá todos los precios de un rubro de una vez.</div>
+      <div class="feat-desc">Precio de compra, venta, mayorista y por kilo. El sistema <span class="feat-highlight">calcula el margen automáticamente</span>. Actualizá precios de un rubro de una vez.</div>
     </div>
     <div class="feat-item fade-up fade-up-d3">
-      <div class="feat-icon">📷</div>
-      <div class="feat-title">Escáner de códigos</div>
-      <div class="feat-desc">Usá la <span class="feat-highlight">cámara del celular o un lector físico</span> USB. Alta de productos y cobro en segundos. Compatible con todos los códigos EAN, UPC y SKU.</div>
+      <div class="feat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      </div>
+      <div class="feat-title">MercadoPago integrado</div>
+      <div class="feat-desc">Generá QR con el monto exacto o usá tu <span class="feat-highlight">QR fijo de mostrador</span>. El sistema detecta el pago en segundos y lo registra automáticamente.</div>
     </div>
   </div>
 </section>
- 
+
 <!-- HOW IT WORKS -->
-<section id="como-funciona">
+<section class="how-section" id="como-funciona">
   <div class="how-grid">
     <div>
       <div class="section-tag fade-up">Cómo funciona</div>
       <div class="section-title fade-up">En 3 pasos<br>estás vendiendo.</div>
-      <div class="how-steps" style="margin-top:32px">
-        <div class="how-step active" onclick="activateStep(this, '🏪', 'Configurá tu local')">
+      <div class="how-steps">
+        <div class="how-step active" onclick="showStep(0, this)">
           <div class="how-step-num">1</div>
           <div class="how-step-body">
             <div class="how-step-title">Cargá tus productos</div>
-            <div class="how-step-desc">Ingresá el nombre, código de barras, precio de compra y venta. Podés cargar uno por uno o importar desde una planilla Excel. En menos de una hora tenés todo cargado.</div>
+            <div class="how-step-desc">Nombre, código de barras, precio de compra y venta. Importá desde Excel o cargá uno por uno. En menos de una hora tenés todo listo.</div>
           </div>
         </div>
-        <div class="how-step" onclick="activateStep(this, '⊞', 'Punto de Venta listo')">
+        <div class="how-step" onclick="showStep(1, this)">
           <div class="how-step-num">2</div>
           <div class="how-step-body">
             <div class="how-step-title">Empezá a vender</div>
-            <div class="how-step-desc">Abrí el POS, escaneá los productos y cobrá. El stock se descuenta solo, la caja se actualiza en tiempo real, sin hacer nada extra.</div>
+            <div class="how-step-desc">Abrí el POS, escaneá los productos y cobrá. El stock se descuenta solo, la caja se actualiza en tiempo real.</div>
           </div>
         </div>
-        <div class="how-step" onclick="activateStep(this, '📊', 'Reportes automáticos')">
+        <div class="how-step" onclick="showStep(2, this)">
           <div class="how-step-num">3</div>
           <div class="how-step-body">
             <div class="how-step-title">Controlá tu negocio</div>
-            <div class="how-step-desc">Al final del día cerrás caja y tenés el resumen completo: ventas, ganancias, productos más vendidos y alertas de stock. Todo en PDF si querés imprimirlo.</div>
+            <div class="how-step-desc">Al final del día cerrás caja y tenés el resumen: ventas, ganancias, productos más vendidos y alertas de stock.</div>
           </div>
         </div>
       </div>
     </div>
-    <div class="how-visual fade-up">
-      <div class="how-visual-inner">
-        <span class="how-visual-emoji" id="how-emoji">🏪</span>
-        <div class="how-visual-label" id="how-label">Configurá tu local</div>
+
+    <!-- Screen previews -->
+    <div class="how-visual">
+      <!-- Screen 0: productos -->
+      <div id="screen-0" class="how-screen" style="position:relative;opacity:1;transform:none;pointer-events:all">
+        <div class="how-screen-header">
+          <div class="how-screen-dots">
+            <div class="how-screen-dot" style="background:#ff4757"></div>
+            <div class="how-screen-dot" style="background:#ffb800"></div>
+            <div class="how-screen-dot" style="background:#00c896"></div>
+          </div>
+          <div style="margin-left:10px;color:rgba(255,255,255,0.35);font-size:10px;font-family:monospace">Sylvora · Productos</div>
+        </div>
+        <div class="how-screen-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div style="font-size:15px;font-weight:700;color:#1a1a1e;font-family:var(--f-head)">Productos</div>
+            <div style="background:#5b4cff;color:white;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600">+ Nuevo</div>
+          </div>
+          <div style="background:#f5f4f0;border-radius:9px;padding:7px 12px;display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span style="font-size:12px;color:#888">Buscar productos...</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:#f8f8f8;border-radius:12px;padding:12px;border:1px solid #eceae4">
+              <div style="width:100%;height:50px;background:#eceae4;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+              </div>
+              <div style="font-size:11px;font-weight:600;color:#1a1a1e;margin-bottom:2px">Coca-Cola 2.25L</div>
+              <div style="font-size:12px;font-weight:700;color:#5b4cff;font-family:monospace">$1.850</div>
+              <div style="font-size:9px;color:#888;margin-top:3px">Stock: 48 u. · OK</div>
+            </div>
+            <div style="background:#f8f8f8;border-radius:12px;padding:12px;border:1px solid #eceae4">
+              <div style="width:100%;height:50px;background:#eceae4;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+              </div>
+              <div style="font-size:11px;font-weight:600;color:#1a1a1e;margin-bottom:2px">Yerba CBSé 500g</div>
+              <div style="font-size:12px;font-weight:700;color:#5b4cff;font-family:monospace">$2.300</div>
+              <div style="font-size:9px;color:#ffb800;margin-top:3px">Stock: 6 u. · Bajo</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Screen 1: POS -->
+      <div id="screen-1" class="how-screen">
+        <div class="how-screen-header">
+          <div class="how-screen-dots">
+            <div class="how-screen-dot" style="background:#ff4757"></div>
+            <div class="how-screen-dot" style="background:#ffb800"></div>
+            <div class="how-screen-dot" style="background:#00c896"></div>
+          </div>
+          <div style="margin-left:10px;color:rgba(255,255,255,0.35);font-size:10px;font-family:monospace">Sylvora · Punto de Venta</div>
+        </div>
+        <div class="how-screen-body">
+          <div style="font-size:15px;font-weight:700;color:#1a1a1e;font-family:var(--f-head);margin-bottom:12px">Punto de Venta</div>
+          <div class="pos-products">
+            <div class="pos-product">
+              <div class="pos-product-name">Coca-Cola 2.25L</div>
+              <div class="pos-product-price">$1.850</div>
+            </div>
+            <div class="pos-product">
+              <div class="pos-product-name">Yerba CBSé 500g</div>
+              <div class="pos-product-price">$2.300</div>
+            </div>
+          </div>
+          <div class="pos-ticket">
+            <div class="pos-ticket-row"><span>Coca-Cola 2.25L × 2</span><span>$3.700</span></div>
+            <div class="pos-ticket-row"><span>Yerba CBSé × 1</span><span>$2.300</span></div>
+            <div class="pos-ticket-total"><span>Total</span><span style="color:#5b4cff">$6.000</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+            <div style="padding:8px;border-radius:8px;border:1.5px solid #5b4cff;background:rgba(91,76,255,0.06);text-align:center;font-size:11px;font-weight:600;color:#5b4cff">Efectivo</div>
+            <div style="padding:8px;border-radius:8px;border:1px solid #eceae4;text-align:center;font-size:11px;color:#888">Débito</div>
+          </div>
+          <button class="pos-cobrar">Cobrar en efectivo</button>
+        </div>
+      </div>
+      <!-- Screen 2: Dashboard -->
+      <div id="screen-2" class="how-screen">
+        <div class="how-screen-header">
+          <div class="how-screen-dots">
+            <div class="how-screen-dot" style="background:#ff4757"></div>
+            <div class="how-screen-dot" style="background:#ffb800"></div>
+            <div class="how-screen-dot" style="background:#00c896"></div>
+          </div>
+          <div style="margin-left:10px;color:rgba(255,255,255,0.35);font-size:10px;font-family:monospace">Sylvora · Caja Diaria</div>
+        </div>
+        <div class="how-screen-body">
+          <div style="font-size:15px;font-weight:700;color:#1a1a1e;font-family:var(--f-head);margin-bottom:14px">Caja Diaria</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div style="background:#f5f4f0;border-radius:10px;padding:12px;border-top:2px solid #5b4cff">
+              <div style="font-size:9px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Ventas hoy</div>
+              <div style="font-size:16px;font-weight:700;font-family:monospace;color:#1a1a1e">$84.200</div>
+            </div>
+            <div style="background:#f5f4f0;border-radius:10px;padding:12px;border-top:2px solid #00c896">
+              <div style="font-size:9px;color:#888;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Saldo neto</div>
+              <div style="font-size:16px;font-weight:700;font-family:monospace;color:#00c896">$77.400</div>
+            </div>
+          </div>
+          <div style="background:#f5f4f0;border-radius:10px;padding:12px">
+            <div style="font-size:9px;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Últimas ventas</div>
+            <div class="stock-row" style="border-bottom:1px solid #eceae4">
+              <div class="stock-name">Ticket #0047</div>
+              <div class="stock-num">14:32</div>
+              <span class="stock-badge" style="background:rgba(0,200,150,0.1);color:#00c896;font-size:9px;padding:2px 7px;border-radius:5px">$6.000</span>
+            </div>
+            <div class="stock-row">
+              <div class="stock-name">Ticket #0046</div>
+              <div class="stock-num">14:15</div>
+              <span class="stock-badge" style="background:rgba(0,158,227,0.1);color:#009ee3;font-size:9px;padding:2px 7px;border-radius:5px">MP $2.350</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </section>
- 
+
+<!-- SCREENSHOTS STRIP -->
+<section class="screens-section" id="pantallas">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-tag fade-up">La app</div>
+    <div class="section-title fade-up">Diseñado para usar<br>a diario, sin capacitación.</div>
+  </div>
+  <div class="screens-scroll">
+    <!-- Card 1: Dashboard -->
+    <div class="screen-card">
+      <div class="screen-card-label">
+        <div class="screen-card-label-dot"></div>
+        Panel de Control
+      </div>
+      <div class="screen-card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="background:#f5f4f0;border-radius:10px;padding:12px;border-top:2px solid #5b4cff">
+            <div style="font-size:8px;color:#888;margin-bottom:3px;text-transform:uppercase">Ventas</div>
+            <div style="font-size:15px;font-weight:700;font-family:monospace">$84.200</div>
+          </div>
+          <div style="background:#f5f4f0;border-radius:10px;padding:12px;border-top:2px solid #00c896">
+            <div style="font-size:8px;color:#888;margin-bottom:3px;text-transform:uppercase">Ganancia</div>
+            <div style="font-size:15px;font-weight:700;font-family:monospace;color:#00c896">$23.600</div>
+          </div>
+        </div>
+        <div style="background:#f5f4f0;border-radius:10px;padding:12px">
+          <div style="font-size:8px;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Ventas por hora</div>
+          <div style="display:flex;align-items:flex-end;gap:4px;height:48px">
+            <div style="flex:1;height:30%;background:#5b4cff;border-radius:3px 3px 0 0;opacity:0.7"></div>
+            <div style="flex:1;height:50%;background:#5b4cff;border-radius:3px 3px 0 0;opacity:0.8"></div>
+            <div style="flex:1;height:70%;background:#5b4cff;border-radius:3px 3px 0 0"></div>
+            <div style="flex:1;height:90%;background:#5b4cff;border-radius:3px 3px 0 0"></div>
+            <div style="flex:1;height:60%;background:#5b4cff;border-radius:3px 3px 0 0;opacity:0.9"></div>
+            <div style="flex:1;height:100%;background:rgba(91,76,255,0.35);border-radius:3px 3px 0 0;outline:1.5px dashed #5b4cff"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Card 2: POS -->
+    <div class="screen-card">
+      <div class="screen-card-label">
+        <div class="screen-card-label-dot" style="background:#00c896"></div>
+        Punto de Venta
+      </div>
+      <div class="screen-card-body">
+        <div style="background:#f5f4f0;border-radius:9px;padding:7px 11px;display:flex;align-items:center;gap:7px;margin-bottom:10px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span style="font-size:11px;color:#aaa">Buscar o escanear...</span>
+        </div>
+        <div style="background:#f8f8f8;border-radius:10px;padding:10px;border:1px solid #eceae4;margin-bottom:10px">
+          <div style="font-size:10px;font-weight:600;color:#1a1a1e;margin-bottom:5px">Ticket actual</div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#6b6b72;padding:3px 0;border-bottom:1px solid #eceae4">
+            <span>Coca-Cola 2.25L × 2</span><span style="font-family:monospace">$3.700</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#6b6b72;padding:3px 0">
+            <span>Yerba CBSé × 1</span><span style="font-family:monospace">$2.300</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding-top:6px;border-top:1px solid #eceae4;margin-top:4px">
+            <span>Total</span><span style="color:#5b4cff;font-family:monospace">$6.000</span>
+          </div>
+        </div>
+        <div style="background:#5b4cff;color:white;width:100%;padding:9px;border-radius:9px;text-align:center;font-size:12px;font-weight:600">Cobrar en efectivo</div>
+      </div>
+    </div>
+    <!-- Card 3: Stock -->
+    <div class="screen-card">
+      <div class="screen-card-label">
+        <div class="screen-card-label-dot" style="background:#ffb800"></div>
+        Control de Stock
+      </div>
+      <div class="screen-card-body">
+        <div style="background:rgba(255,71,87,0.06);border:1px solid rgba(255,71,87,0.15);border-radius:9px;padding:9px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ff4757" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span style="font-size:11px;color:#ff4757;font-weight:500">3 productos con stock crítico</span>
+        </div>
+        <div class="stock-row">
+          <div class="stock-name">Coca-Cola 2.25L</div>
+          <div class="stock-num">48 u.</div>
+          <span class="stock-badge" style="background:rgba(0,200,150,0.1);color:#00c896">OK</span>
+        </div>
+        <div class="stock-row">
+          <div class="stock-name">Yerba CBSé 500g</div>
+          <div class="stock-num">6 u.</div>
+          <span class="stock-badge" style="background:rgba(255,184,0,0.12);color:#ffb800">Bajo</span>
+        </div>
+        <div class="stock-row">
+          <div class="stock-name">Fósforos x40</div>
+          <div class="stock-num">3 u.</div>
+          <span class="stock-badge" style="background:rgba(255,71,87,0.1);color:#ff4757">Crítico</span>
+        </div>
+        <div class="stock-row">
+          <div class="stock-name">Tuercas M8 × 50</div>
+          <div class="stock-num">38 u.</div>
+          <span class="stock-badge" style="background:rgba(0,200,150,0.1);color:#00c896">OK</span>
+        </div>
+      </div>
+    </div>
+    <!-- Card 4: Mercado Pago -->
+    <div class="screen-card">
+      <div class="screen-card-label">
+        <div class="screen-card-label-dot" style="background:#009ee3"></div>
+        Mercado Pago
+      </div>
+      <div class="screen-card-body">
+        <div style="text-align:center;padding:12px 0">
+          <div style="width:120px;height:120px;margin:0 auto 12px;background:#f5f4f0;border-radius:12px;padding:8px;display:flex;align-items:center;justify-content:center;position:relative">
+            <!-- QR code simplified SVG -->
+            <svg width="90" height="90" viewBox="0 0 90 90" fill="#1a1a1e">
+              <rect x="5" y="5" width="30" height="30" rx="3"/><rect x="8" y="8" width="24" height="24" rx="2" fill="#f5f4f0"/><rect x="12" y="12" width="16" height="16" rx="1"/>
+              <rect x="55" y="5" width="30" height="30" rx="3"/><rect x="58" y="8" width="24" height="24" rx="2" fill="#f5f4f0"/><rect x="62" y="12" width="16" height="16" rx="1"/>
+              <rect x="5" y="55" width="30" height="30" rx="3"/><rect x="8" y="58" width="24" height="24" rx="2" fill="#f5f4f0"/><rect x="12" y="62" width="16" height="16" rx="1"/>
+              <rect x="40" y="5" width="6" height="6"/><rect x="40" y="15" width="6" height="6"/><rect x="40" y="25" width="6" height="6"/>
+              <rect x="5" y="40" width="6" height="6"/><rect x="15" y="40" width="6" height="6"/><rect x="25" y="40" width="6" height="6"/>
+              <rect x="40" y="40" width="10" height="10"/><rect x="55" y="40" width="6" height="6"/><rect x="65" y="40" width="6" height="6"/><rect x="75" y="40" width="6" height="6"/>
+              <rect x="40" y="55" width="6" height="6"/><rect x="55" y="55" width="6" height="6"/><rect x="70" y="55" width="6" height="6"/>
+              <rect x="40" y="70" width="6" height="6"/><rect x="55" y="70" width="6" height="6"/><rect x="65" y="70" width="6" height="6"/><rect x="75" y="70" width="6" height="6"/>
+            </svg>
+          </div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px">Total a cobrar</div>
+          <div style="font-size:22px;font-weight:800;font-family:monospace;color:#1a1a1e;letter-spacing:-1px">$6.000</div>
+          <div style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:10px;color:#009ee3">
+            <div style="width:6px;height:6px;border-radius:50%;background:#009ee3;animation:pulse 1s infinite"></div>
+            Esperando pago...
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Card 5: Reportes -->
+    <div class="screen-card">
+      <div class="screen-card-label">
+        <div class="screen-card-label-dot" style="background:#ff6b35"></div>
+        Reportes
+      </div>
+      <div class="screen-card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+          <div style="background:#5b4cff;border-radius:10px;padding:10px;color:white;cursor:pointer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" style="margin-bottom:5px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div style="font-size:10px;font-weight:600">Stock completo</div>
+            <div style="font-size:8px;opacity:0.6;margin-top:2px">Exportar PDF</div>
+          </div>
+          <div style="background:#00c896;border-radius:10px;padding:10px;color:white;cursor:pointer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" style="margin-bottom:5px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <div style="font-size:10px;font-weight:600">Ventas del mes</div>
+            <div style="font-size:8px;opacity:0.6;margin-top:2px">Exportar Excel</div>
+          </div>
+        </div>
+        <div style="background:#f5f4f0;border-radius:10px;padding:10px">
+          <div style="font-size:8px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Resumen mayo</div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:#6b6b72">Total ventas</span><span style="font-family:monospace;font-weight:700;color:#1a1a1e">$2.486.400</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:#6b6b72">Ganancia neta</span><span style="font-family:monospace;font-weight:700;color:#00c896">$698.192</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#6b6b72">Tickets emitidos</span><span style="font-family:monospace;color:#1a1a1e">1.243</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- WHO -->
 <section class="who-bg" id="para-quien">
-  <div class="section-header center fade-up">
+  <div class="section-header center fade-up" style="max-width:1100px;margin:0 auto 56px">
     <div class="section-tag">¿Para quién?</div>
     <div class="section-title">Hecho para el comercio<br>argentino de verdad.</div>
   </div>
   <div class="who-grid">
     <div class="who-card fade-up">
-      <span class="who-icon">🥤</span>
+      <div class="who-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
       <div class="who-title">Kioscos y almacenes</div>
-      <div class="who-desc">Control de stock de golosinas, bebidas, lácteos. Fechas de vencimiento, alertas de reposición y caja diaria.</div>
+      <div class="who-desc">Control de golosinas, bebidas, lácteos. Fechas de vencimiento, alertas de reposición y caja diaria.</div>
     </div>
     <div class="who-card fade-up fade-up-d1">
-      <span class="who-icon">🔩</span>
+      <div class="who-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
       <div class="who-title">Ferreterías</div>
       <div class="who-desc">SKU internos, precio por unidad o por kg, stock de tornillos y materiales. Catálogo enorme sin perder la cabeza.</div>
     </div>
     <div class="who-card fade-up fade-up-d2">
-      <span class="who-icon">🧺</span>
+      <div class="who-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      </div>
       <div class="who-title">Supermercados chicos</div>
       <div class="who-desc">POS rápido con escáner, múltiples categorías, precios mayoristas y seguimiento de margen por producto.</div>
     </div>
     <div class="who-card fade-up fade-up-d3">
-      <span class="who-icon">🏪</span>
+      <div class="who-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
       <div class="who-title">Comercios de barrio</div>
       <div class="who-desc">Cualquier comercio que necesite saber qué tiene, cuánto vendió y cuánto ganó, sin contratar un contador.</div>
     </div>
   </div>
 </section>
- 
+
 <!-- PRICING -->
-<section id="precios">
+<section class="pricing-section" id="precios">
   <div class="section-header center fade-up">
-    <div class="section-tag">Planes y precios</div>
+    <div class="section-tag">Precios</div>
     <div class="section-title">Precios pensados<br>para Argentina.</div>
     <div class="section-sub">Sin dólares, sin sorpresas. Cancelás cuando querés.</div>
   </div>
@@ -562,27 +1073,25 @@ footer { background: var(--ink); border-top: 1px solid rgba(255,255,255,.06); pa
         <li>Exportar PDF y Excel</li>
         <li class="no">Múltiples usuarios</li>
         <li class="no">Reportes avanzados</li>
-        <li class="no">Soporte prioritario</li>
       </ul>
-      <button class="price-cta">Empezar con Básico</button>
+      <button class="price-cta" onclick="location.href='/registro'">Empezar con Básico</button>
     </div>
     <div class="price-card featured fade-up fade-up-d1">
-      <div class="price-popular">⭐ Más elegido</div>
-      <div class="price-plan" style="color:rgba(255,255,255,.5)">Pro</div>
-      <div class="price-amount" style="color:#fff">$17.990</div>
-      <div class="price-period" style="color:rgba(255,255,255,.45)">por mes · IVA incluido</div>
-      <div class="price-divider" style="background:rgba(255,255,255,.12)"></div>
-      <ul class="price-features">
-        <li>Productos ilimitados</li>
-        <li>Hasta 3 usuarios</li>
-        <li>POS con escáner y cámara</li>
-        <li>Lotes y vencimientos</li>
-        <li>Reportes completos + PDF/Excel</li>
-        <li>Descuentos y recargos (Mercado Pago)</li>
-        <li>Historial de ventas completo</li>
-        <li class="no">Multi-sucursal</li>
+      <div class="price-popular">Más elegido</div>
+      <div class="price-plan" style="color:rgba(255,255,255,.4)">Pro</div>
+      <div class="price-amount" style="color:white">$17.990</div>
+      <div class="price-period" style="color:rgba(255,255,255,.4)">por mes · IVA incluido</div>
+      <div class="price-divider" style="background:rgba(255,255,255,.1)"></div>
+      <ul class="price-features" style="color:rgba(255,255,255,.85)">
+        <li style="color:rgba(255,255,255,.85)">Productos ilimitados</li>
+        <li style="color:rgba(255,255,255,.85)">Hasta 3 usuarios</li>
+        <li style="color:rgba(255,255,255,.85)">POS con escáner y cámara</li>
+        <li style="color:rgba(255,255,255,.85)">Lotes y vencimientos</li>
+        <li style="color:rgba(255,255,255,.85)">Mercado Pago QR integrado</li>
+        <li style="color:rgba(255,255,255,.85)">Reportes completos + PDF/Excel</li>
+        <li class="no" style="color:rgba(255,255,255,.3)">Multi-sucursal</li>
       </ul>
-      <button class="price-cta" style="background:#fff;color:#0e0e0f;border-color:#fff">Empezar con Pro →</button>
+      <button class="price-cta" style="background:white;color:#5b4cff;border-color:white" onclick="location.href='/registro'">Empezar con Pro</button>
     </div>
     <div class="price-card fade-up fade-up-d2">
       <div class="price-plan">Negocio</div>
@@ -594,158 +1103,69 @@ footer { background: var(--ink); border-top: 1px solid rgba(255,255,255,.06); pa
         <li>Usuarios ilimitados</li>
         <li>Hasta 3 sucursales</li>
         <li>Todo el plan Pro incluido</li>
-        <li>Dashboard global multi-sucursal</li>
+        <li>Dashboard multi-sucursal</li>
         <li>API para integraciones</li>
         <li>Soporte prioritario WhatsApp</li>
-        <li>Capacitación incluida</li>
       </ul>
-      <button class="price-cta">Hablar con ventas</button>
-    </div>
-  </div>
-  <p style="text-align:center;margin-top:24px;font-size:13px;color:var(--ink3)">¿Tenés más de 3 sucursales o necesidades especiales? <a href="#" style="color:var(--accent);text-decoration:none">Escribinos →</a></p>
-</section>
- 
-<!-- TESTIMONIOS -->
-<section class="test-bg">
-  <div class="section-header center fade-up">
-    <div class="section-tag">Lo que dicen los comerciantes</div>
-    <div class="section-title">Más de 500 comercios<br>confían en Fácil Stock.</div>
-  </div>
-  <div class="test-grid">
-    <div class="test-card fade-up">
-      <div class="test-stars">★★★★★</div>
-      <div class="test-text">"Antes llevaba todo en cuadernos y planillas. Ahora en 5 minutos sé cuánto vendí, qué me queda de stock y cuánto gané en el mes. Una maravilla."</div>
-      <div class="test-author">
-        <div class="test-av" style="background:#1a5cff">MG</div>
-        <div><div class="test-name">Marcelo García</div><div class="test-biz">Almacén Don Marcelo · Villa Lugano</div></div>
-      </div>
-    </div>
-    <div class="test-card fade-up fade-up-d1">
-      <div class="test-stars">★★★★★</div>
-      <div class="test-text">"En la ferretería tenemos miles de artículos con sus códigos. Con Fácil Stock cargué todo en dos días y ahora cobrar con el escáner es rapidísimo. Los clientes no esperan más."</div>
-      <div class="test-author">
-        <div class="test-av" style="background:#ff6b35">RL</div>
-        <div><div class="test-name">Roberto López</div><div class="test-biz">Ferretería López e Hijos · Quilmes</div></div>
-      </div>
-    </div>
-    <div class="test-card fade-up fade-up-d2">
-      <div class="test-stars">★★★★★</div>
-      <div class="test-text">"El tema del recargo de Mercado Pago lo resolvió sola. Apretás un botón y ya suma el 13%. Nunca más perdí plata por no acordarme de cobrarlo."</div>
-      <div class="test-author">
-        <div class="test-av" style="background:#00b87a">VP</div>
-        <div><div class="test-name">Valeria Pacheco</div><div class="test-biz">Kiosco Vicky · Rosario</div></div>
-      </div>
+      <button class="price-cta" onclick="location.href='/registro'">Empezar con Negocio</button>
     </div>
   </div>
 </section>
- 
-<!-- FAQ -->
-<section id="faq">
-  <div class="section-header center fade-up">
-    <div class="section-tag">Preguntas frecuentes</div>
-    <div class="section-title">Tus dudas, resueltas.</div>
-  </div>
-  <div class="faq-wrap">
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">¿Necesito saber de sistemas o computación? <div class="faq-toggle">+</div></div>
-      <div class="faq-a">Para nada. Fácil Stock está pensado para comerciantes, no para técnicos. Si sabés usar WhatsApp, podés usar Fácil Stock. Además, te ayudamos a configurarlo todo en tu primera semana.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">¿Funciona desde el celular? <div class="faq-toggle">+</div></div>
-      <div class="faq-a">Sí. Fácil Stock funciona en cualquier navegador: celular, tablet o computadora. No hay nada que instalar. Para el POS podés usar la cámara del celular para escanear códigos de barras.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">¿Puedo importar mis productos desde Excel? <div class="faq-toggle">+</div></div>
-      <div class="faq-a">Sí. Si ya tenés una planilla con tus productos, precios y stock, podés importarla directamente. También podés exportar todos tus datos a Excel en cualquier momento.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">¿Qué pasa si no tengo internet? <div class="faq-toggle">+</div></div>
-      <div class="faq-a">El plan Pro y Negocio incluyen modo offline básico para el POS. Cuando vuelve la conexión, los datos se sincronizan automáticamente. No perdés ninguna venta.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">¿Puedo cancelar cuando quiera? <div class="faq-toggle">+</div></div>
-      <div class="faq-a">Sí, sin costo ni penalidad. Si cancelás, podés descargar todos tus datos antes de que se borre tu cuenta. No te retenemos con contratos largos.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">¿Cómo cobran? ¿Aceptan transferencia? <div class="faq-toggle">+</div></div>
-      <div class="faq-a">Podés pagar con tarjeta de crédito/débito, Mercado Pago o transferencia bancaria. Emitimos factura A o B. El precio es en pesos y se actualiza cada 3 meses según inflación.</div>
-    </div>
-  </div>
-</section>
- 
+
 <!-- CTA FINAL -->
 <section class="cta-section">
-  <div class="cta-inner">
-    <div class="cta-title fade-up">¿Listo para tener tu comercio bajo control?</div>
-    <div class="cta-sub fade-up">Empezá hoy. Sin tarjeta de crédito para el primer mes. Soporte por WhatsApp incluido.</div>
-    <div class="cta-actions fade-up">
-      <a href="#precios" class="btn-cta">Empezar ahora →</a>
-      <a href="#" class="btn-cta-ghost">Ver demo en vivo</a>
-    </div>
-  </div>
+  <div class="cta-title">Empezá hoy, gratis.</div>
+  <div class="cta-sub">Sin tarjeta de crédito. Sin instalaciones. En 5 minutos estás operando.</div>
+  <a class="btn-cta-white" href="/registro">
+    Crear cuenta gratis
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
 </section>
- 
+
 <!-- FOOTER -->
 <footer>
-  <div class="footer-inner">
-    <div class="footer-top">
-      <div>
-        <div class="footer-brand">Fácil Stock</div>
-        <div class="footer-tagline">Sistema de gestión para comercios argentinos. Stock, caja, ventas y reportes en un solo lugar.</div>
-      </div>
-      <div class="footer-col">
-        <div class="footer-col-title">Producto</div>
-        <a href="#">Funciones</a>
-        <a href="#">Precios</a>
-        <a href="#">Novedades</a>
-        <a href="#">Roadmap</a>
-      </div>
-      <div class="footer-col">
-        <div class="footer-col-title">Soporte</div>
-        <a href="#">Centro de ayuda</a>
-        <a href="#">WhatsApp</a>
-        <a href="#">Tutoriales</a>
-        <a href="#">Estado del servicio</a>
-      </div>
-      <div class="footer-col">
-        <div class="footer-col-title">Empresa</div>
-        <a href="#">Sobre nosotros</a>
-        <a href="#">Blog</a>
-        <a href="#">Términos</a>
-        <a href="#">Privacidad</a>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <div class="footer-copy">© 2025 Fácil Stock. Hecho en Argentina 🇦🇷</div>
-      <div class="footer-legal">
-        <a href="#">Términos de uso</a>
-        <a href="#">Política de privacidad</a>
-      </div>
-    </div>
+  <div class="footer-logo">
+    <div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#5b4cff,#8b7fff);display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:800">Sy</div>
+    Sylvora
   </div>
+  <div class="footer-links">
+    <a href="#funciones">Funciones</a>
+    <a href="#precios">Precios</a>
+    <a href="/login">Ingresar</a>
+    <a href="/registro">Registro</a>
+  </div>
+  <div class="footer-copy">© 2025 Sylvora · Todos los derechos reservados</div>
 </footer>
- 
+
 <script>
-// Intersection observer for fade-up animations
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.1 });
-document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
- 
-// FAQ toggle
-function toggleFaq(btn) {
-  const item = btn.parentElement;
-  const wasOpen = item.classList.contains('open');
-  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-  if (!wasOpen) item.classList.add('open');
-}
- 
-// How it works step
-function activateStep(el, emoji, label) {
-  document.querySelectorAll('.how-step').forEach(s => s.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('how-emoji').textContent = emoji;
-  document.getElementById('how-label').textContent = label;
+// Nav scroll shadow
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 10)
+})
+
+// Scroll animations
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') })
+}, { threshold: 0.12 })
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el))
+
+// How it works step switcher
+function showStep(idx, el) {
+  document.querySelectorAll('.how-step').forEach(s => s.classList.remove('active'))
+  el.classList.add('active')
+  document.querySelectorAll('#screen-0, #screen-1, #screen-2').forEach((s, i) => {
+    if (i === idx) {
+      s.style.position = 'relative'
+      s.style.opacity = '1'
+      s.style.transform = 'none'
+      s.style.pointerEvents = 'all'
+    } else {
+      s.style.position = 'absolute'
+      s.style.opacity = '0'
+      s.style.transform = 'translateY(8px)'
+      s.style.pointerEvents = 'none'
+    }
+  })
 }
 </script>
 </body>
