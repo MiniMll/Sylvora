@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { MetodoPago } from '@/types'
 
 interface POSItem {
   producto_id: string
@@ -14,13 +15,13 @@ interface POSStore {
   items: POSItem[]
   descuentoPct: number
   recargoPct: number
-  metodoPago: string
+  metodoPago: MetodoPago
   agregarItem: (item: Omit<POSItem, 'subtotal'>) => void
   cambiarCantidad: (producto_id: string, cantidad: number) => void
   quitarItem: (producto_id: string) => void
   setDescuento: (pct: number) => void
   setRecargo: (pct: number) => void
-  setMetodoPago: (metodo: string) => void
+  setMetodoPago: (metodo: MetodoPago) => void
   limpiarTicket: () => void
   subtotal: () => number
   descuentoMonto: () => number

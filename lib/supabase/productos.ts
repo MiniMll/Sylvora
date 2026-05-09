@@ -360,21 +360,38 @@ export async function cerrarCaja(resumen: {
   saldo_neto: number
   cantidad_ventas: number
   efectivo: number
-  transferencia: number
   debito: number
+  credito: number
   mercadopago: number
 }): Promise<boolean> {
   const supabase = createClient()
   const comercioId = await getComercioId()
   if (!comercioId) return false
 
-  const { error } = await supabase
-    .from('cierres_caja')
-    .insert({
-      comercio_id: comercioId,
-      fecha: new Date().toISOString().split('T')[0],
-      ...resumen
-    })
+  // Mantenemos la columna legacy `transferencia` en 0 para no romper
+  // schemas existentes. La columna `credito` puede no existir hasta que
+  // se corra supabase-migracion-credito.sql — el fallback la descarta.
+  const payload: Record<string, any> = {
+    comercio_id: comercioId,
+    fecha: new Date().toISOString().split('T')[0],
+    total_ventas: resumen.total_ventas,
+    total_egresos: resumen.total_egresos,
+    saldo_neto: resumen.saldo_neto,
+    cantidad_ventas: resumen.cantidad_ventas,
+    efectivo: resumen.efectivo,
+    transferencia: 0,
+    debito: resumen.debito,
+    credito: resumen.credito,
+    mercadopago: resumen.mercadopago,
+  }
+
+  const { error } = await supabase.from('cierres_caja').insert(payload)
+  if (error && /credito/i.test(error.message)) {
+    // Fallback: schema sin columna credito todavía
+    delete payload.credito
+    const retry = await supabase.from('cierres_caja').insert(payload)
+    return !retry.error
+  }
   return !error
 }
 

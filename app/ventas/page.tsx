@@ -88,8 +88,8 @@ export default function VentasPage() {
         <select value={filtroMetodo} onChange={e => setFiltroMetodo(e.target.value)} style={inp}>
           <option value="todos">Todos los métodos</option>
           <option value="efectivo">Efectivo</option>
-          <option value="transferencia">Transferencia</option>
           <option value="debito">Débito</option>
+          <option value="credito">Crédito</option>
           <option value="mercadopago">Mercado Pago</option>
         </select>
         <select value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} style={inp}>

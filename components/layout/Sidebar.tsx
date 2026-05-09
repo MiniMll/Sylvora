@@ -4,7 +4,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { getStockCritico } from '@/lib/supabase/productos'
-import { MPPagosListener } from '@/components/ui/MPPagosListener'
 import {
   LayoutDashboard, ShoppingCart, History, Package, ArchiveX,
   PlusCircle, Wallet, BarChart2, Download, Bell, Sun, Moon,
@@ -343,7 +342,6 @@ export function Sidebar() {
           <div style={{ position: 'relative', zIndex: 1, animation: 'slideUp 0.2s ease' }}><Inner /></div>
         </div>
       )}
-      <MPPagosListener />
     </>
   )
 }

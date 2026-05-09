@@ -64,8 +64,8 @@ export default function CajaPage() {
       saldo_neto: saldo,
       cantidad_ventas: ventas.length,
       efectivo: porMetodoFn('efectivo'),
-      transferencia: porMetodoFn('transferencia'),
       debito: porMetodoFn('debito'),
+      credito: porMetodoFn('credito'),
       mercadopago: porMetodoFn('mercadopago'),
     })
 
@@ -292,8 +292,8 @@ export default function CajaPage() {
                 <select value={egreso.metodo} onChange={e => setEgreso(p => ({ ...p, metodo: e.target.value }))}
                   style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}>
                   <option value="efectivo">Efectivo</option>
-                  <option value="transferencia">Transferencia</option>
                   <option value="debito">Débito</option>
+                  <option value="credito">Crédito</option>
                 </select>
               </div>
             </div>
@@ -346,7 +346,7 @@ export default function CajaPage() {
 
             <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
               <div style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Por método de pago</div>
-              {['efectivo', 'transferencia', 'debito', 'mercadopago'].map(metodo => {
+              {['efectivo', 'debito', 'credito', 'mercadopago'].map(metodo => {
                 const total = ventas.filter(v => v.metodo_pago === metodo).reduce((s, v) => s + Number(v.total), 0)
                 if (total === 0) return null
                 return (

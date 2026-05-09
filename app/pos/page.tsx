@@ -3,13 +3,13 @@ import { useEffect, useState, useRef } from 'react'
 import { getProductos, guardarVenta } from '@/lib/supabase/productos'
 import { usePOSStore } from '@/lib/store'
 import { toast } from 'sonner'
-import { Camera, Keyboard, Search, Scale, Beaker, Ruler, X, ShoppingCart, CheckCircle, QrCode, Wifi } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { Camera, Keyboard, Search, Scale, Beaker, Ruler, X, ShoppingCart } from 'lucide-react'
+import type { MetodoPago } from '@/types'
 
-const METODOS = [
+const METODOS: { id: MetodoPago; label: string }[] = [
   { id: 'efectivo', label: 'Efectivo' },
-  { id: 'transferencia', label: 'Transferencia' },
   { id: 'debito', label: 'Débito' },
+  { id: 'credito', label: 'Crédito' },
   { id: 'mercadopago', label: 'Mercado Pago' },
 ]
 
@@ -25,7 +25,6 @@ export default function POSPage() {
   const [resultados, setResultados] = useState<any[]>([])
   const [cobrado, setCobrado] = useState(false)
   const [cargando, setCargando] = useState(true)
-  const scanRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const busquedaRef = useRef<HTMLInputElement>(null)
   const [modoCamara, setModoCamara] = useState(false)
@@ -34,26 +33,9 @@ export default function POSPage() {
   const [cantidadIngresada, setCantidadIngresada] = useState('')
   const [modalScanner, setModalScanner] = useState(false)
   const [codigoManual, setCodigoManual] = useState('')
-  const [modalPago, setModalPago] = useState(false)
-  const [pagoUrl, setPagoUrl] = useState('')
-  const [pagoId, setPagoId] = useState('')
-  const [verificandoPago, setVerificandoPago] = useState(false)
-  const [pagoEstado, setPagoEstado] = useState<'pendiente' | 'aprobado' | 'error' | null>(null)
-  const [modalQRMesa, setModalQRMesa] = useState(false)
-  const [esperandoQRMesa, setEsperandoQRMesa] = useState(false)
-  const [pagoQRMesa, setPagoQRMesa] = useState<any>(null)
-  const qrMesaChannelRef = useRef<any>(null)
-  const pagoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const pagoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const limpiarPollingMP = () => {
-    if (pagoIntervalRef.current) { clearInterval(pagoIntervalRef.current); pagoIntervalRef.current = null }
-    if (pagoTimeoutRef.current) { clearTimeout(pagoTimeoutRef.current); pagoTimeoutRef.current = null }
-  }
 
   useEffect(() => {
     getProductos().then(data => { setProductos(data); setCargando(false) })
-    return () => { limpiarPollingMP() }
   }, [])
 
   // Filtrar productos al buscar
@@ -157,48 +139,8 @@ export default function POSPage() {
     setModoCamara(false); setCamaraActiva(false)
   }
 
-  const iniciarPagoMP = async () => {
+  const cobrar = async () => {
     if (!store.items.length) { toast.error('El ticket está vacío'); return }
-    const ref = `venta_${Date.now()}`
-    setPagoId(ref)
-    setPagoEstado('pendiente')
-    setModalPago(true)
-
-    const res = await fetch('/api/mp/crear-pago', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        total: store.total(),
-        descripcion: `Venta Sylvora — ${store.items.length} productos`,
-        external_reference: ref,
-      })
-    })
-    const data = await res.json()
-    setPagoUrl(data.sandbox_init_point || data.init_point)
-
-    // Asegurar limpieza si quedó algún polling previo
-    limpiarPollingMP()
-
-    // Verificar cada 3 segundos
-    pagoIntervalRef.current = setInterval(async () => {
-      setVerificandoPago(true)
-      const check = await fetch(`/api/mp/verificar?external_reference=${ref}`)
-      const resultado = await check.json()
-      setVerificandoPago(false)
-      if (resultado.pagado) {
-        setPagoEstado('aprobado')
-        limpiarPollingMP()
-        // Guardar venta
-        await cobrarConMetodo('mercadopago')
-        setTimeout(() => { setModalPago(false); setPagoEstado(null) }, 3000)
-      }
-    }, 3000)
-
-    // Cancelar después de 10 minutos
-    pagoTimeoutRef.current = setTimeout(() => limpiarPollingMP(), 10 * 60 * 1000)
-  }
-
-  const cobrarConMetodo = async (metodo: string) => {
     const itemsParaVenta = store.items.map(i => ({
       producto_id: i.producto_id.includes('_') ? i.producto_id.split('_')[0] : i.producto_id,
       nombre_producto: i.nombre,
@@ -214,56 +156,12 @@ export default function POSPage() {
       recargo_porcentaje: store.recargoPct,
       recargo_monto: store.recargoMonto(),
       total: store.total(),
-      metodo_pago: metodo,
+      metodo_pago: store.metodoPago,
       items: itemsParaVenta,
     })
     setCobrado(true)
     toast.success(`Venta de ${formatPeso(store.total())} registrada`)
     setTimeout(() => { setCobrado(false); store.limpiarTicket() }, 2000)
-  }
-
-  const cobrar = async () => {
-    if (!store.items.length) { toast.error('El ticket está vacío'); return }
-    await cobrarConMetodo(store.metodoPago)
-  }
-
-  const iniciarEsperaQRMesa = () => {
-    if (!store.items.length) { toast.error('El ticket está vacío'); return }
-    setModalQRMesa(true)
-    setEsperandoQRMesa(true)
-    setPagoQRMesa(null)
-    const totalEsperado = store.total()
-
-    const supabase = createClient()
-    const channel = supabase
-      .channel('qr-mesa-pos-' + Date.now())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pagos_mp' }, async (payload) => {
-        const pago = payload.new as any
-        // Margen de ±1 peso para redondeos
-        if (Math.abs(pago.monto - totalEsperado) <= 1) {
-          setEsperandoQRMesa(false)
-          setPagoQRMesa(pago)
-          supabase.removeChannel(channel)
-          // Marcar el pago como registrado
-          await supabase.from('pagos_mp').update({ estado: 'registrado' }).eq('id', pago.id)
-          // Registrar la venta
-          await cobrarConMetodo('mercadopago')
-          setTimeout(() => { setModalQRMesa(false); setPagoQRMesa(null) }, 3000)
-        }
-      })
-      .subscribe()
-    qrMesaChannelRef.current = channel
-  }
-
-  const cancelarEsperaQRMesa = () => {
-    if (qrMesaChannelRef.current) {
-      const supabase = createClient()
-      supabase.removeChannel(qrMesaChannelRef.current)
-      qrMesaChannelRef.current = null
-    }
-    setModalQRMesa(false)
-    setEsperandoQRMesa(false)
-    setPagoQRMesa(null)
   }
 
   const card: React.CSSProperties = {
@@ -482,21 +380,11 @@ export default function POSPage() {
           </div>
         </div>
 
-        <div style={{ padding: '8px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ padding: '8px 12px 12px' }}>
           <button onClick={cobrar}
             style={{ width: '100%', padding: '12px', borderRadius: 10, background: '#00c896', color: 'white', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {cobrado ? '¡Cobrado!' : 'Cobrar en efectivo'}
+            {cobrado ? '¡Cobrado!' : 'Cobrar'}
           </button>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-            <button onClick={iniciarPagoMP}
-              style={{ padding: '10px', borderRadius: 10, background: '#009ee3', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-              <QrCode size={13} /> QR con monto
-            </button>
-            <button onClick={iniciarEsperaQRMesa}
-              style={{ padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg,#009ee3,#0070ba)', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-              <Wifi size={13} /> QR de mesa
-            </button>
-          </div>
         </div>
 
       </div>
@@ -577,97 +465,6 @@ export default function POSPage() {
           </div>
         </div>
       )}
-
-      {modalPago && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380, textAlign: 'center' }}>
-            {pagoEstado === 'aprobado' ? (
-              <>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(0,200,150,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <CheckCircle size={32} color="#00c896" />
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: '#00c896', marginBottom: 6 }}>¡Pago aprobado!</div>
-                <div style={{ fontSize: 14, color: 'var(--text2)' }}>{formatPeso(store.total())} recibido por Mercado Pago</div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Pago con Mercado Pago</div>
-                <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20 }}>
-                  Total: <b style={{ color: '#5b4cff', fontFamily: 'monospace' }}>{formatPeso(store.total())}</b>
-                </div>
-
-                {pagoUrl ? (
-                  <>
-                    <div style={{ background: 'white', borderRadius: 12, padding: 16, marginBottom: 16, display: 'inline-block' }}>
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pagoUrl)}`}
-                        alt="QR Mercado Pago"
-                        style={{ width: 180, height: 180 }}
-                      />
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 16 }}>
-                      {verificandoPago ? 'Verificando pago...' : 'Esperando pago...'}
-                    </div>
-                    <a href={pagoUrl} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'block', padding: '10px', borderRadius: 9, background: '#009ee3', color: 'white', textDecoration: 'none', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-                      📲 Abrir link de pago
-                    </a>
-                  </>
-                ) : (
-                  <div style={{ padding: '30px 0', color: 'var(--text2)', fontSize: 13 }}>Generando QR...</div>
-                )}
-
-                <button onClick={() => { limpiarPollingMP(); setModalPago(false); setPagoEstado(null); setPagoUrl('') }}
-                  style={{ width: '100%', padding: '10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
-                  Cancelar
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal QR de mesa */}
-      {modalQRMesa && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 32, width: 340, textAlign: 'center' }}>
-            {pagoQRMesa ? (
-              <>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(0,200,150,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <CheckCircle size={32} color="#00c896" />
-                </div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#00c896', marginBottom: 6 }}>¡Pago recibido!</div>
-                <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'monospace', color: 'var(--text)', marginBottom: 4 }}>{formatPeso(pagoQRMesa.monto)}</div>
-                {pagoQRMesa.pagador && (
-                  <div style={{ fontSize: 12, color: 'var(--text2)' }}>De: {pagoQRMesa.pagador}</div>
-                )}
-              </>
-            ) : (
-              <>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(0,158,227,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <Wifi size={26} color="#009ee3" style={{ animation: 'pulse 1.5s ease-in-out infinite' }} />
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Esperando pago por QR</div>
-                <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>
-                  El cliente debe escanear el QR del mostrador y pagar exactamente
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'monospace', color: '#009ee3', marginBottom: 20 }}>
-                  {formatPeso(store.total())}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, color: 'var(--text2)', marginBottom: 20 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#009ee3', animation: 'pulse 1s ease-in-out infinite' }} />
-                  Conectado · Detectando pago automáticamente
-                </div>
-                <button onClick={cancelarEsperaQRMesa}
-                  style={{ width: '100%', padding: '10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
-                  Cancelar
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
 
       {/* Modal lector físico */}
       {modalScanner && (

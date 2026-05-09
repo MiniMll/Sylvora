@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const metodos: Record<string, number> = {}
   ventas.forEach(v => { metodos[v.metodo_pago] = (metodos[v.metodo_pago] || 0) + Number(v.total) })
   const totalMetodos = Object.values(metodos).reduce((s, v) => s + v, 0)
-  const colores: Record<string, string> = { efectivo: '#5b4cff', transferencia: '#00c896', debito: '#ff6b35', credito: '#ffd23f', mercadopago: '#009ee3' }
+  const colores: Record<string, string> = { efectivo: '#5b4cff', debito: '#ff6b35', credito: '#ffd23f', mercadopago: '#009ee3' }
   const metodosPie = Object.entries(metodos).map(([name, value]) => ({ name, value, color: colores[name] || '#aaa' }))
 
   // Top productos vendidos
