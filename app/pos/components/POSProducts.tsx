@@ -1,0 +1,87 @@
+'use client'
+import { Search, ShoppingCart } from 'lucide-react'
+import { formatPeso } from '@/lib/utils'
+import { usePOSStore } from '@/lib/store'
+import type { Producto } from '@/types/database'
+
+const necesitaModal = (p: Producto) => ['kg', 'litro', 'metro'].includes(p.unidad_venta)
+
+interface Props {
+  busqueda: string
+  resultados: Producto[]
+  onSelect: (p: Producto) => void
+}
+
+export function POSProducts({ busqueda, resultados, onSelect }: Props) {
+  const items = usePOSStore(s => s.items)
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+      {!busqueda && items.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text2)' }}>
+          <ShoppingCart size={48} color="var(--border)" style={{ marginBottom: 16 }} />
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>Buscá un producto para empezar</div>
+          <div style={{ fontSize: 13 }}>Escribí el nombre, código o escaneá el código de barras</div>
+        </div>
+      )}
+
+      {!busqueda && items.length > 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text2)', fontSize: 13 }}>
+          <Search size={24} color="var(--border)" style={{ marginBottom: 10 }} />
+          <div>Buscá más productos para agregar al ticket</div>
+        </div>
+      )}
+
+      {busqueda && resultados.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text2)', fontSize: 13 }}>
+          No se encontraron productos para &quot;{busqueda}&quot;
+        </div>
+      )}
+
+      {resultados.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {resultados.map(p => {
+            const sinStock = p.stock_actual === 0
+            const esVariable = necesitaModal(p)
+            return (
+              <button key={p.id} onClick={() => onSelect(p)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.15s', opacity: sinStock ? 0.6 : 1 }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#5b4cff')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
+                <div style={{ width: 52, height: 52, borderRadius: 8, overflow: 'hidden', background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {p.imagen_url
+                    ? <img src={p.imagen_url} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
+                    : <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5' style={{opacity: 0.3}}><path d='M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z'/></svg>
+                  }
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text2)', fontFamily: 'monospace' }}>{p.codigo_barras || p.sku}</div>
+                  <div style={{ fontSize: 11, color: sinStock ? '#888898' : p.stock_actual <= 5 ? '#ff4757' : 'var(--text2)', marginTop: 2 }}>
+                    {sinStock ? 'Sin stock' :
+                      p.unidad_venta === 'kg' ? `${p.stock_actual.toFixed(2)} kg disponibles` :
+                      `Stock: ${p.stock_actual}`}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#5b4cff', fontFamily: 'monospace' }}>
+                    {p.unidad_venta === 'kg' ? `${formatPeso(p.precio_por_kg ?? 0)}/kg`
+                      : p.unidad_venta === 'litro' ? `${formatPeso(p.precio_venta)}/L`
+                      : p.unidad_venta === 'metro' ? `${formatPeso(p.precio_venta)}/m`
+                      : formatPeso(p.precio_venta)}
+                  </div>
+                  {esVariable && (
+                    <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 2 }}>Toca para ingresar cantidad</div>
+                  )}
+                  {sinStock && (
+                    <div style={{ fontSize: 10, color: '#888898', marginTop: 2 }}>Sin stock</div>
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
