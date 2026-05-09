@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
-import { getProductos, guardarVenta } from '@/lib/supabase/productos'
+import { getProductos } from '@/lib/supabase/productos'
+import { guardarVenta } from '@/lib/supabase/ventas'
+import { formatPeso } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { Camera, Keyboard, Search, Scale, Beaker, Ruler, X, ShoppingCart } from 'lucide-react'
@@ -15,8 +17,6 @@ const METODOS: { id: MetodoPago; label: string }[] = [
 
 const PRESETS_DESC = [5, 10, 15]
 const PRESETS_REC = [5, 10, 13]
-
-function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
 export default function POSPage() {
   const store = usePOSStore()

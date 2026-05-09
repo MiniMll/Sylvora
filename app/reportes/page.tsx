@@ -1,11 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getVentas, getProductos } from '@/lib/supabase/productos'
+import { getProductos } from '@/lib/supabase/productos'
+import { getVentas } from '@/lib/supabase/ventas'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingUp, DollarSign, Receipt, Package, Medal } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
-
-function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
+import { formatPeso } from '@/lib/utils'
 
 export default function ReportesPage() {
   const [ventas, setVentas] = useState<any[]>([])

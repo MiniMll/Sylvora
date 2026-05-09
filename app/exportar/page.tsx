@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
-import { getProductos, getVentas } from '@/lib/supabase/productos'
+import { getProductos } from '@/lib/supabase/productos'
+import { getVentas } from '@/lib/supabase/ventas'
 import { toast } from 'sonner'
 import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info } from 'lucide-react'
-
-function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
+import { formatPeso } from '@/lib/utils'
 
 
 
@@ -93,7 +93,7 @@ export default function ExportarPage() {
   XLSX.utils.book_append_sheet(wb, ws1, 'Stock general')
 
   // Hoja 2: Lotes
-  const { getLotes } = await import('@/lib/supabase/productos')
+  const { getLotes } = await import('@/lib/supabase/stock')
   const lotesData: any[] = []
   for (const p of productos) {
     const lotes = await getLotes(p.id)

@@ -1,7 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { guardarProducto, agregarLote } from '@/lib/supabase/productos'
+import { guardarProducto } from '@/lib/supabase/productos'
+import { agregarLote } from '@/lib/supabase/stock'
 import { toast } from 'sonner'
 import { Package, DollarSign, Layers, Info } from 'lucide-react'
 
@@ -73,31 +74,30 @@ export default function NuevoProductoPage() {
       setGuardando(false)
       return
     }
-    if ((resultado as any).error === 'sku_duplicado') {
-      toast.error('Ya existe un producto con ese SKU')
-      setGuardando(false)
-      return
-    }
-    if ((resultado as any).error === 'codigo_duplicado') {
-      toast.error('Ya existe un producto con ese código de barras')
+    if ('error' in resultado) {
+      if (resultado.error === 'sku_duplicado') toast.error('Ya existe un producto con ese SKU')
+      else if (resultado.error === 'codigo_duplicado') toast.error('Ya existe un producto con ese código de barras')
+      else toast.error('Error al guardar el producto')
       setGuardando(false)
       return
     }
 
+    const productoCreado = resultado
+
     // Subir imagen
     if (imgFile) {
       const { subirImagen } = await import('@/lib/supabase/productos')
-      const url = await subirImagen(imgFile, resultado.id)
+      const url = await subirImagen(imgFile, productoCreado.id)
       if (url) {
         const { actualizarProducto } = await import('@/lib/supabase/productos')
-        await actualizarProducto(resultado.id, { imagen_url: url })
+        await actualizarProducto(productoCreado.id, { imagen_url: url })
       }
     }
 
     // Guardar lotes
     for (const lote of lotesValidos) {
       await agregarLote({
-        producto_id: resultado.id,
+        producto_id: productoCreado.id,
         numero_lote: lote.numero,
         cantidad: Number(lote.cantidad),
         fecha_vencimiento: lote.vencimiento || undefined,

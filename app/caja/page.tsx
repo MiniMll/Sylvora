@@ -1,12 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja } from '@/lib/supabase/productos'
+import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja } from '@/lib/supabase/caja'
+import { formatPeso } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingDown, CheckCircle, X, Loader2, AlertCircle, Banknote, Smartphone, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/Spinner'
-
-function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
 export default function CajaPage() {
   const [ventas, setVentas] = useState<any[]>([])

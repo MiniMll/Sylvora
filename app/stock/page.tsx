@@ -1,23 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getStockCritico, getLotes, agregarLote, getSiguienteNumeroLote, eliminarLote, ajustarStock } from '@/lib/supabase/productos'
+import { getStockCritico, ajustarStock } from '@/lib/supabase/productos'
+import { getLotes, agregarLote, getSiguienteNumeroLote, eliminarLote } from '@/lib/supabase/stock'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { toast } from 'sonner'
 import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
-
-function stockColor(actual: number, min: number) {
-  if (actual === 0) return '#888898'
-  if (actual <= min * 0.3) return '#ff4757'
-  if (actual <= min) return '#ffb800'
-  return '#00c896'
-}
-function stockLabel(actual: number, min: number) {
-  if (actual === 0) return 'Sin stock'
-  if (actual <= min * 0.3) return 'Crítico'
-  if (actual <= min) return 'Bajo'
-  return 'OK'
-}
+import { stockColor, stockLabel } from '@/lib/utils'
 
 export default function StockPage() {
   const [productos, setProductos] = useState<any[]>([])

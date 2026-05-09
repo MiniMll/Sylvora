@@ -1,12 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { getVentas, getProductos } from '@/lib/supabase/productos'
+import { getProductos } from '@/lib/supabase/productos'
+import { getVentas } from '@/lib/supabase/ventas'
+import { formatPeso } from '@/lib/utils'
 import Link from 'next/link'
 import { Spinner } from '@/components/ui/Spinner'
 import { TrendingUp, ShoppingBag, AlertTriangle, Package, CheckCircle } from 'lucide-react'
-
-function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
 export default function DashboardPage() {
   const [ventas, setVentas] = useState<any[]>([])

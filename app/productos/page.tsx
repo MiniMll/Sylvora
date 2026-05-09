@@ -1,38 +1,11 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
-import { getProductos, eliminarProducto, actualizarProducto, subirImagen, getLotes, agregarLote, getSiguienteNumeroLote, eliminarLote } from '@/lib/supabase/productos'
+import { getProductos, eliminarProducto, actualizarProducto, subirImagen } from '@/lib/supabase/productos'
+import { getLotes, agregarLote, getSiguienteNumeroLote, eliminarLote } from '@/lib/supabase/stock'
 import { toast } from 'sonner'
 import { Pencil, Trash2, Plus, Search, LayoutGrid, List, Package, X, AlertTriangle, CheckCircle, Camera, Layers } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
-
-function formatPeso(n: number) { return '$' + n.toLocaleString('es-AR') }
-function margen(costo: number, venta: number) { return venta ? Math.round((1 - costo / venta) * 100) : 0 }
-function stockColor(actual: number, min: number, unidad = 'unidad') {
-  if (actual === 0) return '#888898'
-  if (unidad === 'kg') {
-    if (actual <= 0.5) return '#ff4757'
-    if (actual <= 2) return '#ffb800'
-    return '#00c896'
-  }
-  if (actual <= min * 0.3) return '#ff4757'
-  if (actual <= min) return '#ffb800'
-  return '#00c896'
-}
-function stockLabel(actual: number, min: number, unidad = 'unidad') {
-  if (actual === 0) return 'Sin stock'
-  if (unidad === 'kg') {
-    if (actual <= 0.5) return 'Crítico'
-    if (actual <= 2) return 'Poco stock'
-    return 'OK'
-  }
-  if (actual <= min * 0.3) return 'Crítico'
-  if (actual <= min) return 'Stock bajo'
-  return 'OK'
-}
-function formatStock(actual: number, unidad: string) {
-  if (unidad === 'kg') return `${actual.toFixed(2)} kg`
-  return actual.toString()
-}
+import { formatPeso, calcularMargen as margen, stockColor, stockLabel, formatStock } from '@/lib/utils'
 
 function CodigoBarras({ codigo }: { codigo: string }) {
   const svgRef = useRef<SVGSVGElement>(null)

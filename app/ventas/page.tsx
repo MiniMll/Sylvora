@@ -1,10 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getVentas } from '@/lib/supabase/productos'
+import { getVentas } from '@/lib/supabase/ventas'
+import { formatPeso } from '@/lib/utils'
 import { Search, TrendingUp, Receipt, Hash, X, ChevronDown } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
-
-function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
 export default function VentasPage() {
   const [ventas, setVentas] = useState<any[]>([])
