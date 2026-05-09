@@ -231,7 +231,7 @@ export default function ProductosPage() {
   }
 
   return (
-    <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       {/* Toolbar */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
         <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
@@ -264,7 +264,7 @@ export default function ProductosPage() {
             const esKg = p.unidad_venta === 'kg'
             return (
               <div key={p.id} onClick={() => abrirDetalle(p)}
-                style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.15s', display: 'flex', flexDirection: 'column' }}
+                style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.15s', display: 'flex', flexDirection: 'column' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none' }}>
 
@@ -328,7 +328,7 @@ export default function ProductosPage() {
 
       {/* LISTA VIEW */}
       {vista === 'lista' && (
-        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg3)' }}>

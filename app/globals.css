@@ -7,13 +7,24 @@
   --text: #1a1a1e;
   --text2: #6b6b72;
   --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.14);
   --card: #ffffff;
-  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 24px 64px rgba(0,0,0,0.14);
   --ac: #5b4cff;
+  --ac-hover: #4a3dee;
+  --ac-light: rgba(91,76,255,0.08);
   --g: #00c896;
   --r: #ff4757;
   --w: #ffb800;
   --o: #ff6b35;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --transition: all 0.15s ease;
 }
 
 .dark {
@@ -23,8 +34,12 @@
   --text: #e8e8f0;
   --text2: #888898;
   --border: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.12);
   --card: #1c1c28;
-  --shadow: 0 2px 20px rgba(0,0,0,0.35);
+  --shadow: 0 1px 4px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.4), 0 24px 64px rgba(0,0,0,0.5);
+  --ac-light: rgba(91,76,255,0.15);
 }
 
 html { scroll-behavior: smooth; }
@@ -33,13 +48,49 @@ body {
   background: var(--bg);
   color: var(--text);
   transition: background 0.2s, color 0.2s;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
+/* Better scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text2); }
 
-/* Cards y componentes que usan variables */
+/* Selection */
+::selection { background: rgba(91,76,255,0.15); color: var(--text); }
+
+/* Global focus ring — replaces outline:none everywhere */
+:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Global input polish */
+input, select, textarea {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--ac) !important;
+  box-shadow: 0 0 0 3px var(--ac-light) !important;
+}
+
+/* Global button transitions */
+button { transition: var(--transition); }
+button:active { transform: scale(0.97); }
+
+/* Animated spinner keyframe */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.animate-in { animation: fadeIn 0.2s ease; }
+.slide-up { animation: slideUp 0.25s ease; }
+
+/* Cards y componentes */
 .card-bg { background: var(--card) !important; border-color: var(--border) !important; }
 
 /* Responsive */
@@ -48,70 +99,40 @@ body {
   .mobile-full { width: 100% !important; }
 }
 
-/* Desktop sidebar visible, mobile hidden */
+/* Sidebar */
 .desktop-sidebar { display: block; }
 .mobile-menu-btn { display: none !important; }
-
 @media (max-width: 768px) {
   .desktop-sidebar { display: none !important; }
   .mobile-menu-btn { display: flex !important; }
 }
 
-/* Modo oscuro automático para elementos comunes */
+/* Dark mode overrides */
 .dark body { background: var(--bg); color: var(--text); }
-
 .dark [style*="background: white"],
 .dark [style*="background:'white'"],
-.dark [style*='background: "white"'] {
-  background: var(--card) !important;
-}
+.dark [style*='background: "white"'] { background: var(--card) !important; }
 
-/* Override manual para modo oscuro */
-.dark .auto-card {
-  background: var(--card) !important;
-  border-color: var(--border) !important;
-  color: var(--text) !important;
-}
+.dark .auto-card { background: var(--card) !important; border-color: var(--border) !important; color: var(--text) !important; }
+.dark .auto-bg { background: var(--bg) !important; }
+.dark .auto-bg2 { background: var(--bg2) !important; }
+.dark .auto-bg3 { background: var(--bg3) !important; }
+.dark .auto-text { color: var(--text) !important; }
+.dark .auto-text2 { color: var(--text2) !important; }
+.dark .auto-border { border-color: var(--border) !important; }
 
-.dark .auto-bg {
-  background: var(--bg) !important;
-}
-
-.dark .auto-bg2 {
-  background: var(--bg2) !important;
-}
-
-.dark .auto-bg3 {
-  background: var(--bg3) !important;
-}
-
-.dark .auto-text {
-  color: var(--text) !important;
-}
-
-.dark .auto-text2 {
-  color: var(--text2) !important;
-}
-
-.dark .auto-border {
-  border-color: var(--border) !important;
-}
-
-/* Tablas en modo oscuro */
+/* Tables dark */
 .dark table { color: var(--text); }
 .dark thead tr { background: var(--bg3) !important; }
 .dark tbody tr:hover { background: var(--bg3) !important; }
 .dark th, .dark td { border-color: var(--border) !important; color: var(--text) !important; }
 
-/* Inputs en modo oscuro */
+/* Inputs dark */
 .dark input, .dark select, .dark textarea {
   background: var(--bg2) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
 
-/* Modales en modo oscuro */
-.dark .modal-dark {
-  background: var(--card) !important;
-  color: var(--text) !important;
-}
+/* Modales dark */
+.dark .modal-dark { background: var(--card) !important; color: var(--text) !important; }

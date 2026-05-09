@@ -99,7 +99,7 @@ export default function CajaPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Caja Diaria</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Caja Diaria</h1>
           <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>
             {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
@@ -124,7 +124,7 @@ export default function CajaPage() {
           { label: 'Saldo neto', value: formatPeso(saldo), sub: 'Ventas - Egresos', color: '#00c896' },
           { label: 'Ticket promedio', value: ventas.length ? formatPeso(totalVentas / ventas.length) : '$0', sub: 'Por transacción', color: '#ffd23f' },
         ].map(k => (
-          <div key={k.label} style={{ background: 'var(--card)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+          <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
             <div style={{ fontSize: 10, color: '#6b6b72', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', marginBottom: 3 }}>{k.value}</div>
@@ -134,7 +134,7 @@ export default function CajaPage() {
       </div>
 
       {/* Gráfico flujo */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)' }}>
+      <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)' }}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Flujo de caja del día</div>
         <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 12 }}>Ingresos y egresos por hora</div>
         {ventas.length === 0 ? (
@@ -147,7 +147,7 @@ export default function CajaPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
               <XAxis dataKey="hora" tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} tickFormatter={v => v === 0 ? '0' : '$' + Math.round(v / 1000) + 'k'} />
-              <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 8, fontSize: 11 }} />
+              <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 10, fontSize: 11, border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontFamily: 'DM Sans, sans-serif' }} />
               <Line dataKey="ingresos" name="Ingresos" stroke="#5b4cff" strokeWidth={2} dot={{ r: 3 }} />
               <Line dataKey="egresos" name="Egresos" stroke="#ff4757" strokeWidth={1.5} strokeDasharray="4 4" dot={{ r: 2 }} />
             </LineChart>
@@ -157,7 +157,7 @@ export default function CajaPage() {
 
       {/* Por método + movimientos */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
-        <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)' }}>
+        <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>Por método de pago</div>
           {Object.entries(porMetodo).length === 0 ? (
             <div style={{ color: '#6b6b72', fontSize: 12 }}>Sin ventas hoy</div>
@@ -177,7 +177,7 @@ export default function CajaPage() {
           ))}
         </div>
 
-        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}>
             Movimientos del día
           </div>
@@ -227,7 +227,7 @@ export default function CajaPage() {
 
       {/* Historial cierres */}
       {cierresAnteriores.length > 0 && (
-        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
             Historial de cierres
           </div>

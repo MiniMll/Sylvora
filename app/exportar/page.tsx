@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { getProductos, getVentas } from '@/lib/supabase/productos'
 import { toast } from 'sonner'
 import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info } from 'lucide-react'
-import { Spinner } from '@/components/ui/Spinner'
 
 function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
@@ -13,9 +12,6 @@ export default function ExportarPage() {
   const [periodo, setPeriodo] = useState('mes')
   const [cargando, setCargando] = useState<string | null>(null)
 
-  if (cargando) return (
-      <Spinner texto="Cargando dashboard..." />
-    )
   const exportar = async (id: string, fn: () => Promise<void>) => {
     setCargando(id)
     try {
@@ -238,14 +234,14 @@ export default function ExportarPage() {
   ]
 
   return (
-    <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Exportar PDF / Excel</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Exportar PDF / Excel</h1>
         <p style={{ color: '#6b6b72', fontSize: 13, margin: '2px 0 0' }}>Descargá reportes con datos reales de tu comercio</p>
       </div>
 
-      <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>⚙️ Opciones</div>
+      <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, letterSpacing: '-0.2px', color: 'var(--text)' }}>⚙️ Opciones</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
             <label style={{ fontSize: 11, color: '#6b6b72', display: 'block', marginBottom: 4 }}>Período</label>
@@ -271,13 +267,13 @@ export default function ExportarPage() {
           const Icon = r.Icon
           return (
             <button key={r.id} onClick={r.fn} disabled={cargando === r.id}
-              style={{ textAlign: 'left', padding: 18, borderRadius: 14, border: '1px solid var(--border)', background: 'var(--card)', cursor: cargando === r.id ? 'wait' : 'pointer', opacity: cargando === r.id ? 0.7 : 1, transition: 'all 0.15s', fontFamily: 'inherit' }}
+              style={{ textAlign: 'left', padding: 18, borderRadius: 16, border: '1px solid var(--border)', background: 'var(--card)', cursor: cargando === r.id ? 'wait' : 'pointer', opacity: cargando === r.id ? 0.7 : 1, transition: 'all 0.15s', fontFamily: 'inherit' }}
               onMouseEnter={e => { if (cargando !== r.id) (e.currentTarget.style.borderColor = r.color) }}
               onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
               <div style={{ width: 40, height: 40, borderRadius: 10, background: r.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
                 <Icon size={20} color={r.color} />
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 5, color: 'var(--text)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, letterSpacing: '-0.2px', color: 'var(--text)', color: 'var(--text)' }}>
                 {cargando === r.id ? 'Generando...' : r.titulo}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text2)', lineHeight: 1.5 }}>{r.desc}</div>

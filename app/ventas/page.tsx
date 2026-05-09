@@ -46,9 +46,9 @@ export default function VentasPage() {
   }
 
   return (
-    <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Historial de Ventas</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Historial de Ventas</h1>
         <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>Hacé click en una venta para ver el detalle</p>
       </div>
 
@@ -61,7 +61,7 @@ export default function VentasPage() {
         ].map(k => {
           const Icon = k.icon
           return (
-            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
@@ -78,7 +78,7 @@ export default function VentasPage() {
       </div>
 
       {/* Filtros */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, padding: '12px 16px', border: '1px solid var(--border)', marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ background: 'var(--card)', borderRadius: 16, padding: '12px 16px', border: '1px solid var(--border)', marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
           <Search size={13} color="var(--text2)" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)' }} />
           <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
@@ -107,7 +107,7 @@ export default function VentasPage() {
       </div>
 
       {/* Tabla */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Ventas</span>
           <span style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 400 }}>{ventasFiltradas.length} resultados</span>

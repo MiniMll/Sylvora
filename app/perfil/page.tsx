@@ -77,7 +77,7 @@ export default function PerfilPage() {
     fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)'
   }
   const lbl: React.CSSProperties = { fontSize: 12, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 5 }
-  const sec: React.CSSProperties = { background: 'var(--card)', borderRadius: 14, padding: 20, border: '1px solid var(--border)', marginBottom: 14 }
+  const sec: React.CSSProperties = { background: 'var(--card)', borderRadius: 16, padding: 20, border: '1px solid var(--border)', marginBottom: 14 }
 
   if (loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}>
@@ -86,9 +86,9 @@ export default function PerfilPage() {
   )
 
   return (
-    <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Perfil y Configuración</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Perfil y Configuración</h1>
         <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>Datos de tu comercio y cuenta</p>
       </div>
 

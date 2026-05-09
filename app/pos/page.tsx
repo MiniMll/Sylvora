@@ -212,7 +212,7 @@ export default function POSPage() {
   }
 
   const card: React.CSSProperties = {
-    background: 'var(--card)', borderRadius: 14,
+    background: 'var(--card)', borderRadius: 16,
     border: '1px solid var(--border)', boxShadow: 'var(--shadow)'
   }
 

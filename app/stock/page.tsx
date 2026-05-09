@@ -146,9 +146,9 @@ export default function StockPage() {
   if (cargando) return <Spinner texto="Cargando stock..." />
 
   return (
-    <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Control de Stock</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Control de Stock</h1>
         <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>Inventario en tiempo real</p>
       </div>
 
@@ -162,7 +162,7 @@ export default function StockPage() {
         ].map(k => {
           const Icon = k.Icon
           return (
-            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
@@ -191,8 +191,8 @@ export default function StockPage() {
       )}
 
       {/* Gráfico */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, color: 'var(--text)' }}>Stock por producto</div>
+      <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.2px', color: 'var(--text)', color: 'var(--text)' }}>Stock por producto</div>
         <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Stock actual vs mínimo</div>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={productos.slice(0, 10).map(p => ({
@@ -211,7 +211,7 @@ export default function StockPage() {
       </div>
 
       {/* Tabla */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
           Detalle de stock ({productos.length} productos)
         </div>

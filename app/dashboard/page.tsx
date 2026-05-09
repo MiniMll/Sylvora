@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from 'recharts'
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { getVentas, getProductos } from '@/lib/supabase/productos'
 import Link from 'next/link'
 import { Spinner } from '@/components/ui/Spinner'
-import { TrendingUp, ShoppingBag, AlertTriangle, Package, CheckCircle } from 'lucide-react'
+import { TrendingUp, ShoppingBag, AlertTriangle, Package } from 'lucide-react'
 
 function formatPeso(n: number) { return '$' + Math.round(n).toLocaleString('es-AR') }
 
@@ -74,28 +74,30 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div style={{ padding: 20, overflowY: 'auto', flex: 1 }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Panel de Control</h1>
-        <p style={{ color: '#6b6b72', fontSize: 13, margin: '2px 0 0' }}>
+    <div style={{ padding: '24px 24px', overflowY: 'auto', flex: 1 }}>
+      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Panel de Control</h1>
+        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '3px 0 0' }}>
           {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
+        </div>
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 16 }}>
         {kpis.map(k => {
           const Icon = k.icon
           return (
-            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
+            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '16px 18px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', position: 'relative', overflow: 'hidden', transition: 'box-shadow 0.15s, transform 0.15s' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color, borderRadius: '2px 2px 0 0' }} />
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{k.label}</div>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 600 }}>{k.label}</div>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: k.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon size={14} color={k.color} />
                 </div>
               </div>
-              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'monospace', marginBottom: 3, color: 'var(--text)' }}>{k.value}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'DM Mono, monospace', marginBottom: 4, color: 'var(--text)', letterSpacing: '-0.5px' }}>{k.value}</div>
               <div style={{ fontSize: 11, color: 'var(--text2)' }}>{k.sub}</div>
             </div>
           )
@@ -103,11 +105,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Gráficos */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, marginBottom: 16 }}>
-        <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)'
-
- }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Ventas últimos 7 días</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 16 }}>
+        <div style={{ background: 'var(--card)', borderRadius: 16, padding: 20, border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: 'var(--text)', letterSpacing: '-0.2px' }}>Ventas últimos 7 días</div>
           <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 12 }}>Total por día</div>
           {ventas.length === 0 ? (
             <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72', fontSize: 12 }}>
@@ -119,17 +119,15 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
                 <XAxis dataKey="dia" tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} tickFormatter={v => v === 0 ? '0' : '$' + Math.round(v / 1000) + 'k'} />
-                <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 8, fontSize: 11 }} />
+                <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 10, fontSize: 11, border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontFamily: 'DM Sans, sans-serif' }} />
                 <Bar dataKey="total" name="Ventas" fill="#5b4cff" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
 
-        <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)'
-
- }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Métodos de pago</div>
+        <div style={{ background: 'var(--card)', borderRadius: 16, padding: 20, border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: 'var(--text)', letterSpacing: '-0.2px' }}>Métodos de pago</div>
           <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 8 }}>Distribución total</div>
           {metodosPie.length === 0 ? (
             <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72', fontSize: 12 }}>Sin datos</div>
@@ -148,7 +146,7 @@ export default function DashboardPage() {
                   <Pie data={metodosPie} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
                     {metodosPie.map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Pie>
-                  <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 8, fontSize: 11 }} />
+                  <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 10, fontSize: 11, border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontFamily: 'DM Sans, sans-serif' }} />
                 </PieChart>
               </ResponsiveContainer>
             </>
@@ -158,9 +156,7 @@ export default function DashboardPage() {
 
       {/* Tablas */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)'
-
-, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)'
 , fontSize: 13, fontWeight: 600 }}>
             🏆 Productos más vendidos
@@ -189,9 +185,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)'
-
-, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)'
 , fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span><AlertTriangle size={13} /> Alertas de stock</span>

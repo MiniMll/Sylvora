@@ -80,18 +80,18 @@ export default function RegistroPage() {
     router.push('/dashboard')
   }
 
-  const inp: React.CSSProperties = { width: '100%', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)' }
-  const lbl: React.CSSProperties = { fontSize: 12, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 5 }
+  const inp: React.CSSProperties = { width: '100%', border: '1.5px solid rgba(0,0,0,0.1)', borderRadius: 10, padding: '10px 14px', fontSize: 13.5, outline: 'none', fontFamily: 'inherit', background: '#fafaf9', color: '#1a1a1e', transition: 'border-color 0.15s, box-shadow 0.15s' }
+  const lbl: React.CSSProperties = { fontSize: 12, color: '#6b6b72', fontWeight: 600, display: 'block', marginBottom: 6, letterSpacing: '0.01em' }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif', padding: 16 }}>
-      <div style={{ background: 'var(--card)', borderRadius: 20, padding: 36, width: 420, boxShadow: '0 8px 40px rgba(0,0,0,0.1)' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(145deg, #f0eefc 0%, #f5f4f0 50%, #edf5f2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif', padding: 16 }}>
+      <div style={{ background: '#ffffff', borderRadius: 22, padding: '40px 36px', width: '100%', maxWidth: 420, boxShadow: '0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)', animation: 'fadeIn 0.3s ease' }}>
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#5b4cff,#9b8fff)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: 16 }}>S</div>
+          <div style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(135deg,#5b4cff,#8b7fff)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(91,76,255,0.28)' }}><span style={{ color: 'white', fontWeight: 800, fontSize: 14, letterSpacing: '-0.5px' }}>Sy</span></div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Sylvora</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#1a1a1e', letterSpacing: '-0.3px' }}>Sylvora</div>
             <div style={{ fontSize: 11, color: 'var(--text2)' }}>Crear cuenta gratis</div>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function RegistroPage() {
             </div>
 
             {error && (
-              <div style={{ marginTop: 12, background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.2)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#ff4757' }}>
+              <div style={{ marginTop: 14, background: 'rgba(255,71,87,0.06)', border: '1px solid rgba(255,71,87,0.18)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, color: '#ff4757' }}>
                 {error}
               </div>
             )}
@@ -138,7 +138,7 @@ export default function RegistroPage() {
               if (form.password !== form.confirmar) { setError('Las contraseñas no coinciden'); return }
               setError(''); setPaso(2)
             }}
-              style={{ width: '100%', marginTop: 20, padding: '11px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              style={{ width: '100%', marginTop: 20, padding: '12px', borderRadius: 11, background: '#5b4cff', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 10px rgba(91,76,255,0.25)', letterSpacing: '-0.1px' }}>
               Siguiente
             </button>
           </>
@@ -171,18 +171,18 @@ export default function RegistroPage() {
             </div>
 
             {error && (
-              <div style={{ marginTop: 12, background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.2)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#ff4757' }}>
+              <div style={{ marginTop: 14, background: 'rgba(255,71,87,0.06)', border: '1px solid rgba(255,71,87,0.18)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, color: '#ff4757' }}>
                 {error}
               </div>
             )}
 
             <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
               <button onClick={() => { setError(''); setPaso(1) }}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ flex: 1, padding: '12px', borderRadius: 11, border: '1.5px solid rgba(0,0,0,0.1)', background: 'transparent', color: '#6b6b72', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
                 Atrás
               </button>
               <button onClick={registrar} disabled={cargando}
-                style={{ flex: 2, padding: '11px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: cargando ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                style={{ flex: 2, padding: '12px', borderRadius: 11, background: '#5b4cff', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: cargando ? 'wait' : 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 10px rgba(91,76,255,0.25)' }}>
                 {cargando ? 'Creando cuenta...' : 'Crear cuenta gratis'}
               </button>
             </div>

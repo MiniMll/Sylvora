@@ -69,9 +69,9 @@ export default function ReportesPage() {
   if (cargando) return <Spinner texto="Cargando reportes..." />
 
   return (
-    <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Reportes</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Reportes</h1>
         <p style={{ color: '#6b6b72', fontSize: 13, margin: '2px 0 0' }}>Análisis de performance y rentabilidad</p>
       </div>
 
@@ -85,7 +85,7 @@ export default function ReportesPage() {
         ].map(k => {
           const Icon = k.icon
           return (
-            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 14, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
@@ -104,8 +104,8 @@ export default function ReportesPage() {
 
 
       {/* Gráfico ventas por mes */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Ventas por mes — últimos 6 meses</div>
+      <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.2px', color: 'var(--text)' }}>Ventas por mes — últimos 6 meses</div>
         <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 12 }}>Total recaudado por mes</div>
         {ventas.length === 0 ? (
           <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72', fontSize: 12 }}>
@@ -117,7 +117,7 @@ export default function ReportesPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
               <XAxis dataKey="mes" tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} tickFormatter={v => v === 0 ? '0' : '$' + Math.round(v / 1000) + 'k'} />
-              <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 8, fontSize: 11 }} />
+              <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 10, fontSize: 11, border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontFamily: 'DM Sans, sans-serif' }} />
               <Line dataKey="total" name="Ventas" stroke="#5b4cff" strokeWidth={2.5} dot={{ r: 4, fill: '#5b4cff' }} />
             </LineChart>
           </ResponsiveContainer>
@@ -128,10 +128,10 @@ export default function ReportesPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, marginBottom: 16 }}>
         {/* Top productos */}
-        <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)'
+        <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)'
 
  }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Rentabilidad por producto</div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.2px', color: 'var(--text)' }}>Rentabilidad por producto</div>
           <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 12 }}>Ventas vs costo</div>
           {topProductos.length === 0 ? (
             <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72', fontSize: 12 }}>
@@ -143,7 +143,7 @@ export default function ReportesPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#6b6b72' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} tickFormatter={v => v === 0 ? '0' : '$' + Math.round(v / 1000) + 'k'} />
-                <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 8, fontSize: 11 }} />
+                <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 10, fontSize: 11, border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontFamily: 'DM Sans, sans-serif' }} />
                 <Bar dataKey="ventas" name="Ventas" fill="#5b4cff" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="costo" name="Costo" fill="rgba(255,107,53,0.5)" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -154,10 +154,10 @@ export default function ReportesPage() {
         </div>
 
         {/* Por método */}
-        <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--border)'
+        <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)'
 
  }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>Por método de pago</div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, letterSpacing: '-0.2px', color: 'var(--text)' }}>Por método de pago</div>
           {Object.entries(porMetodo).length === 0 ? (
             <div style={{ color: '#6b6b72', fontSize: 12 }}>Sin datos</div>
           ) : Object.entries(porMetodo).map(([metodo, total]) => {
@@ -179,7 +179,7 @@ export default function ReportesPage() {
       </div>
 
       {/* Tabla top productos */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <Medal size={15} color="#ffd23f" /> Ranking de productos más vendidos
         </div>

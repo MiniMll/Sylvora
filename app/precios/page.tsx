@@ -73,14 +73,14 @@ export default function PreciosPage() {
   )
 
   return (
-    <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Actualización de Precios</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Actualización de Precios</h1>
         <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>Actualizá precios de varios productos a la vez</p>
       </div>
 
       {/* Panel de aumento */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, padding: 20, border: '1px solid var(--border)', marginBottom: 16 }}>
+      <div style={{ background: 'var(--card)', borderRadius: 16, padding: 20, border: '1px solid var(--border)', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
           <TrendingUp size={16} color="#5b4cff" /> Configurar aumento
         </div>
@@ -135,7 +135,7 @@ export default function PreciosPage() {
       </div>
 
       {/* Tabla productos */}
-      <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input type="checkbox"
