@@ -22,6 +22,7 @@ export function ProductFilters({
     <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
       <input value={busqueda} onChange={e => onBusquedaChange(e.target.value)}
         placeholder="Buscar por nombre, código, SKU..."
+        autoFocus
         style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12, outline: 'none', fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)' }} />
       <select value={categoria} onChange={e => onCategoriaChange(e.target.value)}
         style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12, background: 'var(--bg2)', color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>

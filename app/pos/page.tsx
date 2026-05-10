@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { getProductos } from '@/lib/supabase/productos'
 import { usePOSStore } from '@/lib/store'
 import { formatPeso } from '@/lib/utils'
+import { Spinner } from '@/components/ui/Spinner'
 import type { Producto } from '@/types/database'
 import { POSHeader } from './components/POSHeader'
 import { POSSearch } from './components/POSSearch'
@@ -45,14 +46,25 @@ export default function POSPage() {
   const seleccionar = (p: Producto) => {
     setBusqueda('')
     if (necesitaModal(p)) {
+      // kg/litro/metro pasan por el modal de cantidad. Permitimos
+      // continuar aún con stock bajo: el cajero puede vender un
+      // pesaje aproximado y ajustar manualmente.
       setModalCantidad(p)
       setCantidadIngresada('')
       return
     }
+    // BLOQUEO ESTRICTO para productos por unidad sin stock: evita
+    // ventas que dejarían el inventario en negativo. El cajero ve un
+    // toast claro y el item NO se agrega al ticket.
+    if (p.stock_actual === 0) {
+      toast.error(`${p.nombre} no tiene stock`, { id: 'pos-input' })
+      return
+    }
     const enTicket = store.items.find(i => i.producto_id === p.id)
     const cantidadEnTicket = enTicket ? enTicket.cantidad : 0
-    if (p.stock_actual === 0) toast.warning(`${p.nombre} no tiene stock`)
-    else if (cantidadEnTicket + 1 > p.stock_actual) toast.warning(`Solo quedan ${p.stock_actual} unidades`)
+    if (cantidadEnTicket + 1 > p.stock_actual) {
+      toast.warning(`Solo quedan ${p.stock_actual} unidades de ${p.nombre}`, { id: 'pos-input' })
+    }
     store.agregarItem({
       producto_id: p.id,
       nombre: p.nombre,
@@ -87,11 +99,7 @@ export default function POSPage() {
     setCantidadIngresada('')
   }
 
-  if (cargando) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}>
-      Cargando productos...
-    </div>
-  )
+  if (cargando) return <Spinner texto="Cargando productos..." />
 
   return (
     <div className="pos-layout page-in" style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>

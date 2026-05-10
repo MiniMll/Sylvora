@@ -5,7 +5,7 @@ import { formatPeso } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
 
 const PRESETS_DESC = [5, 10, 15]
-const PRESETS_REC = [5, 10, 13]
+const PRESETS_REC = [5, 10, 15]
 
 function POSCartImpl() {
   const store = usePOSStore()
@@ -39,18 +39,33 @@ function POSCartImpl() {
             <div>El ticket está vacío</div>
           </div>
         ) : store.items.map((item, idx) => (
-          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ flex: 1, fontSize: 11, fontWeight: 500, color: 'var(--text)', lineHeight: 1.3 }}>{item.nombre}</div>
+          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.nombre}</div>
+              {!item.peso_kg && (
+                <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 2, fontFamily: 'DM Mono, monospace' }}>
+                  {item.cantidad} × {formatPeso(item.precio_unitario)}
+                </div>
+              )}
+            </div>
             {!item.peso_kg ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad - 1)}
-                  aria-label="Disminuir cantidad"
-                  style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>−</button>
-                <span style={{ fontSize: 13, fontWeight: 700, minWidth: 24, textAlign: 'center', fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{item.cantidad}</span>
-                <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad + 1)}
-                  aria-label="Aumentar cantidad"
-                  style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>+</button>
-              </div>
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad - 1)}
+                    aria-label="Disminuir cantidad"
+                    style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>−</button>
+                  <span style={{ fontSize: 13, fontWeight: 700, minWidth: 22, textAlign: 'center', fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{item.cantidad}</span>
+                  <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad + 1)}
+                    aria-label="Aumentar cantidad"
+                    style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>+</button>
+                </div>
+                {/* Quick remove: en items unidad, antes había que clickear − hasta llegar a 0. */}
+                <button onClick={() => store.quitarItem(item.producto_id)}
+                  aria-label="Quitar item"
+                  style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid rgba(255,71,87,0.22)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4757', flexShrink: 0 }}>
+                  <X size={11} />
+                </button>
+              </>
             ) : (
               <button onClick={() => store.quitarItem(item.producto_id)}
                 aria-label="Quitar item"
@@ -58,7 +73,7 @@ function POSCartImpl() {
                 <X size={13} />
               </button>
             )}
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#5b4cff', fontFamily: 'monospace', minWidth: 60, textAlign: 'right' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#5b4cff', fontFamily: 'monospace', minWidth: 56, textAlign: 'right' }}>
               {formatPeso(item.subtotal)}
             </div>
           </div>
