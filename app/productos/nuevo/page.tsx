@@ -135,7 +135,7 @@ export default function NuevoProductoPage() {
         {/* Info básica */}
         <div style={sec}>
           <div style={secTitle}>
-            <Info size={15} color="var(--ac)" strokeWidth={2.2} /> Información básica
+            <Info size={15} color="var(--ac)" strokeWidth={1.8} /> Información básica
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div style={{ gridColumn: '1 / -1' }}>
@@ -191,7 +191,7 @@ export default function NuevoProductoPage() {
         {/* Precios */}
         <div style={sec}>
           <div style={secTitle}>
-            <DollarSign size={15} color="var(--ac)" strokeWidth={2.2} /> Precios
+            <DollarSign size={15} color="var(--ac)" strokeWidth={1.8} /> Precios
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
@@ -245,7 +245,7 @@ export default function NuevoProductoPage() {
         {/* Stock y lotes */}
         <div style={sec}>
           <div style={{ ...secTitle, marginBottom: 8 }}>
-            <Layers size={15} color="var(--ac)" strokeWidth={2.2} /> Stock y lotes
+            <Layers size={15} color="var(--ac)" strokeWidth={1.8} /> Stock y lotes
           </div>
           <div style={{
             fontSize: 11.5, color: 'var(--text2)', marginBottom: 16,

@@ -44,21 +44,17 @@ function SidebarInnerImpl({
       {/* Logo */}
       <div style={{ padding: '16px 14px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 30, height: 30,
-              borderRadius: 9,
-              background: 'linear-gradient(135deg, #5b4cff 0%, #8b7fff 100%)',
+              borderRadius: 8,
+              background: '#5b4cff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(91,76,255,0.35)',
             }}>
-              <span style={{ color: 'white', fontWeight: 800, fontSize: 13, letterSpacing: '-0.5px' }}>Sy</span>
+              <span style={{ color: 'white', fontWeight: 700, fontSize: 13, letterSpacing: '-0.04em' }}>Sy</span>
             </div>
-            <div>
-              <div style={{ color: 'white', fontSize: 14, fontWeight: 700, letterSpacing: '-0.3px', lineHeight: 1 }}>Sylvora</div>
-              <div style={{ color: 'rgba(255,255,255,0.28)', fontSize: 9, marginTop: 2, letterSpacing: '0.3px' }}>Gestión inteligente</div>
-            </div>
+            <div style={{ color: 'white', fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>Sylvora</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Notificaciones />

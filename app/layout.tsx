@@ -4,7 +4,8 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Sylvora',
-  description: 'Gestión inteligente para tu comercio',
+  description: 'Punto de venta y control de stock para comercios.',
+  themeColor: '#5b4cff',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

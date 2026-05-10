@@ -203,8 +203,14 @@ export default function ReportesPage() {
                 const mg = p.total > 0 ? Math.round((gan / p.total) * 100) : 0
                 return (
                   <tr key={i} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '9px 12px', fontWeight: 700, color: i === 0 ? '#ffd23f' : i === 1 ? '#aaa' : i === 2 ? '#cd7f32' : '#6b6b72' }}>
-                      {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                    <td style={{ padding: '9px 12px', fontWeight: 700, color: i === 0 ? '#ffd23f' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--text2)' }}>
+                      {i < 3 ? (
+                        <Medal
+                          size={16}
+                          color={i === 0 ? '#ffd23f' : i === 1 ? '#c0c0c0' : '#cd7f32'}
+                          strokeWidth={1.8}
+                        />
+                      ) : `#${i + 1}`}
                     </td>
                     <td style={{ padding: '9px 12px', fontWeight: 500 }}>{p.nombre}</td>
                     <td style={{ padding: '9px 12px', fontFamily: 'monospace' }}>{p.cantidad}</td>

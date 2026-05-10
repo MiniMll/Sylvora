@@ -132,11 +132,15 @@ export default function DashboardPage() {
     </div>
   )
 
+  // Color discipline: violeta como color de marca dominante. El único
+  // color semántico que aparece es el rojo, y SOLO cuando comunica
+  // información real (stock crítico > 0). Estilo Linear/Stripe.
+  const stockCriticoColor = criticos > 0 ? '#ff4757' : '#5b4cff'
   const kpis = [
     { label: 'Ventas hoy', value: formatPeso(totalHoy), sub: `${ventasHoy.length} transacciones`, color: '#5b4cff', icon: TrendingUp },
-    { label: 'Ventas del mes', value: formatPeso(totalMes), sub: `${ventas.length} total`, color: '#00c896', icon: ShoppingBag },
-    { label: 'Stock crítico', value: criticos.toString(), sub: `${bajos} con stock bajo`, color: '#ff6b35', icon: AlertTriangle },
-    { label: 'Productos activos', value: productos.length.toString(), sub: 'En catálogo', color: '#ffd23f', icon: Package },
+    { label: 'Ventas del mes', value: formatPeso(totalMes), sub: `${ventas.length} total`, color: '#5b4cff', icon: ShoppingBag },
+    { label: 'Stock crítico', value: criticos.toString(), sub: `${bajos} con stock bajo`, color: stockCriticoColor, icon: AlertTriangle },
+    { label: 'Productos activos', value: productos.length.toString(), sub: 'En catálogo', color: '#5b4cff', icon: Package },
   ]
 
   return (
@@ -176,7 +180,7 @@ export default function DashboardPage() {
                   background: k.color + '14',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Icon size={15} color={k.color} strokeWidth={2.2} />
+                  <Icon size={15} color={k.color} strokeWidth={1.8} />
                 </div>
               </div>
               <div style={{
@@ -246,7 +250,7 @@ export default function DashboardPage() {
       <div className="dashboard-grid-equal">
         <div style={{ background: 'var(--card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Trophy size={14} color="var(--w)" strokeWidth={2.2} />
+            <Trophy size={14} color="var(--w)" strokeWidth={1.8} />
             Productos más vendidos
           </div>
           {topProductos.length === 0 ? (
@@ -276,14 +280,14 @@ export default function DashboardPage() {
         <div style={{ background: 'var(--card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <AlertTriangle size={14} color="var(--w)" strokeWidth={2.2} />
+              <AlertTriangle size={14} color="var(--w)" strokeWidth={1.8} />
               Alertas de stock
             </span>
             <Link href="/stock" style={{ fontSize: 11, color: 'var(--ac)', textDecoration: 'none', fontWeight: 500 }}>Ver todo →</Link>
           </div>
           {alertasStock.length === 0 ? (
             <div style={{ padding: 28, textAlign: 'center', color: 'var(--g)', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <CheckCircle size={14} color="var(--g)" strokeWidth={2.2} /> Todo el stock está OK
+              <CheckCircle size={14} color="var(--g)" strokeWidth={1.8} /> Todo el stock está OK
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>

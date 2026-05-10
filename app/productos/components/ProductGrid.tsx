@@ -58,7 +58,7 @@ function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
               {p.imagen_url
                 ? <img src={p.imagen_url} alt={p.nombre}
                     style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: 14 }} />
-                : <Package size={36} color="var(--border-strong)" strokeWidth={1.5} style={{ opacity: 0.6 }} />
+                : <Package size={36} color="var(--border-strong)" strokeWidth={1.8} style={{ opacity: 0.6 }} />
               }
               {p.unidad_venta !== 'unidad' && (
                 <span style={{
