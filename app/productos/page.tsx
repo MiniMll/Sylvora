@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getProductos, eliminarProducto, actualizarProducto, subirImagen } from '@/lib/supabase/productos'
 import { getLotes, agregarLote, getSiguienteNumeroLote, eliminarLote } from '@/lib/supabase/stock'
@@ -61,7 +61,7 @@ export default function ProductosPage() {
     return matchCat && matchBusq
   }), [productos, categoria, busqueda])
 
-  const abrirDetalle = async (p: Producto) => {
+  const abrirDetalle = useCallback(async (p: Producto) => {
     setDetalle(p)
     setCargandoLotes(true)
     setLotesDetalle([])
@@ -72,7 +72,10 @@ export default function ProductosPage() {
     setLotesDetalle(lotes)
     setNuevoLote({ numero_lote: numLote, cantidad: '', fecha_vencimiento: '' })
     setCargandoLotes(false)
-  }
+  }, [])
+
+  const onEditar = useCallback((p: Producto) => setEditando(p), [])
+  const onConfirmarBorrar = useCallback((p: Producto) => setConfirmarBorrar(p), [])
 
   const guardarEdicion = async (form: EditFormValues, imgFile: File | null) => {
     if (!editando) return
@@ -180,8 +183,8 @@ export default function ProductosPage() {
         productos={filtrados}
         vista={vista}
         onAbrirDetalle={abrirDetalle}
-        onEditar={setEditando}
-        onConfirmarBorrar={setConfirmarBorrar}
+        onEditar={onEditar}
+        onConfirmarBorrar={onConfirmarBorrar}
       />
 
       {detalle && (

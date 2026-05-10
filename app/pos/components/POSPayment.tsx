@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { toast } from 'sonner'
 import { formatPeso } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
@@ -13,7 +13,7 @@ const METODOS: { id: MetodoPago; label: string }[] = [
   { id: 'mercadopago', label: 'Mercado Pago' },
 ]
 
-export function POSPayment() {
+function POSPaymentImpl() {
   const store = usePOSStore()
   const [cobrado, setCobrado] = useState(false)
 
@@ -66,3 +66,7 @@ export function POSPayment() {
     </>
   )
 }
+
+// Memo: igual razonamiento que POSCart — sin props externos, evita
+// re-render cuando el page actualiza estado no relacionado al pago.
+export const POSPayment = memo(POSPaymentImpl)

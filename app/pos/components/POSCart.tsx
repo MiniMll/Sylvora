@@ -1,4 +1,5 @@
 'use client'
+import { memo } from 'react'
 import { ShoppingCart, X } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
@@ -6,7 +7,7 @@ import { usePOSStore } from '@/lib/store'
 const PRESETS_DESC = [5, 10, 15]
 const PRESETS_REC = [5, 10, 13]
 
-export function POSCart() {
+function POSCartImpl() {
   const store = usePOSStore()
 
   return (
@@ -98,3 +99,8 @@ export function POSCart() {
     </>
   )
 }
+
+// Memo: el page re-renderiza por cada keystroke en la búsqueda y al
+// abrir/cerrar el modal de cantidad. POSCart solo depende del store
+// de zustand — sin props, memo evita re-renders por cambios del page.
+export const POSCart = memo(POSCartImpl)

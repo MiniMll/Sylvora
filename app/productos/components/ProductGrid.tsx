@@ -1,4 +1,5 @@
 'use client'
+import { memo } from 'react'
 import { Pencil, Trash2, Package } from 'lucide-react'
 import { formatPeso, stockColor, stockLabel, formatStock } from '@/lib/utils'
 import type { Producto } from '@/types/database'
@@ -12,10 +13,15 @@ interface Props {
   onConfirmarBorrar: (p: Producto) => void
 }
 
-export function ProductGrid({ productos, vista, onAbrirDetalle, onEditar, onConfirmarBorrar }: Props) {
+function ProductGridImpl({ productos, vista, onAbrirDetalle, onEditar, onConfirmarBorrar }: Props) {
   if (vista === 'cards') return <CardsView {...{ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }} />
   return <ListaView {...{ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }} />
 }
+
+// Memo: la página re-renderiza al abrir/cerrar 4 modales distintos.
+// Cuando ninguna prop relevante cambia, evitamos re-pintar la grilla
+// completa de N productos.
+export const ProductGrid = memo(ProductGridImpl)
 
 function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: Omit<Props, 'vista'>) {
   return (

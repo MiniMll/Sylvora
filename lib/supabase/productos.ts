@@ -4,6 +4,11 @@
 import { getBrowserClient, getComercioId } from './_base'
 import type { Producto } from '@/types/database'
 
+// Cap defensivo. Si un comercio supera este número, conviene migrar
+// a paginación o virtualización antes de subirlo. Hoy: render in-memory
+// + filtrado client-side = OK hasta ~1000 SKUs.
+const PRODUCTOS_LIMIT = 1000
+
 export async function getProductos(): Promise<Producto[]> {
   const supabase = getBrowserClient()
   const comercioId = await getComercioId()
@@ -14,6 +19,7 @@ export async function getProductos(): Promise<Producto[]> {
     .eq('comercio_id', comercioId)
     .eq('activo', true)
     .order('nombre')
+    .limit(PRODUCTOS_LIMIT)
   if (error) { console.error(error); return [] }
   return (data ?? []) as Producto[]
 }

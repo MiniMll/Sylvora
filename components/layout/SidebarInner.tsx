@@ -1,4 +1,5 @@
 'use client'
+import { memo } from 'react'
 import Link from 'next/link'
 import { Sun, Moon, LogOut } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -23,7 +24,7 @@ interface Props {
   onNavigate?: () => void
 }
 
-export function SidebarInner({
+function SidebarInnerImpl({
   pathname, sections, nav,
   dark, onToggleTheme,
   nombreUsuario, iniciales, onCerrarSesion,
@@ -179,3 +180,8 @@ export function SidebarInner({
     </aside>
   )
 }
+
+// Memo: el padre `Sidebar` re-renderiza al togglear el theme y al
+// abrir/cerrar el menú mobile. Si los props no cambian, evitamos
+// volver a montar el árbol completo del sidebar.
+export const SidebarInner = memo(SidebarInnerImpl)

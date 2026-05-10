@@ -1,6 +1,6 @@
 'use client'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   LayoutDashboard, ShoppingCart, History, Package, ArchiveX,
   PlusCircle, Wallet, BarChart2, Download,
@@ -57,19 +57,23 @@ export function Sidebar() {
     cargarUsuario()
   }, [])
 
-  const toggleTheme = () => {
-    const next = !dark
-    setDark(next)
-    if (next) { document.documentElement.classList.add('dark'); localStorage.setItem('theme', 'dark') }
-    else { document.documentElement.classList.remove('dark'); localStorage.setItem('theme', 'light') }
-  }
+  const toggleTheme = useCallback(() => {
+    setDark(prev => {
+      const next = !prev
+      if (next) { document.documentElement.classList.add('dark'); localStorage.setItem('theme', 'dark') }
+      else { document.documentElement.classList.remove('dark'); localStorage.setItem('theme', 'light') }
+      return next
+    })
+  }, [])
 
-  const cerrarSesion = async () => {
+  const cerrarSesion = useCallback(async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
     invalidarCacheComercio()
     router.push('/login')
-  }
+  }, [router])
+
+  const cerrarMobile = useCallback(() => setOpen(false), [])
 
   const innerProps = {
     pathname, sections, nav,
@@ -99,9 +103,9 @@ export function Sidebar() {
       </button>
       {open && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }} onClick={() => setOpen(false)} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }} onClick={cerrarMobile} />
           <div style={{ position: 'relative', zIndex: 1, animation: 'slideUp 0.2s ease' }}>
-            <SidebarInner {...innerProps} onNavigate={() => setOpen(false)} />
+            <SidebarInner {...innerProps} onNavigate={cerrarMobile} />
           </div>
         </div>
       )}
