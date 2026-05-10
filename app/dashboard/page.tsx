@@ -6,7 +6,7 @@ import { getVentas } from '@/lib/supabase/ventas'
 import { formatPeso } from '@/lib/utils'
 import Link from 'next/link'
 import { Spinner } from '@/components/ui/Spinner'
-import { TrendingUp, ShoppingBag, AlertTriangle, Package, CheckCircle } from 'lucide-react'
+import { TrendingUp, ShoppingBag, AlertTriangle, Package, CheckCircle, Trophy } from 'lucide-react'
 
 export default function DashboardPage() {
   const [ventas, setVentas] = useState<any[]>([])
@@ -74,13 +74,13 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div style={{ padding: '24px 24px', overflowY: 'auto', flex: 1 }}>
+    <div className="page-in" style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Panel de Control</h1>
-        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '3px 0 0' }}>
-          {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-        </p>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Panel de Control</h1>
+          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>
+            {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
         </div>
       </div>
 
@@ -127,12 +127,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Gráficos */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 16 }}>
-        <div style={{ background: 'var(--card)', borderRadius: 16, padding: 20, border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: 'var(--text)', letterSpacing: '-0.2px' }}>Ventas últimos 7 días</div>
-          <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 12 }}>Total por día</div>
+      <div className="dashboard-grid-2" style={{ marginBottom: 16 }}>
+        <div style={{ background: 'var(--card)', borderRadius: 'var(--radius-lg)', padding: 20, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: 'var(--text)', letterSpacing: '-0.01em' }}>Ventas últimos 7 días</div>
+          <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Total por día</div>
           {ventas.length === 0 ? (
-            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72', fontSize: 12 }}>
+            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', fontSize: 12 }}>
               No hay ventas registradas todavía
             </div>
           ) : (
@@ -148,17 +148,17 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div style={{ background: 'var(--card)', borderRadius: 16, padding: 20, border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: 'var(--text)', letterSpacing: '-0.2px' }}>Métodos de pago</div>
-          <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 8 }}>Distribución total</div>
+        <div style={{ background: 'var(--card)', borderRadius: 'var(--radius-lg)', padding: 20, border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: 'var(--text)', letterSpacing: '-0.01em' }}>Métodos de pago</div>
+          <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 8 }}>Distribución total</div>
           {metodosPie.length === 0 ? (
-            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72', fontSize: 12 }}>Sin datos</div>
+            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', fontSize: 12 }}>Sin datos</div>
           ) : (
             <>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
                 {metodosPie.map(m => (
-                  <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#6b6b72' }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 2, background: m.color, display: 'inline-block' }} />
+                  <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--text2)' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 99, background: m.color, display: 'inline-block' }} />
                     {m.name}
                   </div>
                 ))}
@@ -177,29 +177,29 @@ export default function DashboardPage() {
       </div>
 
       {/* Tablas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)'
-, fontSize: 13, fontWeight: 600 }}>
-            🏆 Productos más vendidos
+      <div className="dashboard-grid-equal">
+        <div style={{ background: 'var(--card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Trophy size={14} color="var(--w)" strokeWidth={2.2} />
+            Productos más vendidos
           </div>
           {topProductos.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: '#6b6b72', fontSize: 12 }}>Sin ventas registradas</div>
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--text2)', fontSize: 12 }}>Sin ventas registradas</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ background: 'var(--bg3)', }}>
+                <tr style={{ background: 'var(--bg3)' }}>
                   {['Producto', 'Cant.', 'Total'].map(h => (
-                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: '#6b6b72', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
+                    <th key={h} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {topProductos.map((p, i) => (
-                  <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '9px 12px', fontWeight: 500 }}>{p.nombre}</td>
-                    <td style={{ padding: '9px 12px' }}>{p.cantidad}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#5b4cff', fontWeight: 600 }}>{formatPeso(p.total)}</td>
+                  <tr key={i} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--text)' }}>{p.nombre}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>{p.cantidad}</td>
+                    <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', color: 'var(--ac)', fontWeight: 600 }}>{formatPeso(p.total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -207,34 +207,47 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)'
-, fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span><AlertTriangle size={13} /> Alertas de stock</span>
-            <Link href="/stock" style={{ fontSize: 11, color: '#5b4cff', textDecoration: 'none' }}>Ver todo</Link>
+        <div style={{ background: 'var(--card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={14} color="var(--w)" strokeWidth={2.2} />
+              Alertas de stock
+            </span>
+            <Link href="/stock" style={{ fontSize: 11, color: 'var(--ac)', textDecoration: 'none', fontWeight: 500 }}>Ver todo →</Link>
           </div>
           {alertasStock.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: '#00c896', fontSize: 12 }}><CheckCircle size={13} color="#00c896" style={{marginRight:4}}/> Todo el stock está OK</div>
+            <div style={{ padding: 28, textAlign: 'center', color: 'var(--g)', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <CheckCircle size={14} color="var(--g)" strokeWidth={2.2} /> Todo el stock está OK
+            </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: 'var(--bg3)' }}>
                   {['Producto', 'Stock', 'Mín.', 'Estado'].map(h => (
-                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: '#6b6b72', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
+                    <th key={h} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {alertasStock.map((p: any, i: number) => {
-                  const sc = p.stock_actual <= p.stock_minimo * 0.3 ? '#ff4757' : '#ffb800'
+                  const sc = p.stock_actual <= p.stock_minimo * 0.3 ? 'var(--r)' : 'var(--w)'
+                  const scHex = p.stock_actual <= p.stock_minimo * 0.3 ? '#ff4757' : '#ffb800'
                   const sl = p.stock_actual <= p.stock_minimo * 0.3 ? 'Crítico' : 'Bajo'
                   return (
-                    <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                      <td style={{ padding: '9px 12px', fontWeight: 500 }}>{p.nombre}</td>
-                      <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontWeight: 700, color: sc }}>{p.stock_actual}</td>
-                      <td style={{ padding: '9px 12px', color: '#6b6b72' }}>{p.stock_minimo}</td>
-                      <td style={{ padding: '9px 12px' }}>
-                        <span style={{ background: sc + '22', color: sc, padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>{sl}</span>
+                    <tr key={i} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
+                      <td style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--text)' }}>{p.nombre}</td>
+                      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontWeight: 700, color: sc }}>{p.stock_actual}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text2)', fontFamily: 'DM Mono, monospace' }}>{p.stock_minimo}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          background: scHex + '14', color: sc,
+                          padding: '3px 9px', borderRadius: 999,
+                          fontSize: 10, fontWeight: 600,
+                        }}>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: sc }} />
+                          {sl}
+                        </span>
                       </td>
                     </tr>
                   )

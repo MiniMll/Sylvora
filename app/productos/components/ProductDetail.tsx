@@ -40,7 +40,7 @@ export function ProductDetail({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'var(--card)', borderRadius: 20, width: 500, maxHeight: '90vh', overflowY: 'auto' }}>
+      <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, width: 500, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
         <div style={{ height: 180, background: 'var(--bg3)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, position: 'relative' }}>
           {producto.imagen_url
             ? <img src={producto.imagen_url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

@@ -172,7 +172,7 @@ export default function ProductosPage() {
   if (cargando) return <Spinner texto="Cargando productos..." />
 
   return (
-    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
+    <div className="page-in" style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <ProductFilters
         busqueda={busqueda} onBusquedaChange={setBusqueda}
         categoria={categoria} onCategoriaChange={setCategoria} categorias={categorias}
@@ -213,7 +213,7 @@ export default function ProductosPage() {
       {/* Modal agregar lote */}
       {modalLote && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 24, width: 380 }}>
+          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 24, width: 380, boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z'/></svg>
@@ -260,7 +260,7 @@ export default function ProductosPage() {
       {/* Modal confirmar borrar */}
       {confirmarBorrar && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380, textAlign: 'center' }}>
+          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380, textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🗑️</div>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, color: 'var(--text)' }}>¿Borrar producto?</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 20, background: 'var(--bg3)', borderRadius: 10, padding: '10px 16px' }}>

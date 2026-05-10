@@ -94,10 +94,10 @@ export default function POSPage() {
   )
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div className="pos-layout page-in" style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
 
       {/* Panel izquierdo: buscador + resultados */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', ...cardStyle, margin: 16, marginRight: 8, overflow: 'hidden' }}>
+      <div className="pos-search-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', ...cardStyle, margin: 16, marginRight: 8, overflow: 'hidden' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
           <POSHeader />
           <POSSearch
@@ -112,15 +112,15 @@ export default function POSPage() {
       </div>
 
       {/* Panel derecho: ticket + pago */}
-      <div style={{ width: 320, display: 'flex', flexDirection: 'column', ...cardStyle, margin: 16, marginLeft: 8, overflow: 'hidden' }}>
+      <div className="pos-cart-panel" style={{ width: 320, display: 'flex', flexDirection: 'column', ...cardStyle, margin: 16, marginLeft: 8, overflow: 'hidden' }}>
         <POSCart />
         <POSPayment />
       </div>
 
       {/* Modal cantidad variable (kg/litro/metro) */}
       {modalCantidad && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 360, textAlign: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 360, textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(91,76,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
               {modalCantidad.unidad_venta === 'kg' ? <Scale size={24} color="#5b4cff" />
                 : modalCantidad.unidad_venta === 'litro' ? <Beaker size={24} color="#5b4cff" />
