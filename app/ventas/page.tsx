@@ -87,8 +87,8 @@ export default function VentasPage() {
   return (
     <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Historial de Ventas</h1>
-        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>Hacé click en una venta para ver el detalle</p>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Historial de Ventas</h1>
+        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Hacé click en una venta para ver el detalle</p>
       </div>
 
       {/* KPIs */}

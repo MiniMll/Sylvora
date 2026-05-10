@@ -68,16 +68,14 @@ export default function LoginPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
           <div style={{
             width: 38, height: 38,
-            borderRadius: 11,
-            background: 'linear-gradient(135deg, #5b4cff, #8b7fff)',
+            borderRadius: 10,
+            background: '#5b4cff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 10px rgba(91,76,255,0.28)',
           }}>
-            <span style={{ color: 'white', fontWeight: 800, fontSize: 14, letterSpacing: '-0.5px' }}>Sy</span>
+            <span style={{ color: 'white', fontWeight: 700, fontSize: 15, letterSpacing: '-0.04em' }}>Sy</span>
           </div>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: '#1a1a1e', letterSpacing: '-0.3px' }}>Sylvora</div>
-            <div style={{ fontSize: 11, color: '#9898a4', marginTop: 1 }}>Gestión inteligente</div>
+            <div style={{ fontSize: 17, fontWeight: 600, color: '#1a1a1e', letterSpacing: '-0.01em' }}>Sylvora</div>
           </div>
         </div>
 

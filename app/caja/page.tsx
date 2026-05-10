@@ -98,8 +98,8 @@ export default function CajaPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Caja Diaria</h1>
-          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Caja Diaria</h1>
+          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>
             {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
@@ -125,9 +125,9 @@ export default function CajaPage() {
         ].map(k => (
           <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
-            <div style={{ fontSize: 10, color: '#6b6b72', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
+            <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
             <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', marginBottom: 3 }}>{k.value}</div>
-            <div style={{ fontSize: 11, color: '#6b6b72' }}>{k.sub}</div>
+            <div style={{ fontSize: 11, color: 'var(--text2)' }}>{k.sub}</div>
           </div>
         ))}
       </div>
@@ -135,9 +135,9 @@ export default function CajaPage() {
       {/* Gráfico flujo */}
       <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)' }}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Flujo de caja del día</div>
-        <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 12 }}>Ingresos y egresos por hora</div>
+        <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Ingresos y egresos por hora</div>
         {ventas.length === 0 ? (
-          <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72', fontSize: 12 }}>
+          <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', fontSize: 12 }}>
             No hay movimientos hoy todavía
           </div>
         ) : (
@@ -159,7 +159,7 @@ export default function CajaPage() {
         <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>Por método de pago</div>
           {Object.entries(porMetodo).length === 0 ? (
-            <div style={{ color: '#6b6b72', fontSize: 12 }}>Sin ventas hoy</div>
+            <div style={{ color: 'var(--text2)', fontSize: 12 }}>Sin ventas hoy</div>
           ) : Object.entries(porMetodo).map(([metodo, total]) => (
             <div key={metodo} style={{ marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>

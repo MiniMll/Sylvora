@@ -75,8 +75,8 @@ export default function PreciosPage() {
   return (
     <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Actualización de Precios</h1>
-        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>Actualizá precios de varios productos a la vez</p>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Actualización de Precios</h1>
+        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Actualizá precios de varios productos a la vez</p>
       </div>
 
       {/* Panel de aumento */}

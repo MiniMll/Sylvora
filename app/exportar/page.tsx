@@ -236,8 +236,8 @@ export default function ExportarPage() {
   return (
     <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.5px', color: 'var(--text)' }}>Exportar PDF / Excel</h1>
-        <p style={{ color: '#6b6b72', fontSize: 13, margin: '2px 0 0' }}>Descargá reportes con datos reales de tu comercio</p>
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Exportar PDF / Excel</h1>
+        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Descargá reportes con datos reales de tu comercio</p>
       </div>
 
       <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
