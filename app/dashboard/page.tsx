@@ -5,7 +5,7 @@ import { getProductos } from '@/lib/supabase/productos'
 import { getVentas } from '@/lib/supabase/ventas'
 import { formatPeso } from '@/lib/utils'
 import Link from 'next/link'
-import { Spinner } from '@/components/ui/Spinner'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { TrendingUp, ShoppingBag, AlertTriangle, Package, CheckCircle, Trophy } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -63,7 +63,73 @@ export default function DashboardPage() {
   const alertasStock = productos.filter(p => p.stock_actual <= p.stock_minimo).slice(0, 5)
 
   if (cargando) return (
-    <Spinner texto="Cargando dashboard..." />
+    <div className="page-in" style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+      {/* Header skeleton */}
+      <div style={{ marginBottom: 24 }}>
+        <Skeleton width={180} height={26} radius={6} />
+        <Skeleton width={240} height={13} radius={4} style={{ marginTop: 8 }} />
+      </div>
+
+      {/* KPIs skeleton — mismo grid responsive que el real */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 16 }}>
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '18px 20px',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <Skeleton width={70} height={10} radius={3} />
+              <Skeleton width={32} height={32} radius={10} />
+            </div>
+            <Skeleton width={120} height={24} radius={5} style={{ marginBottom: 6 }} />
+            <Skeleton width={80} height={11} radius={3} />
+          </div>
+        ))}
+      </div>
+
+      {/* Charts skeleton */}
+      <div className="dashboard-grid-2" style={{ marginBottom: 16 }}>
+        {[200, 160].map((h, i) => (
+          <div key={i} style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--radius-lg)',
+            padding: 20,
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
+          }}>
+            <Skeleton width={140} height={14} radius={4} style={{ marginBottom: 6 }} />
+            <Skeleton width={90} height={11} radius={3} style={{ marginBottom: 16 }} />
+            <Skeleton width="100%" height={h} radius={8} />
+          </div>
+        ))}
+      </div>
+
+      {/* Tablas skeleton */}
+      <div className="dashboard-grid-equal">
+        {[0, 1].map(i => (
+          <div key={i} style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border)',
+            overflow: 'hidden',
+            boxShadow: 'var(--shadow-sm)',
+          }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+              <Skeleton width={160} height={14} radius={4} />
+            </div>
+            {[0, 1, 2, 3, 4].map(j => (
+              <div key={j} style={{ padding: '11px 16px', borderTop: j === 0 ? 'none' : '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <Skeleton width={120 + (j % 3) * 30} height={11} radius={3} />
+                <Skeleton width={60} height={11} radius={3} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 
   const kpis = [

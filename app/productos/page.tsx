@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getProductos, eliminarProducto, actualizarProducto, subirImagen } from '@/lib/supabase/productos'
 import { getLotes, agregarLote, getSiguienteNumeroLote, eliminarLote } from '@/lib/supabase/stock'
-import { Spinner } from '@/components/ui/Spinner'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { formatStock } from '@/lib/utils'
 import type { Producto, Lote } from '@/types/database'
 import { ProductFilters, type Vista } from './components/ProductFilters'
@@ -169,7 +169,43 @@ export default function ProductosPage() {
     setBorrandoLote(null)
   }
 
-  if (cargando) return <Spinner texto="Cargando productos..." />
+  if (cargando) return (
+    <div className="page-in" style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
+      {/* Filtros skeleton */}
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Skeleton style={{ flex: 1 }} height={34} radius={8} />
+        <Skeleton width={120} height={34} radius={8} />
+        <Skeleton width={88} height={34} radius={8} />
+        <Skeleton width={140} height={34} radius={8} />
+      </div>
+      {/* Grid skeleton — mismo layout que el real */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 14 }}>
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} style={{
+            background: 'var(--card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
+            overflow: 'hidden',
+          }}>
+            <Skeleton aspectRatio="1 / 1" radius={0} />
+            <div style={{ padding: '12px 14px 10px' }}>
+              <Skeleton width="80%" height={13} radius={4} style={{ marginBottom: 8 }} />
+              <Skeleton width="50%" height={10} radius={3} style={{ marginBottom: 12 }} />
+              <Skeleton width="60%" height={17} radius={4} />
+            </div>
+            <div style={{ borderTop: '1px solid var(--border)', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Skeleton width={90} height={18} radius={999} />
+              <div style={{ display: 'flex', gap: 4 }}>
+                <Skeleton width={24} height={20} radius={6} />
+                <Skeleton width={24} height={20} radius={6} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 
   return (
     <div className="page-in" style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>

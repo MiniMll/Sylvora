@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getVentas } from '@/lib/supabase/ventas'
 import { formatPeso } from '@/lib/utils'
 import { Search, TrendingUp, Receipt, Hash, X, ChevronDown } from 'lucide-react'
-import { Spinner } from '@/components/ui/Spinner'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 export default function VentasPage() {
   const [ventas, setVentas] = useState<any[]>([])
@@ -36,7 +36,47 @@ export default function VentasPage() {
   const totalFiltrado = ventasFiltradas.reduce((s, v) => s + Number(v.total), 0)
   const ticketProm = ventasFiltradas.length ? Math.round(totalFiltrado / ventasFiltradas.length) : 0
 
-  if (cargando) return <Spinner texto="Cargando ventas..." />
+  if (cargando) return (
+    <div className="page-in" style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 16 }}>
+        <Skeleton width={200} height={26} radius={6} />
+        <Skeleton width={280} height={13} radius={4} style={{ marginTop: 8 }} />
+      </div>
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+            <Skeleton width={80} height={10} radius={3} style={{ marginBottom: 8 }} />
+            <Skeleton width={120} height={22} radius={5} />
+          </div>
+        ))}
+      </div>
+      {/* Filtros */}
+      <div style={{ background: 'var(--card)', borderRadius: 16, padding: '12px 16px', border: '1px solid var(--border)', marginBottom: 12, display: 'flex', gap: 8 }}>
+        <Skeleton style={{ flex: 1, minWidth: 180 }} height={28} radius={6} />
+        <Skeleton width={160} height={28} radius={6} />
+        <Skeleton width={140} height={28} radius={6} />
+      </div>
+      {/* Tabla */}
+      <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
+          <Skeleton width={100} height={14} radius={4} />
+          <Skeleton width={70} height={11} radius={3} />
+        </div>
+        {Array.from({ length: 8 }).map((_, j) => (
+          <div key={j} style={{ padding: '11px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 14, alignItems: 'center' }}>
+            <Skeleton width={70} height={11} radius={3} />
+            <Skeleton width={50} height={11} radius={3} />
+            <Skeleton width={80} height={11} radius={3} />
+            <Skeleton style={{ flex: 1 }} height={11} radius={3} />
+            <Skeleton width={70} height={13} radius={4} />
+            <Skeleton width={55} height={16} radius={999} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 
   const inp: React.CSSProperties = {
     border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px',

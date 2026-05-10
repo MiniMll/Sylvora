@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { guardarProducto } from '@/lib/supabase/productos'
 import { agregarLote } from '@/lib/supabase/stock'
 import { toast } from 'sonner'
-import { Package, DollarSign, Layers, Info } from 'lucide-react'
+import { DollarSign, Layers, Info, Loader2 } from 'lucide-react'
 
 interface Lote { id: string; numero: string; cantidad: string; vencimiento: string }
 
@@ -109,25 +109,33 @@ export default function NuevoProductoPage() {
   }
 
   const inp: React.CSSProperties = {
-    border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px',
-    fontSize: 12, outline: 'none', fontFamily: 'inherit',
-    background: 'var(--bg2)', color: 'var(--text)', width: '100%'
+    border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px',
+    fontSize: 12.5, outline: 'none', fontFamily: 'inherit',
+    background: 'var(--bg2)', color: 'var(--text)', width: '100%',
   }
-  const lbl: React.CSSProperties = { fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }
-  const sec: React.CSSProperties = { background: 'var(--card)', borderRadius: 14, padding: 20, border: '1px solid var(--border)', marginBottom: 14 }
+  const lbl: React.CSSProperties = { fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 5, letterSpacing: '0.01em' }
+  const sec: React.CSSProperties = {
+    background: 'var(--card)', borderRadius: 'var(--radius-lg)',
+    padding: 20, border: '1px solid var(--border)',
+    marginBottom: 14, boxShadow: 'var(--shadow-sm)',
+  }
+  const secTitle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16,
+    color: 'var(--text)', fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em',
+  }
 
   return (
-    <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Nuevo Producto</h1>
-        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '2px 0 0' }}>Completá los datos del producto</p>
+    <div className="page-in" style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.02em' }}>Nuevo Producto</h1>
+        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Completá los datos del producto</p>
       </div>
 
       <div style={{ maxWidth: 680 }}>
         {/* Info básica */}
         <div style={sec}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
-            <Info size={15} color="#5b4cff" /> Información básica
+          <div style={secTitle}>
+            <Info size={15} color="var(--ac)" strokeWidth={2.2} /> Información básica
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div style={{ gridColumn: '1 / -1' }}>
@@ -182,8 +190,8 @@ export default function NuevoProductoPage() {
 
         {/* Precios */}
         <div style={sec}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
-            <DollarSign size={15} color="#5b4cff" /> Precios
+          <div style={secTitle}>
+            <DollarSign size={15} color="var(--ac)" strokeWidth={2.2} /> Precios
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
@@ -236,10 +244,14 @@ export default function NuevoProductoPage() {
 
         {/* Stock y lotes */}
         <div style={sec}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
-            <Layers size={15} color="#5b4cff" /> Stock y lotes
+          <div style={{ ...secTitle, marginBottom: 8 }}>
+            <Layers size={15} color="var(--ac)" strokeWidth={2.2} /> Stock y lotes
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 14, background: 'rgba(91,76,255,0.06)', borderRadius: 8, padding: '8px 12px', border: '1px solid rgba(91,76,255,0.15)' }}>
+          <div style={{
+            fontSize: 11.5, color: 'var(--text2)', marginBottom: 16,
+            background: 'var(--ac-light)', borderRadius: 8, padding: '9px 12px',
+            border: '1px solid rgba(91,76,255,0.18)', lineHeight: 1.5,
+          }}>
             El stock se calcula automáticamente sumando las cantidades de los lotes que cargues abajo.
             {esKg && ' Para productos por kilo, ingresá el peso en kg de cada lote.'}
           </div>
@@ -294,11 +306,33 @@ export default function NuevoProductoPage() {
 
         <div style={{ display: 'flex', gap: 8, paddingBottom: 24 }}>
           <button onClick={guardar} disabled={guardando}
-            style={{ padding: '10px 24px', borderRadius: 8, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: guardando ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-            {guardando ? 'Guardando...' : 'Guardar producto'}
+            aria-busy={guardando}
+            style={{
+              padding: '11px 22px', borderRadius: 9,
+              background: 'var(--ac)', color: 'white', border: 'none',
+              fontSize: 13, fontWeight: 600,
+              cursor: guardando ? 'wait' : 'pointer',
+              fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 8,
+              boxShadow: guardando ? 'none' : '0 2px 8px rgba(91,76,255,0.25)',
+              opacity: guardando ? 0.85 : 1,
+              transition: 'all 0.15s var(--ease-out)',
+            }}>
+            {guardando ? (
+              <>
+                <Loader2 size={14} style={{ animation: 'spin 0.75s linear infinite' }} />
+                Guardando…
+              </>
+            ) : 'Guardar producto'}
           </button>
-          <button onClick={() => router.back()}
-            style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+          <button onClick={() => router.back()} disabled={guardando}
+            style={{
+              padding: '11px 18px', borderRadius: 9,
+              border: '1px solid var(--border)', background: 'var(--bg2)',
+              fontSize: 13, cursor: guardando ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', color: 'var(--text)',
+              opacity: guardando ? 0.6 : 1,
+            }}>
             Cancelar
           </button>
         </div>
