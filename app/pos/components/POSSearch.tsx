@@ -5,6 +5,12 @@ import { toast } from 'sonner'
 import type { BrowserMultiFormatReader } from '@zxing/library'
 import type { Producto } from '@/types/database'
 
+// Ventana de bloqueo por código. Equivale al "trigger lock" de los
+// lectores Honeywell/Zebra: evita que un mismo barcode mantenido en
+// cuadro se lea 5-10 veces por segundo. Códigos distintos pasan al
+// instante; el mismo código sólo cuenta una vez por ventana.
+const SCAN_DEBOUNCE_MS = 1500
+
 interface Props {
   productos: Producto[]
   value: string
@@ -19,6 +25,7 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
   const busquedaRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
+  const lastScanRef = useRef<{ codigo: string; ts: number }>({ codigo: '', ts: 0 })
   const [modoCamara, setModoCamara] = useState(false)
   const [camaraActiva, setCamaraActiva] = useState(false)
   const [modalScanner, setModalScanner] = useState(false)
@@ -35,8 +42,10 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
     }
   }
 
-  // Idempotente: detiene reader + libera tracks. Llamado desde el botón
-  // X, en éxito de scan, en error de getUserMedia y en unmount.
+  // Idempotente: detiene reader + libera tracks. Llamado SOLO al
+  // cerrar manualmente con la X, en error de getUserMedia y en unmount.
+  // Ya NO se llama tras un scan exitoso: la cámara queda abierta para
+  // escanear varios productos seguidos (modo POS profesional).
   const cerrarCamara = useCallback(() => {
     if (codeReaderRef.current) {
       try { codeReaderRef.current.reset() } catch {}
@@ -47,6 +56,8 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
       stream.getTracks().forEach(t => t.stop())
       videoRef.current.srcObject = null
     }
+    // Resetear el lock de duplicados — próxima sesión empieza limpia.
+    lastScanRef.current = { codigo: '', ts: 0 }
     setModoCamara(false)
     setCamaraActiva(false)
   }, [])
@@ -91,8 +102,30 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
       setCamaraActiva(true)
       codeReader.decodeFromVideoDevice(null, videoRef.current, (result, error) => {
         if (result) {
-          agregarPorCodigo(result.getText())
-          cerrarCamara()
+          const codigo = result.getText()
+          const now = Date.now()
+
+          // Trigger lock: ignorar el mismo código dentro de la ventana
+          // de debounce. Un código distinto pasa inmediatamente.
+          if (
+            lastScanRef.current.codigo === codigo &&
+            now - lastScanRef.current.ts < SCAN_DEBOUNCE_MS
+          ) {
+            return
+          }
+          lastScanRef.current = { codigo, ts: now }
+
+          // Lookup local (productos del closure son estables durante la
+          // sesión de scan). NO cerramos la cámara — el cajero sigue.
+          const p = productos.find(x => x.codigo_barras === codigo)
+          if (p) {
+            onSelect(p)
+            // id estable → sonner reemplaza el toast anterior en lugar
+            // de stackear si vienen escaneos seguidos.
+            toast.success(`${p.nombre} agregado`, { id: 'pos-scanner' })
+          } else {
+            toast.error(`Código no encontrado: ${codigo}`, { id: 'pos-scanner' })
+          }
           return
         }
         // El callback se llama una vez por frame con (undefined, error).
@@ -162,7 +195,7 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
                 </div>
               )}
             </div>
-            <p style={{ fontSize: 11, color: 'var(--text2)', textAlign: 'center' }}>Apuntá la cámara al código de barras</p>
+            <p style={{ fontSize: 11, color: 'var(--text2)', textAlign: 'center' }}>Escaneá productos en serie · cerrá cuando termines</p>
           </div>
         </div>
       )}
