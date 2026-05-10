@@ -1,62 +1,9 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Camera, Keyboard, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
-import type { BrowserMultiFormatReader } from '@zxing/library'
 import type { Producto } from '@/types/database'
-
-// "Trigger lock" estilo POS profesional. La ventana es DESLIZANTE: cada
-// detección del mismo código renueva el timestamp, así el lock se
-// mantiene mientras el código siga en cuadro. Sólo se libera si el
-// código deja de verse por más de SCAN_DEBOUNCE_MS y reaparece. Así
-// hold-en-cuadro = 1 lectura, código removido y re-presentado = 2.
-const SCAN_DEBOUNCE_MS = 1500
-
-// ZXing emite "MultiFormatReader: non-ReaderException from reader" por
-// cada frame que no decodifica limpio (motion blur, exposición, low
-// light en mobile). Es noise interno de la librería. Lo filtramos a
-// nivel de módulo con refcount, así varias instancias / dobles mounts
-// de StrictMode no se pisan al envolver/restaurar console.
-let _origWarn: typeof console.warn | null = null
-let _origError: typeof console.error | null = null
-let _silenceCount = 0
-
-function shouldFilterZxing(args: unknown[]): boolean {
-  const first = args[0]
-  if (typeof first !== 'string') return false
-  return (
-    first.startsWith('MultiFormatReader') ||
-    first.includes('non-ReaderException') ||
-    first.includes('ReaderException') ||
-    first.startsWith('ZXing')
-  )
-}
-
-function silenceZxingLogs() {
-  if (_silenceCount === 0) {
-    _origWarn = console.warn
-    _origError = console.error
-    console.warn = (...args: unknown[]) => {
-      if (shouldFilterZxing(args)) return
-      _origWarn?.apply(console, args as [])
-    }
-    console.error = (...args: unknown[]) => {
-      if (shouldFilterZxing(args)) return
-      _origError?.apply(console, args as [])
-    }
-  }
-  _silenceCount++
-}
-
-function restoreZxingLogs() {
-  _silenceCount = Math.max(0, _silenceCount - 1)
-  if (_silenceCount === 0) {
-    if (_origWarn) console.warn = _origWarn
-    if (_origError) console.error = _origError
-    _origWarn = null
-    _origError = null
-  }
-}
+import { useBarcodeScanner } from '@/lib/hooks/useBarcodeScanner'
 
 interface Props {
   productos: Producto[]
@@ -70,20 +17,46 @@ interface Props {
 
 export function POSSearch({ productos, value, onChange, onSelect, resultados }: Props) {
   const busquedaRef = useRef<HTMLInputElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
-  const lastScanRef = useRef<{ codigo: string; ts: number }>({ codigo: '', ts: 0 })
-  // Evita arranque doble si el botón se clickea dos veces o si en
-  // dev React StrictMode dispara dos efectos.
-  const startingRef = useRef(false)
-  // Refleja si esta instancia ya silenció los logs — para no dejar
-  // refcount colgado en cleanup parciales.
-  const silencedRef = useRef(false)
   const [modoCamara, setModoCamara] = useState(false)
-  const [camaraActiva, setCamaraActiva] = useState(false)
   const [modalScanner, setModalScanner] = useState(false)
   const [codigoManual, setCodigoManual] = useState('')
 
+  // Hook del scanner. El callback recibe el código crudo; nosotros
+  // resolvemos el lookup y disparamos el side effect (onSelect, toast).
+  const { videoRef, active: camaraActiva, open, close } = useBarcodeScanner((codigo) => {
+    const p = productos.find(x => x.codigo_barras === codigo)
+    if (p) {
+      onSelect(p)
+      // id estable → sonner reemplaza el toast anterior en lugar de
+      // stackear cuando se escanean varios productos seguidos.
+      toast.success(`${p.nombre} agregado`, { id: 'pos-scanner' })
+    } else {
+      toast.error(`Código no encontrado: ${codigo}`, { id: 'pos-scanner' })
+    }
+  })
+
+  // Cuando el modal se abre, arrancar el scanner. Usamos useEffect
+  // (en vez de inline en el handler) para asegurar que el <video> ya
+  // esté en el DOM y videoRef.current esté attacheado antes de
+  // llamar open(). En StrictMode dev el effect corre dos veces; el
+  // módulo es idempotente y la segunda llamada retorna sin efecto.
+  useEffect(() => {
+    if (!modoCamara) return
+    open().catch(() => {
+      toast.error('No se pudo acceder a la cámara')
+      setModoCamara(false)
+    })
+  }, [modoCamara, open])
+
+  const iniciarCamara = () => setModoCamara(true)
+
+  const cerrarCamara = async () => {
+    await close()
+    setModoCamara(false)
+  }
+
+  // Path del lector físico / código manual: encuentra y cierra el
+  // modal manual al match. Independiente del scanner por cámara.
   const agregarPorCodigo = (codigo: string) => {
     const p = productos.find(x => x.codigo_barras === codigo)
     if (p) {
@@ -92,116 +65,6 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
       setModalScanner(false)
     } else {
       toast.error('Código no encontrado: ' + codigo)
-    }
-  }
-
-  // Idempotente: detiene reader + libera tracks + restaura console.
-  // Llamado SOLO al cerrar manualmente con la X, en error de
-  // getUserMedia y en unmount. NUNCA tras un scan exitoso — la cámara
-  // queda abierta para múltiples lecturas (modo POS profesional).
-  const cerrarCamara = useCallback(() => {
-    if (codeReaderRef.current) {
-      try { codeReaderRef.current.reset() } catch {}
-      codeReaderRef.current = null
-    }
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream
-      stream.getTracks().forEach(t => t.stop())
-      videoRef.current.srcObject = null
-    }
-    if (silencedRef.current) {
-      restoreZxingLogs()
-      silencedRef.current = false
-    }
-    lastScanRef.current = { codigo: '', ts: 0 }
-    startingRef.current = false
-    setModoCamara(false)
-    setCamaraActiva(false)
-  }, [])
-
-  // Cleanup al desmontar (ej. usuario navega a otra ruta con la cámara abierta).
-  useEffect(() => {
-    return () => { cerrarCamara() }
-  }, [cerrarCamara])
-
-  const iniciarCamara = async () => {
-    // Anti-doble-arranque: si ya hay una sesión en curso o iniciándose,
-    // no abrimos otra. Cubre clicks rápidos y dobles-mounts de StrictMode.
-    if (startingRef.current || codeReaderRef.current) return
-    startingRef.current = true
-
-    setModoCamara(true)
-    setCamaraActiva(false)
-
-    // Silenciar logs de ZXing INMEDIATAMENTE, antes de cualquier await,
-    // para evitar la ventana entre setState y useEffect en la que
-    // pasaban warns. Refcounteado a nivel módulo.
-    silenceZxingLogs()
-    silencedRef.current = true
-
-    try {
-      const { BrowserMultiFormatReader, NotFoundException } = await import('@zxing/library')
-      const codeReader = new BrowserMultiFormatReader()
-      codeReaderRef.current = codeReader
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      if (!videoRef.current) {
-        // El componente se desmontó entre el await y acá. Liberar stream.
-        stream.getTracks().forEach(t => t.stop())
-        cerrarCamara()
-        return
-      }
-      videoRef.current.srcObject = stream
-      // play() puede rechazar en iOS Safari sin gesto reciente; el click
-      // de "Cámara" cuenta como gesto pero por las dudas tragamos el
-      // rejection para no propagarlo como unhandled promise.
-      videoRef.current.play().catch(() => {})
-      setCamaraActiva(true)
-      startingRef.current = false
-
-      codeReader.decodeFromVideoDevice(null, videoRef.current, (result, error) => {
-        if (result) {
-          const codigo = result.getText()
-          const now = Date.now()
-          const last = lastScanRef.current
-
-          if (last.codigo === codigo) {
-            // Mismo código: ventana DESLIZANTE. Renovamos ts SIEMPRE,
-            // así el lock se sostiene mientras el código siga a la vista.
-            const elapsed = now - last.ts
-            last.ts = now
-            // Sólo se desbloquea si transcurrió la ventana completa sin
-            // detecciones (= código fuera de cuadro y vuelto a presentar).
-            if (elapsed < SCAN_DEBOUNCE_MS) return
-          } else {
-            // Código distinto: pasa al instante, reset del lock.
-            last.codigo = codigo
-            last.ts = now
-          }
-
-          // Lookup local. NO cerramos la cámara — el cajero sigue escaneando.
-          const p = productos.find(x => x.codigo_barras === codigo)
-          if (p) {
-            onSelect(p)
-            // id estable → sonner reemplaza el toast anterior en lugar
-            // de stackear si vienen escaneos seguidos.
-            toast.success(`${p.nombre} agregado`, { id: 'pos-scanner' })
-          } else {
-            toast.error(`Código no encontrado: ${codigo}`, { id: 'pos-scanner' })
-          }
-          return
-        }
-        // Frame sin resultado.
-        // - NotFoundException: no hay código visible (normal, ZXing fires ~30/s).
-        // - Otros: transitorios (motion blur, exposición). Sin side-effect
-        //   alguno: no toast, no setState, no log. Los logs internos de
-        //   ZXing ya están silenciados por silenceZxingLogs().
-        if (error && !(error instanceof NotFoundException)) {
-          // intencionalmente vacío: ningún side-effect por frame.
-        }
-      })
-    } catch {
-      toast.error('No se pudo acceder a la cámara')
-      cerrarCamara()
     }
   }
 
