@@ -112,8 +112,9 @@ export default function VentasPage() {
           <span style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 400 }}>{ventasFiltradas.length} resultados</span>
         </div>
         {ventasFiltradas.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text2)', fontSize: 13 }}>
-            No hay ventas que coincidan con los filtros
+          <div className="empty-state">
+            <div className="empty-icon"><Search size={18} color="var(--text2)" strokeWidth={1.8} /></div>
+            <div className="empty-sub">No hay ventas que coincidan con los filtros</div>
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -126,10 +127,8 @@ export default function VentasPage() {
             </thead>
             <tbody>
               {ventasFiltradas.map((v: any) => (
-                <tr key={v.id} style={{ borderTop: '1px solid var(--border)', cursor: 'pointer' }}
-                  onClick={() => setDetalle(v)}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg3)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <tr key={v.id} className="row-hover" style={{ borderTop: '1px solid var(--border)', cursor: 'pointer' }}
+                  onClick={() => setDetalle(v)}>
                   <td style={{ padding: '9px 12px', color: 'var(--text2)', fontSize: 11 }}>
                     {new Date(v.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </td>
@@ -162,7 +161,7 @@ export default function VentasPage() {
       {/* Modal detalle */}
       {detalle && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'var(--card)', borderRadius: 20, width: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, width: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>

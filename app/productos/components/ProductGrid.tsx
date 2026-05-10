@@ -172,10 +172,8 @@ function ListaView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
             const sc = stockColor(p.stock_actual, p.stock_minimo, p.unidad_venta)
             const sl = stockLabel(p.stock_actual, p.stock_minimo, p.unidad_venta)
             return (
-              <tr key={p.id} style={{ borderTop: '1px solid var(--border)', cursor: 'pointer' }}
-                onClick={() => onAbrirDetalle(p)}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg3)'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
+              <tr key={p.id} className="row-hover" style={{ borderTop: '1px solid var(--border)', cursor: 'pointer' }}
+                onClick={() => onAbrirDetalle(p)}>
                 <td style={{ padding: '10px 14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg3)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

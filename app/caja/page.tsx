@@ -181,7 +181,10 @@ export default function CajaPage() {
             Movimientos del día
           </div>
           {ventas.length === 0 && movimientos.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: '#6b6b72', fontSize: 12 }}>No hay movimientos hoy</div>
+            <div className="empty-state empty-state-sm">
+              <div className="empty-icon"><Banknote size={18} color="var(--text2)" strokeWidth={1.8} /></div>
+              <div className="empty-sub">No hay movimientos hoy</div>
+            </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
@@ -193,8 +196,8 @@ export default function CajaPage() {
               </thead>
               <tbody>
                 {ventas.map((v: any) => (
-                  <tr key={v.id} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 10, color: '#6b6b72' }}>
+                  <tr key={v.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 10, color: 'var(--text2)' }}>
                       {new Date(v.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td style={{ padding: '8px 12px' }}>
@@ -206,8 +209,8 @@ export default function CajaPage() {
                   </tr>
                 ))}
                 {movimientos.filter(m => m.tipo === 'egreso').map((m: any) => (
-                  <tr key={m.id} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 10, color: '#6b6b72' }}>
+                  <tr key={m.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 10, color: 'var(--text2)' }}>
                       {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td style={{ padding: '8px 12px' }}>
@@ -240,7 +243,7 @@ export default function CajaPage() {
             </thead>
             <tbody>
               {cierresAnteriores.map((c: any) => (
-                <tr key={c.id} style={{ borderTop: '1px solid var(--border)' }}>
+                <tr key={c.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '9px 12px', color: 'var(--text)' }}>
                     {new Date(c.fecha).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </td>
@@ -263,8 +266,8 @@ export default function CajaPage() {
 
       {/* Modal egreso */}
       {modalEgreso && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380, boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <TrendingDown size={16} color="#ff4757" /> Registrar egreso
@@ -313,7 +316,7 @@ export default function CajaPage() {
       {/* Modal cierre de caja */}
       {modalCierre && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 420 }}>
+          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 420, boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CheckCircle size={18} color="#5b4cff" /> Cerrar caja del día

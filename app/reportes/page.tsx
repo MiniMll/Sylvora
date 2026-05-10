@@ -184,7 +184,10 @@ export default function ReportesPage() {
           <Medal size={15} color="#ffd23f" /> Ranking de productos más vendidos
         </div>
         {topProductos.length === 0 ? (
-          <div style={{ padding: 24, textAlign: 'center', color: '#6b6b72', fontSize: 12 }}>Sin ventas registradas todavía</div>
+          <div className="empty-state empty-state-sm">
+            <div className="empty-icon"><Medal size={18} color="var(--text2)" strokeWidth={1.8} /></div>
+            <div className="empty-sub">Sin ventas registradas todavía</div>
+          </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
@@ -199,7 +202,7 @@ export default function ReportesPage() {
                 const gan = p.total - p.costo
                 const mg = p.total > 0 ? Math.round((gan / p.total) * 100) : 0
                 return (
-                  <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                  <tr key={i} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '9px 12px', fontWeight: 700, color: i === 0 ? '#ffd23f' : i === 1 ? '#aaa' : i === 2 ? '#cd7f32' : '#6b6b72' }}>
                       {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
                     </td>
