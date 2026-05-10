@@ -1,7 +1,8 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Camera, Keyboard, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
+import type { BrowserMultiFormatReader } from '@zxing/library'
 import type { Producto } from '@/types/database'
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 export function POSSearch({ productos, value, onChange, onSelect, resultados }: Props) {
   const busquedaRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null)
   const [modoCamara, setModoCamara] = useState(false)
   const [camaraActiva, setCamaraActiva] = useState(false)
   const [modalScanner, setModalScanner] = useState(false)
@@ -33,33 +35,13 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
     }
   }
 
-  const iniciarCamara = async () => {
-    setModoCamara(true)
-    setCamaraActiva(false)
-    try {
-      const { BrowserMultiFormatReader } = await import('@zxing/library')
-      const codeReader = new BrowserMultiFormatReader()
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        videoRef.current.play()
-        setCamaraActiva(true)
-        codeReader.decodeFromVideoDevice(null, videoRef.current, (result) => {
-          if (result) {
-            agregarPorCodigo(result.getText())
-            stream.getTracks().forEach(t => t.stop())
-            setModoCamara(false)
-            setCamaraActiva(false)
-          }
-        })
-      }
-    } catch {
-      toast.error('No se pudo acceder a la cámara')
-      setModoCamara(false)
+  // Idempotente: detiene reader + libera tracks. Llamado desde el botón
+  // X, en éxito de scan, en error de getUserMedia y en unmount.
+  const cerrarCamara = useCallback(() => {
+    if (codeReaderRef.current) {
+      try { codeReaderRef.current.reset() } catch {}
+      codeReaderRef.current = null
     }
-  }
-
-  const cerrarCamara = () => {
     if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream
       stream.getTracks().forEach(t => t.stop())
@@ -67,6 +49,68 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
     }
     setModoCamara(false)
     setCamaraActiva(false)
+  }, [])
+
+  // Mientras la cámara esté activa, ZXing emite por frame el warning
+  // "MultiFormatReader: non-ReaderException from reader" cuando un
+  // reader interno tira algo distinto de ReaderException (normal en
+  // mobile por motion blur / exposición). Lo filtramos sin tocar el
+  // resto de console.warn. Restauramos el original al cerrar.
+  useEffect(() => {
+    if (!modoCamara) return
+    const original = console.warn
+    console.warn = (...args: unknown[]) => {
+      const first = args[0]
+      if (typeof first === 'string' && first.startsWith('MultiFormatReader')) return
+      original.apply(console, args as [])
+    }
+    return () => { console.warn = original }
+  }, [modoCamara])
+
+  // Cleanup al desmontar (ej. usuario navega a otra ruta con la cámara abierta).
+  useEffect(() => {
+    return () => { cerrarCamara() }
+  }, [cerrarCamara])
+
+  const iniciarCamara = async () => {
+    setModoCamara(true)
+    setCamaraActiva(false)
+    try {
+      const { BrowserMultiFormatReader, NotFoundException } = await import('@zxing/library')
+      const codeReader = new BrowserMultiFormatReader()
+      codeReaderRef.current = codeReader
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      if (!videoRef.current) {
+        // El componente se desmontó entre el await y acá. Liberar stream.
+        stream.getTracks().forEach(t => t.stop())
+        cerrarCamara()
+        return
+      }
+      videoRef.current.srcObject = stream
+      videoRef.current.play()
+      setCamaraActiva(true)
+      codeReader.decodeFromVideoDevice(null, videoRef.current, (result, error) => {
+        if (result) {
+          agregarPorCodigo(result.getText())
+          cerrarCamara()
+          return
+        }
+        // El callback se llama una vez por frame con (undefined, error).
+        // - NotFoundException: "no hay código en este frame" — normal,
+        //   ignorar silenciosamente.
+        // - Otros: errores transitorios (motion blur, low light). Los
+        //   ignoramos también para no spamear toasts ni gatillar
+        //   re-renders en loop. ZXing los logea internamente; el
+        //   warning de "MultiFormatReader: ..." se filtra en el effect
+        //   de arriba.
+        if (error && !(error instanceof NotFoundException)) {
+          // intencionalmente vacío: ningún side-effect por frame.
+        }
+      })
+    } catch {
+      toast.error('No se pudo acceder a la cámara')
+      cerrarCamara()
+    }
   }
 
   return (
