@@ -45,21 +45,51 @@ function POSPaymentImpl() {
   return (
     <>
       {/* Método pago */}
-      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
-          {METODOS.map(m => (
-            <button key={m.id} onClick={() => store.setMetodoPago(m.id)}
-              style={{ padding: '7px', borderRadius: 8, border: '1px solid', borderColor: store.metodoPago === m.id ? '#5b4cff' : 'var(--border)', background: store.metodoPago === m.id ? '#5b4cff' : 'var(--bg2)', color: store.metodoPago === m.id ? 'white' : 'var(--text)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {m.label}
-            </button>
-          ))}
+      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {METODOS.map(m => {
+            const active = store.metodoPago === m.id
+            return (
+              <button key={m.id} onClick={() => store.setMetodoPago(m.id)}
+                aria-pressed={active}
+                style={{
+                  minHeight: 40,
+                  padding: '8px 10px',
+                  borderRadius: 10,
+                  border: '1px solid',
+                  borderColor: active ? 'var(--ac)' : 'var(--border)',
+                  background: active ? 'var(--ac)' : 'var(--bg2)',
+                  color: active ? 'white' : 'var(--text)',
+                  fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  letterSpacing: '-0.01em',
+                  boxShadow: active ? '0 2px 8px rgba(91,76,255,0.25)' : 'none',
+                  transition: 'all 0.15s var(--ease-out)',
+                }}>
+                {m.label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {/* Cobrar */}
-      <div style={{ padding: '8px 12px 12px' }}>
+      <div style={{ padding: '10px 12px 14px' }}>
         <button onClick={cobrar}
-          style={{ width: '100%', padding: '12px', borderRadius: 10, background: '#00c896', color: 'white', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+          style={{
+            width: '100%',
+            minHeight: 52,
+            padding: '14px',
+            borderRadius: 12,
+            background: cobrado ? 'var(--g)' : 'linear-gradient(180deg, #00d4a3 0%, #00b486 100%)',
+            color: 'white',
+            border: 'none',
+            fontSize: 15, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+            letterSpacing: '-0.01em',
+            boxShadow: '0 2px 6px rgba(0,200,150,0.25), 0 8px 20px rgba(0,200,150,0.18)',
+            transition: 'transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out)',
+          }}>
           {cobrado ? '¡Cobrado!' : 'Cobrar'}
         </button>
       </div>

@@ -18,23 +18,52 @@ export function POSProducts({ busqueda, resultados, onSelect }: Props) {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
       {!busqueda && items.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text2)' }}>
-          <ShoppingCart size={48} color="var(--border)" style={{ marginBottom: 16 }} />
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>Buscá un producto para empezar</div>
-          <div style={{ fontSize: 13 }}>Escribí el nombre, código o escaneá el código de barras</div>
+        <div style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--text2)', animation: 'fadeIn 0.3s ease' }}>
+          <div style={{
+            width: 56, height: 56,
+            borderRadius: '50%',
+            background: 'var(--ac-light)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 16,
+          }}>
+            <ShoppingCart size={24} color="var(--ac)" strokeWidth={1.8} />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+            Buscá un producto para empezar
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+            Escribí el nombre, código o escaneá<br/>el código de barras
+          </div>
         </div>
       )}
 
       {!busqueda && items.length > 0 && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text2)', fontSize: 13 }}>
-          <Search size={24} color="var(--border)" style={{ marginBottom: 10 }} />
+        <div style={{ textAlign: 'center', padding: '44px 20px', color: 'var(--text2)', fontSize: 13, animation: 'fadeIn 0.3s ease' }}>
+          <div style={{
+            width: 40, height: 40,
+            borderRadius: '50%',
+            background: 'var(--bg3)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 12,
+          }}>
+            <Search size={18} color="var(--text2)" strokeWidth={1.8} />
+          </div>
           <div>Buscá más productos para agregar al ticket</div>
         </div>
       )}
 
       {busqueda && resultados.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text2)', fontSize: 13 }}>
-          No se encontraron productos para &quot;{busqueda}&quot;
+        <div style={{ textAlign: 'center', padding: '44px 20px', color: 'var(--text2)', fontSize: 13, animation: 'fadeIn 0.2s ease' }}>
+          <div style={{
+            width: 40, height: 40,
+            borderRadius: '50%',
+            background: 'var(--bg3)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 12,
+          }}>
+            <Search size={18} color="var(--text2)" strokeWidth={1.8} />
+          </div>
+          <div>No se encontraron productos para &quot;{busqueda}&quot;</div>
         </div>
       )}
 

@@ -85,19 +85,41 @@ export default function DashboardPage() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginBottom: 16 }}>
         {kpis.map(k => {
           const Icon = k.icon
           return (
-            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '16px 18px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', position: 'relative', overflow: 'hidden', transition: 'box-shadow 0.15s, transform 0.15s' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color, borderRadius: '2px 2px 0 0' }} />
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 600 }}>{k.label}</div>
-                <div style={{ width: 30, height: 30, borderRadius: 9, background: k.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon size={14} color={k.color} />
+            <div key={k.label} className="lift-hover" style={{
+              background: 'var(--card)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '18px 20px',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                background: `linear-gradient(90deg, ${k.color}, ${k.color}aa)`,
+              }} />
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{k.label}</div>
+                <div style={{
+                  width: 32, height: 32,
+                  borderRadius: 10,
+                  background: k.color + '14',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon size={15} color={k.color} strokeWidth={2.2} />
                 </div>
               </div>
-              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'DM Mono, monospace', marginBottom: 4, color: 'var(--text)', letterSpacing: '-0.5px' }}>{k.value}</div>
+              <div style={{
+                fontSize: 26, fontWeight: 700,
+                fontFamily: 'DM Mono, monospace',
+                marginBottom: 4, color: 'var(--text)',
+                letterSpacing: '-0.03em',
+                lineHeight: 1.1,
+              }}>{k.value}</div>
               <div style={{ fontSize: 11, color: 'var(--text2)' }}>{k.sub}</div>
             </div>
           )

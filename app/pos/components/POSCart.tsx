@@ -26,8 +26,16 @@ function POSCartImpl() {
       {/* Items */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
         {store.items.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--text2)', fontSize: 12, padding: '30px 0' }}>
-            <ShoppingCart size={28} color="var(--border)" style={{ marginBottom: 8 }} />
+          <div style={{ textAlign: 'center', color: 'var(--text2)', fontSize: 12, padding: '32px 0', animation: 'fadeIn 0.3s ease' }}>
+            <div style={{
+              width: 44, height: 44,
+              borderRadius: '50%',
+              background: 'var(--bg3)',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 10,
+            }}>
+              <ShoppingCart size={20} color="var(--text2)" strokeWidth={1.8} />
+            </div>
             <div>El ticket está vacío</div>
           </div>
         ) : store.items.map((item, idx) => (
@@ -36,15 +44,18 @@ function POSCartImpl() {
             {!item.peso_kg ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad - 1)}
-                  style={{ width: 22, height: 22, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14 }}>−</button>
-                <span style={{ fontSize: 12, fontWeight: 700, minWidth: 20, textAlign: 'center', fontFamily: 'monospace', color: 'var(--text)' }}>{item.cantidad}</span>
+                  aria-label="Disminuir cantidad"
+                  style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>−</button>
+                <span style={{ fontSize: 13, fontWeight: 700, minWidth: 24, textAlign: 'center', fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{item.cantidad}</span>
                 <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad + 1)}
-                  style={{ width: 22, height: 22, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14 }}>+</button>
+                  aria-label="Aumentar cantidad"
+                  style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>+</button>
               </div>
             ) : (
               <button onClick={() => store.quitarItem(item.producto_id)}
-                style={{ width: 22, height: 22, borderRadius: 5, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4757' }}>
-                <X size={11} />
+                aria-label="Quitar item"
+                style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4757' }}>
+                <X size={13} />
               </button>
             )}
             <div style={{ fontSize: 12, fontWeight: 700, color: '#5b4cff', fontFamily: 'monospace', minWidth: 60, textAlign: 'right' }}>

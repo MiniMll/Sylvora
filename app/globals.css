@@ -25,6 +25,9 @@
   --radius-lg: 18px;
   --radius-xl: 22px;
   --transition: all 0.15s ease;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.06), 0 12px 28px rgba(0,0,0,0.08);
 }
 
 .dark {
@@ -39,6 +42,8 @@
   --shadow: 0 1px 4px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
   --shadow-md: 0 2px 8px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.4), 0 24px 64px rgba(0,0,0,0.5);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.25);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.3), 0 12px 28px rgba(0,0,0,0.4);
   --ac-light: rgba(91,76,255,0.15);
 }
 
@@ -86,9 +91,32 @@ button:active { transform: scale(0.97); }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
 
 .animate-in { animation: fadeIn 0.2s ease; }
 .slide-up { animation: slideUp 0.25s ease; }
+
+/* Hover lift reutilizable: aplicar a cards/elementos con hover. */
+.lift-hover {
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), border-color 0.15s ease;
+  will-change: transform;
+}
+.lift-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* Reduce motion para usuarios que la prefieren */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 /* Cards y componentes */
 .card-bg { background: var(--card) !important; border-color: var(--border) !important; }
