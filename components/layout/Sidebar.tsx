@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { invalidarCacheComercio } from '@/lib/supabase/_base'
+import { useAuthListener } from '@/lib/hooks/useAuthListener'
 import { SidebarInner, type NavItem } from './SidebarInner'
 
 const nav: NavItem[] = [
@@ -27,6 +28,7 @@ const nav: NavItem[] = [
 const sections = ['Principal', 'Ventas', 'Inventario', 'Finanzas', 'Cuenta']
 
 export function Sidebar() {
+  useAuthListener()
   const pathname = usePathname()
   const router = useRouter()
   const [dark, setDark] = useState(false)

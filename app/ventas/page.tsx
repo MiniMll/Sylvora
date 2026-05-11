@@ -1,17 +1,22 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getVentas } from '@/lib/supabase/ventas'
+import { toast } from 'sonner'
+import { getVentas, anularVenta } from '@/lib/supabase/ventas'
 import { formatPeso } from '@/lib/utils'
-import { Search, TrendingUp, Receipt, Hash, X, ChevronDown } from 'lucide-react'
+import { puedeAnularVenta } from '@/lib/permissions'
+import { Search, TrendingUp, Receipt, Hash, X, Loader2, AlertTriangle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
+import type { Venta } from '@/types/database'
 
 export default function VentasPage() {
-  const [ventas, setVentas] = useState<any[]>([])
+  const [ventas, setVentas] = useState<Venta[]>([])
   const [cargando, setCargando] = useState(true)
-  const [detalle, setDetalle] = useState<any | null>(null)
+  const [detalle, setDetalle] = useState<Venta | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [filtroMetodo, setFiltroMetodo] = useState('todos')
   const [filtroFecha, setFiltroFecha] = useState('todo')
+  const [confirmarAnular, setConfirmarAnular] = useState(false)
+  const [anulando, setAnulando] = useState(false)
 
   useEffect(() => {
     getVentas().then(data => { setVentas(data); setCargando(false) })
@@ -19,10 +24,17 @@ export default function VentasPage() {
 
   const ventasFiltradas = ventas.filter(v => {
     const matchMetodo = filtroMetodo === 'todos' || v.metodo_pago === filtroMetodo
-    const matchBusq = !busqueda ||
-      String(v.numero_ticket).includes(busqueda) ||
-      v.metodo_pago.toLowerCase().includes(busqueda.toLowerCase()) ||
-      String(v.total).includes(busqueda)
+    // Búsqueda mejorada (P0-5): si el query es un número >0 lo
+    // comparamos como monto exacto (evita "1500" matchee $115.000).
+    // Strings buscan por ticket o método.
+    const matchBusq = (() => {
+      if (!busqueda) return true
+      const numBusq = Number(busqueda)
+      if (Number.isFinite(numBusq) && numBusq > 0 && Number(v.total) === numBusq) return true
+      const q = busqueda.toLowerCase()
+      return String(v.numero_ticket).includes(busqueda) ||
+        v.metodo_pago.toLowerCase().includes(q)
+    })()
     const hoy = new Date()
     const fechaVenta = new Date(v.created_at)
     const matchFecha = filtroFecha === 'todo' ? true
@@ -32,6 +44,24 @@ export default function VentasPage() {
       : true
     return matchMetodo && matchBusq && matchFecha
   })
+
+  const handleAnular = async () => {
+    if (!detalle || anulando) return
+    setAnulando(true)
+    const r = await anularVenta(detalle)
+    if (!r.ok) {
+      toast.error(r.error || 'No se pudo anular la venta', { id: 'venta-anular' })
+      setAnulando(false)
+      setConfirmarAnular(false)
+      return
+    }
+    // Update local — venta marcada como anulada en la lista y en el modal.
+    setVentas(prev => prev.map(v => v.id === detalle.id ? { ...v, estado: 'anulada' } : v))
+    setDetalle(prev => prev ? { ...prev, estado: 'anulada' } : null)
+    toast.success(`Ticket #${String(detalle.numero_ticket).padStart(4, '0')} anulado. Stock restituido.`, { id: 'venta-anular' })
+    setAnulando(false)
+    setConfirmarAnular(false)
+  }
 
   const totalFiltrado = ventasFiltradas.reduce((s, v) => s + Number(v.total), 0)
   const ticketProm = ventasFiltradas.length ? Math.round(totalFiltrado / ventasFiltradas.length) : 0
@@ -166,40 +196,63 @@ export default function VentasPage() {
               </tr>
             </thead>
             <tbody>
-              {ventasFiltradas.map((v: any) => (
-                <tr key={v.id} className="row-hover" style={{ borderTop: '1px solid var(--border)', cursor: 'pointer' }}
-                  onClick={() => setDetalle(v)}>
-                  <td style={{ padding: '9px 12px', color: 'var(--text2)', fontSize: 11 }}>
-                    {new Date(v.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
-                    #{String(v.numero_ticket).padStart(4, '0')}
-                  </td>
-                  <td style={{ padding: '9px 12px', color: 'var(--text)', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
-                  <td style={{ padding: '9px 12px', color: '#00c896', fontWeight: 500 }}>
-                    {v.descuento_porcentaje > 0 ? `-${v.descuento_porcentaje}%` : '—'}
-                  </td>
-                  <td style={{ padding: '9px 12px', color: '#ff4757', fontWeight: 500 }}>
-                    {v.recargo_porcentaje > 0 ? `+${v.recargo_porcentaje}%` : '—'}
-                  </td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontWeight: 600, color: '#5b4cff' }}>
-                    {formatPeso(v.total)}
-                  </td>
-                  <td style={{ padding: '9px 12px' }}>
-                    <span style={{ background: 'rgba(0,200,150,0.1)', color: '#00c896', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>
-                      {v.estado}
-                    </span>
-                  </td>
-                  <td style={{ padding: '9px 12px', color: '#5b4cff', fontSize: 11 }}>Ver</td>
-                </tr>
-              ))}
+              {ventasFiltradas.map((v) => {
+                const isAnulada = v.estado === 'anulada'
+                return (
+                  <tr key={v.id} className="row-hover" style={{
+                    borderTop: '1px solid var(--border)',
+                    cursor: 'pointer',
+                    opacity: isAnulada ? 0.55 : 1,
+                  }}
+                    onClick={() => setDetalle(v)}>
+                    <td style={{ padding: '9px 12px', color: 'var(--text2)', fontSize: 11 }}>
+                      {new Date(v.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
+                      #{String(v.numero_ticket).padStart(4, '0')}
+                    </td>
+                    <td style={{ padding: '9px 12px', color: 'var(--text)', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
+                    <td style={{ padding: '9px 12px', color: '#00c896', fontWeight: 500 }}>
+                      {v.descuento_porcentaje > 0 ? `-${v.descuento_porcentaje}%` : '—'}
+                    </td>
+                    <td style={{ padding: '9px 12px', color: '#ff4757', fontWeight: 500 }}>
+                      {v.recargo_porcentaje > 0 ? `+${v.recargo_porcentaje}%` : '—'}
+                    </td>
+                    <td style={{
+                      padding: '9px 12px',
+                      fontFamily: 'monospace',
+                      fontWeight: 600,
+                      color: isAnulada ? 'var(--text2)' : '#5b4cff',
+                      textDecoration: isAnulada ? 'line-through' : 'none',
+                    }}>
+                      {formatPeso(v.total)}
+                    </td>
+                    <td style={{ padding: '9px 12px' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        background: isAnulada ? 'rgba(255,71,87,0.12)' : 'rgba(0,200,150,0.1)',
+                        color: isAnulada ? '#ff4757' : '#00c896',
+                        padding: '3px 9px', borderRadius: 999,
+                        fontSize: 10, fontWeight: 600, letterSpacing: '0.02em',
+                      }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: isAnulada ? '#ff4757' : '#00c896' }} />
+                        {isAnulada ? 'Anulada' : v.estado}
+                      </span>
+                    </td>
+                    <td style={{ padding: '9px 12px', color: '#5b4cff', fontSize: 11 }}>Ver</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
       </div>
 
       {/* Modal detalle */}
-      {detalle && (
+      {detalle && (() => {
+        const isAnulada = detalle.estado === 'anulada'
+        const permiso = puedeAnularVenta(detalle)
+        return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, width: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -216,6 +269,23 @@ export default function VentasPage() {
                 <X size={20} />
               </button>
             </div>
+
+            {/* Banner anulada — feedback visual fuerte. */}
+            {isAnulada && (
+              <div style={{
+                background: 'rgba(255,71,87,0.08)',
+                borderBottom: '1px solid rgba(255,71,87,0.18)',
+                padding: '12px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                <AlertTriangle size={16} color="#ff4757" strokeWidth={1.8} />
+                <div style={{ fontSize: 12, color: '#ff4757', fontWeight: 600 }}>
+                  Esta venta fue anulada. El stock fue restituido al inventario.
+                </div>
+              </div>
+            )}
 
             <div style={{ padding: 20 }}>
               {/* Items */}
@@ -262,7 +332,11 @@ export default function VentasPage() {
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                   <span style={{ color: 'var(--text)' }}>TOTAL</span>
-                  <span style={{ fontFamily: 'monospace', color: '#5b4cff' }}>{formatPeso(detalle.total)}</span>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    color: isAnulada ? 'var(--text2)' : '#5b4cff',
+                    textDecoration: isAnulada ? 'line-through' : 'none',
+                  }}>{formatPeso(detalle.total)}</span>
                 </div>
               </div>
 
@@ -272,9 +346,100 @@ export default function VentasPage() {
                 <span style={{ fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{detalle.metodo_pago}</span>
               </div>
 
-              <button onClick={() => setDetalle(null)}
-                style={{ width: '100%', marginTop: 16, padding: '10px', borderRadius: 8, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cerrar
+              {/* Acciones */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                {permiso.allowed && (
+                  <button
+                    onClick={() => setConfirmarAnular(true)}
+                    disabled={anulando}
+                    style={{
+                      flex: 1, padding: '10px', borderRadius: 8,
+                      background: 'var(--bg2)', color: '#ff4757',
+                      border: '1px solid rgba(255,71,87,0.3)',
+                      fontSize: 13, fontWeight: 600,
+                      cursor: anulando ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit',
+                      opacity: anulando ? 0.6 : 1,
+                    }}>
+                    Anular venta
+                  </button>
+                )}
+                <button onClick={() => setDetalle(null)}
+                  style={{
+                    flex: permiso.allowed ? 1 : 1,
+                    padding: '10px', borderRadius: 8,
+                    background: '#5b4cff', color: 'white', border: 'none',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        )
+      })()}
+
+      {/* Confirmación anular */}
+      {confirmarAnular && detalle && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380, textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: 'rgba(255,71,87,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <AlertTriangle size={26} color="#ff4757" strokeWidth={1.8} />
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+              ¿Anular esta venta?
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8, lineHeight: 1.5 }}>
+              Se marcará el ticket #{String(detalle.numero_ticket).padStart(4, '0')} como anulado
+              y se devolverá el stock al inventario.
+            </div>
+            <div style={{
+              fontSize: 12, color: '#ff4757',
+              background: 'rgba(255,71,87,0.06)',
+              borderRadius: 8, padding: '8px 12px',
+              marginBottom: 20,
+            }}>
+              Esta acción no se puede deshacer.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmarAnular(false)}
+                disabled={anulando}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: 9,
+                  border: '1px solid var(--border)', background: 'var(--bg2)',
+                  fontSize: 13, fontWeight: 500,
+                  cursor: anulando ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit', color: 'var(--text)',
+                  opacity: anulando ? 0.6 : 1,
+                }}>
+                Cancelar
+              </button>
+              <button
+                onClick={handleAnular}
+                disabled={anulando}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: 9,
+                  background: '#ff4757', color: 'white', border: 'none',
+                  fontSize: 13, fontWeight: 600,
+                  cursor: anulando ? 'wait' : 'pointer',
+                  fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  opacity: anulando ? 0.85 : 1,
+                }}>
+                {anulando ? (
+                  <>
+                    <Loader2 size={13} style={{ animation: 'spin 0.75s linear infinite' }} />
+                    Anulando…
+                  </>
+                ) : 'Sí, anular'}
               </button>
             </div>
           </div>

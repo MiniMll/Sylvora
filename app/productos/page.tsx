@@ -95,7 +95,19 @@ export default function ProductosPage() {
       const url = await subirImagen(imgFile, editando.id)
       if (url) cambios.imagen_url = url
     }
-    await actualizarProducto(editando.id, cambios)
+    const resultado = await actualizarProducto(editando.id, cambios)
+    if (resultado && 'error' in resultado) {
+      if (resultado.error === 'codigo_duplicado') toast.error('Ya existe otro producto con ese código de barras')
+      else if (resultado.error === 'sku_duplicado') toast.error('Ya existe otro producto con ese SKU')
+      else toast.error('No se pudo actualizar el producto')
+      setGuardandoEdit(false)
+      return
+    }
+    if (!resultado) {
+      toast.error('No se pudo actualizar el producto')
+      setGuardandoEdit(false)
+      return
+    }
     setProductos(prev => prev.map(p => p.id === editando.id ? { ...p, ...cambios } as Producto : p))
     setGuardandoEdit(false)
     setEditando(null)

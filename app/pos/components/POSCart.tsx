@@ -1,5 +1,5 @@
 'use client'
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { ShoppingCart, X } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
@@ -9,6 +9,10 @@ const PRESETS_REC = [5, 10, 15]
 
 function POSCartImpl() {
   const store = usePOSStore()
+  // Item cuya cantidad se está editando inline (click sobre el número).
+  // Patrón POS clásico: click → input con valor seleccionado → Enter/blur
+  // confirma → Esc cancela. Reemplaza "click + N veces" por "click + tipear".
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   return (
     <>
@@ -54,12 +58,58 @@ function POSCartImpl() {
                   <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad - 1)}
                     aria-label="Disminuir cantidad"
                     style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>−</button>
-                  <span style={{ fontSize: 13, fontWeight: 700, minWidth: 22, textAlign: 'center', fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{item.cantidad}</span>
+                  {editingId === item.producto_id ? (
+                    <input
+                      type="number"
+                      autoFocus
+                      defaultValue={item.cantidad}
+                      min={1}
+                      max={9999}
+                      onFocus={e => e.target.select()}
+                      onBlur={e => {
+                        const v = parseInt(e.target.value, 10)
+                        if (Number.isFinite(v) && v >= 1 && v <= 9999) {
+                          store.cambiarCantidad(item.producto_id, v)
+                        }
+                        setEditingId(null)
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur()
+                        if (e.key === 'Escape') setEditingId(null)
+                      }}
+                      style={{
+                        width: 42,
+                        height: 26,
+                        textAlign: 'center',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        fontFamily: 'DM Mono, monospace',
+                        color: 'var(--text)',
+                        background: 'var(--bg2)',
+                        border: '1px solid var(--ac)',
+                        borderRadius: 6,
+                        outline: 'none',
+                        padding: 0,
+                      }}
+                    />
+                  ) : (
+                    <span
+                      onClick={() => setEditingId(item.producto_id)}
+                      title="Click para editar"
+                      style={{
+                        fontSize: 13, fontWeight: 700, minWidth: 22,
+                        textAlign: 'center', fontFamily: 'DM Mono, monospace',
+                        color: 'var(--text)',
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        borderRadius: 4,
+                      }}
+                    >{item.cantidad}</span>
+                  )}
                   <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad + 1)}
                     aria-label="Aumentar cantidad"
                     style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>+</button>
                 </div>
-                {/* Quick remove: en items unidad, antes había que clickear − hasta llegar a 0. */}
                 <button onClick={() => store.quitarItem(item.producto_id)}
                   aria-label="Quitar item"
                   style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid rgba(255,71,87,0.22)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4757', flexShrink: 0 }}>

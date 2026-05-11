@@ -1,7 +1,8 @@
 'use client'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Search } from 'lucide-react'
 import { toast } from 'sonner'
+import { usePOSStore } from '@/lib/store'
 import type { Producto } from '@/types/database'
 
 interface Props {
@@ -27,6 +28,22 @@ interface Props {
  */
 export function POSSearch({ productos, value, onChange, onSelect, resultados }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const cargandoVenta = usePOSStore(s => s.cargandoVenta)
+  const refocusToken = usePOSStore(s => s.refocusToken)
+
+  // Devuelve foco al input cuando otro componente lo solicita (cierre
+  // de modal cantidad, fin de venta exitosa). Skip si hay un modal
+  // abierto en otra parte (data-modal-card) — no querés robar el foco
+  // de un modal de confirmación, por ejemplo.
+  useEffect(() => {
+    if (refocusToken === 0) return
+    if (document.hidden) return
+    if (document.querySelector('[data-modal-card]')) return
+    // Microtask para esperar que React aplique cualquier re-render
+    // pendiente (ej. modal cantidad cerrándose).
+    const t = setTimeout(() => inputRef.current?.focus(), 50)
+    return () => clearTimeout(t)
+  }, [refocusToken])
 
   const handleEnter = () => {
     const buscado = value.trim()
@@ -77,6 +94,23 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
           }
           if (e.key === 'Escape') onChange('')
         }}
+        // Refocus auto si el cajero pierde foco accidentalmente (click
+        // fuera). Skip si hay un modal abierto, si la pestaña pasó a
+        // background, o si la venta se está guardando (input disabled).
+        onBlur={() => {
+          setTimeout(() => {
+            if (document.hidden) return
+            if (document.querySelector('[data-modal-card]')) return
+            if (usePOSStore.getState().cargandoVenta) return
+            // Si el usuario foco'ó deliberadamente otro input/select/button,
+            // respetar esa elección.
+            const active = document.activeElement
+            const isInteractive = active && ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(active.tagName)
+            if (isInteractive && active !== inputRef.current) return
+            inputRef.current?.focus()
+          }, 120)
+        }}
+        disabled={cargandoVenta}
         placeholder="Buscar producto, código o SKU..."
         autoFocus
         style={{
@@ -87,8 +121,11 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
           fontSize: 13,
           outline: 'none',
           fontFamily: 'inherit',
-          background: 'var(--bg2)',
+          background: cargandoVenta ? 'var(--bg3)' : 'var(--bg2)',
           color: 'var(--text)',
+          opacity: cargandoVenta ? 0.65 : 1,
+          cursor: cargandoVenta ? 'not-allowed' : 'text',
+          transition: 'background 0.15s ease, opacity 0.15s ease',
         }}
       />
     </div>

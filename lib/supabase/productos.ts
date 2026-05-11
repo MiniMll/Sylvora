@@ -73,8 +73,35 @@ export async function guardarProducto(producto: GuardarProductoInput): Promise<P
   return data as Producto
 }
 
-export async function actualizarProducto(id: string, cambios: Partial<Producto>): Promise<Producto | null> {
+export async function actualizarProducto(
+  id: string,
+  cambios: Partial<Producto>,
+): Promise<Producto | { error: string } | null> {
   const supabase = getBrowserClient()
+
+  // Validar duplicados (replicación de la guarda de alta). El alta ya
+  // chequea código_barras y SKU; el update no lo hacía → era posible
+  // editar un producto y darle el mismo código que otro, lo que rompe
+  // el lookup del scanner por codigo_barras.
+  if (cambios.codigo_barras) {
+    const { data: dup } = await supabase
+      .from('productos')
+      .select('id')
+      .eq('codigo_barras', cambios.codigo_barras)
+      .neq('id', id)
+      .maybeSingle()
+    if (dup) return { error: 'codigo_duplicado' }
+  }
+  if (cambios.sku) {
+    const { data: dup } = await supabase
+      .from('productos')
+      .select('id')
+      .eq('sku', cambios.sku)
+      .neq('id', id)
+      .maybeSingle()
+    if (dup) return { error: 'sku_duplicado' }
+  }
+
   const { data, error } = await supabase
     .from('productos')
     .update(cambios)

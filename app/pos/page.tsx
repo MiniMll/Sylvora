@@ -74,12 +74,45 @@ export default function POSPage() {
     })
   }
 
+  // Detecta input que parece un barcode escaneado por accidente:
+  // muchos dígitos enteros sin parte decimal. Casos legítimos como
+  // "10000.5" tienen decimal y pasan. Casos como "7790001001234"
+  // (EAN13) o "12345678" (8+ enteros) se bloquean.
+  // Sanity absoluto: > 100000 no tiene sentido en POS real-world.
+  const validarCantidadInput = (input: string): { ok: boolean; reason?: string } => {
+    const trimmed = input.trim().replace(',', '.')
+    const cant = Number(trimmed)
+    if (isNaN(cant) || cant <= 0) return { ok: false, reason: 'La cantidad debe ser mayor a 0' }
+    const tieneDecimal = trimmed.includes('.')
+    const entero = trimmed.replace(/[.,].*/, '').replace(/^-/, '')
+    if (!tieneDecimal && entero.length >= 7) {
+      return { ok: false, reason: 'Cantidad inválida. ¿Escaneaste un código por error?' }
+    }
+    if (cant > 100000) {
+      return { ok: false, reason: 'Cantidad demasiado alta' }
+    }
+    return { ok: true }
+  }
+
+  const cerrarModalCantidad = () => {
+    setModalCantidad(null)
+    setCantidadIngresada('')
+    // Devuelve foco al input principal del POS para que el cajero pueda
+    // seguir scaneando sin tocar nada.
+    store.requestRefocus()
+  }
+
   const agregarConCantidad = () => {
-    if (!modalCantidad || !cantidadIngresada) { toast.error('Ingresá la cantidad'); return }
-    const cant = Number(cantidadIngresada)
-    if (cant <= 0) { toast.error('La cantidad debe ser mayor a 0'); return }
+    if (!modalCantidad || !cantidadIngresada) { toast.error('Ingresá la cantidad', { id: 'pos-cantidad' }); return }
+    const validacion = validarCantidadInput(cantidadIngresada)
+    if (!validacion.ok) {
+      toast.error(validacion.reason!, { id: 'pos-cantidad' })
+      setCantidadIngresada('')
+      return
+    }
+    const cant = Number(cantidadIngresada.replace(',', '.'))
     if (cant > modalCantidad.stock_actual) {
-      toast.warning(`Solo hay ${modalCantidad.stock_actual} ${modalCantidad.unidad_venta} disponibles`)
+      toast.warning(`Solo hay ${modalCantidad.stock_actual} ${modalCantidad.unidad_venta} disponibles`, { id: 'pos-cantidad' })
     }
     const unidad = modalCantidad.unidad_venta
     const precio = unidad === 'kg'
@@ -95,8 +128,7 @@ export default function POSPage() {
       codigo_barras: modalCantidad.codigo_barras || '',
       peso_kg: cant,
     })
-    setModalCantidad(null)
-    setCantidadIngresada('')
+    cerrarModalCantidad()
   }
 
   if (cargando) return <Spinner texto="Cargando productos..." />
@@ -147,10 +179,15 @@ export default function POSPage() {
               </label>
               <input type="number" value={cantidadIngresada}
                 onChange={e => setCantidadIngresada(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && agregarConCantidad()}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') agregarConCantidad()
+                  if (e.key === 'Escape') cerrarModalCantidad()
+                }}
                 placeholder={modalCantidad.unidad_venta === 'kg' ? 'Ej: 0.500' : 'Ej: 2'}
                 step={modalCantidad.unidad_venta === 'kg' ? '0.001' : '1'}
+                max={Math.max(modalCantidad.stock_actual * 5, 1000)}
                 autoFocus
+                onFocus={e => e.target.select()}
                 style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 700, fontFamily: 'monospace', border: '2px solid #5b4cff', borderRadius: 12, padding: '12px', outline: 'none', background: 'var(--bg2)', color: 'var(--text)' }} />
             </div>
             {cantidadIngresada && Number(cantidadIngresada) > 0 && (
@@ -163,7 +200,7 @@ export default function POSPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setModalCantidad(null)}
+              <button onClick={cerrarModalCantidad}
                 style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
                 Cancelar
               </button>

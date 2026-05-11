@@ -14,30 +14,27 @@ const METODOS: { id: MetodoPago; label: string }[] = [
   { id: 'mercadopago', label: 'Mercado Pago' },
 ]
 
-// Tiempo que el botón muestra "¡Cobrado!" antes de limpiar el ticket.
-// Antes 2000ms — sentía lento en POS de alta rotación. 800ms es
-// suficiente feedback sin interrumpir el flujo.
 const COBRADO_FEEDBACK_MS = 800
 
 function POSPaymentImpl() {
   const store = usePOSStore()
   const [cobrado, setCobrado] = useState(false)
-  const [guardando, setGuardando] = useState(false)
+  // Estado local del campo "monto recibido" para calcular vuelto.
+  // No se persiste — vive sólo durante la venta.
+  const [montoRecibido, setMontoRecibido] = useState('')
 
-  // Ref al cobrar más reciente, para que el listener de teclado
-  // global (registrado una vez) siempre llame al closure actual.
   const cobrarRef = useRef<() => void>(() => {})
 
   const cobrar = async () => {
-    // Guard contra doble-submit: click+click rápido, F8 mientras
-    // ya está guardando, o F8 durante el feedback "¡Cobrado!".
-    if (guardando || cobrado) return
+    // Guard contra doble-submit: el flag global cargandoVenta también
+    // deshabilita el input del scanner durante el await (P0-7).
+    if (store.cargandoVenta || cobrado) return
     if (!store.items.length) {
       toast.error('El ticket está vacío', { id: 'pos-cobrar' })
       return
     }
 
-    setGuardando(true)
+    store.setCargandoVenta(true)
 
     const itemsParaVenta = store.items.map(i => ({
       producto_id: i.producto_id.includes('_') ? i.producto_id.split('_')[0] : i.producto_id,
@@ -62,38 +59,32 @@ function POSPaymentImpl() {
         items: itemsParaVenta,
       })
 
-      // Solo limpiar el carrito si la venta SE GUARDÓ. En caso de
-      // error de red o falla del backend, el cajero mantiene el
-      // ticket intacto y puede reintentar sin volver a cargar todo.
       if (!result) {
         toast.error('No se pudo guardar la venta. Probá de nuevo.', { id: 'pos-cobrar' })
-        setGuardando(false)
+        store.setCargandoVenta(false)
         return
       }
 
-      setGuardando(false)
+      store.setCargandoVenta(false)
       setCobrado(true)
+      setMontoRecibido('')
       toast.success(`Venta de ${formatPeso(totalActual)} registrada`, { id: 'pos-cobrar' })
       setTimeout(() => {
         setCobrado(false)
         store.limpiarTicket()
+        // Devuelve foco al input del scanner para la próxima venta.
+        store.requestRefocus()
       }, COBRADO_FEEDBACK_MS)
     } catch {
-      // Excepciones inesperadas (ej. fetch abort). Mismo principio:
-      // no limpiar carrito, mostrar error claro.
       toast.error('Error al guardar la venta. Probá de nuevo.', { id: 'pos-cobrar' })
-      setGuardando(false)
+      store.setCargandoVenta(false)
     }
   }
 
-  // Mantener cobrarRef apuntando al closure actual.
   cobrarRef.current = cobrar
 
-  // Atajo de teclado: F8 o Ctrl+Enter ejecutan cobrar.
-  // F8 es el estándar de POS profesionales (Falabella, Easy, etc.).
-  // Si hay un modal abierto en cualquier parte de la app
-  // (data-modal-card), suprimimos el atajo para no interrumpir
-  // un flujo de modal cantidad / edit / confirmación.
+  // Atajos F8 / Ctrl+Enter para cobrar sin tocar el mouse.
+  // Suprimidos si hay un modal abierto (data-modal-card en DOM).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const isShortcut = e.key === 'F8' || (e.ctrlKey && e.key === 'Enter')
@@ -107,8 +98,17 @@ function POSPaymentImpl() {
   }, [])
 
   const itemsVacio = store.items.length === 0
+  const guardando = store.cargandoVenta
   const cobrarDisabled = itemsVacio || guardando || cobrado
   const totalActual = store.total()
+
+  // Cálculo de vuelto: sólo visible si método=efectivo y hay un monto
+  // ingresado > 0. No bloquea el botón Cobrar — el cajero puede tener
+  // motivos legítimos para cobrar con cualquier monto.
+  const esEfectivo = store.metodoPago === 'efectivo'
+  const recibidoNum = Number(montoRecibido) || 0
+  const diferencia = recibidoNum - totalActual
+  const mostrarCalculoVuelto = esEfectivo && recibidoNum > 0
 
   return (
     <>
@@ -140,6 +140,56 @@ function POSPaymentImpl() {
           })}
         </div>
       </div>
+
+      {/* Vuelto (sólo efectivo) */}
+      {esEfectivo && (
+        <div style={{ padding: '8px 12px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--text2)', flexShrink: 0, width: 60 }}>Recibe</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="$"
+              value={montoRecibido}
+              onChange={e => setMontoRecibido(e.target.value)}
+              style={{
+                flex: 1,
+                fontSize: 13,
+                fontFamily: 'DM Mono, monospace',
+                fontWeight: 600,
+                border: '1px solid var(--border)',
+                borderRadius: 7,
+                padding: '6px 10px',
+                background: 'var(--bg2)',
+                color: 'var(--text)',
+                outline: 'none',
+                textAlign: 'right',
+              }}
+            />
+          </div>
+          {mostrarCalculoVuelto && (
+            <div style={{
+              marginTop: 4,
+              fontSize: 11,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingLeft: 68,
+            }}>
+              <span style={{ color: 'var(--text2)' }}>
+                {diferencia >= 0 ? 'Vuelto' : 'Falta'}
+              </span>
+              <span style={{
+                color: diferencia >= 0 ? 'var(--g)' : 'var(--r)',
+                fontFamily: 'DM Mono, monospace',
+                fontWeight: 700,
+              }}>
+                {formatPeso(Math.abs(diferencia))}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Cobrar */}
       <div style={{ padding: '10px 12px 14px' }}>
@@ -183,6 +233,4 @@ function POSPaymentImpl() {
   )
 }
 
-// Memo: igual razonamiento que POSCart — sin props externos, evita
-// re-render cuando el page actualiza estado no relacionado al pago.
 export const POSPayment = memo(POSPaymentImpl)
