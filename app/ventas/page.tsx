@@ -199,11 +199,16 @@ export default function VentasPage() {
               {ventasFiltradas.map((v) => {
                 const isAnulada = v.estado === 'anulada'
                 return (
-                  <tr key={v.id} className="row-hover" style={{
-                    borderTop: '1px solid var(--border)',
-                    cursor: 'pointer',
-                    opacity: isAnulada ? 0.55 : 1,
-                  }}
+                  <tr key={v.id}
+                    // Sin hover si anulada: comunica "esta fila ya está
+                    // cerrada, no hay acción nueva". Sigue clickeable
+                    // para abrir el detalle (acción primaria = leer).
+                    className={isAnulada ? undefined : 'row-hover'}
+                    style={{
+                      borderTop: '1px solid var(--border)',
+                      cursor: 'pointer',
+                      opacity: isAnulada ? 0.55 : 1,
+                    }}
                     onClick={() => setDetalle(v)}>
                     <td style={{ padding: '9px 12px', color: 'var(--text2)', fontSize: 11 }}>
                       {new Date(v.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -234,12 +239,22 @@ export default function VentasPage() {
                         color: isAnulada ? '#ff4757' : '#00c896',
                         padding: '3px 9px', borderRadius: 999,
                         fontSize: 10, fontWeight: 600, letterSpacing: '0.02em',
+                        // Cursor not-allowed sólo en el badge anulada para
+                        // reforzar "este estado es final, no hay acción".
+                        cursor: isAnulada ? 'not-allowed' : 'default',
                       }}>
                         <span style={{ width: 5, height: 5, borderRadius: '50%', background: isAnulada ? '#ff4757' : '#00c896' }} />
                         {isAnulada ? 'Anulada' : v.estado}
                       </span>
                     </td>
-                    <td style={{ padding: '9px 12px', color: '#5b4cff', fontSize: 11 }}>Ver</td>
+                    <td style={{
+                      padding: '9px 12px',
+                      // En anulada el "Ver" se vuelve neutro: la fila
+                      // sigue clickeable para leer pero no sugiere
+                      // acción nueva.
+                      color: isAnulada ? 'var(--text2)' : '#5b4cff',
+                      fontSize: 11,
+                    }}>Ver</td>
                   </tr>
                 )
               })}

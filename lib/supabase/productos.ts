@@ -79,24 +79,32 @@ export async function actualizarProducto(
 ): Promise<Producto | { error: string } | null> {
   const supabase = getBrowserClient()
 
-  // Validar duplicados (replicación de la guarda de alta). El alta ya
-  // chequea código_barras y SKU; el update no lo hacía → era posible
-  // editar un producto y darle el mismo código que otro, lo que rompe
-  // el lookup del scanner por codigo_barras.
-  if (cambios.codigo_barras) {
+  // Normalización: si el usuario LIMPIA el campo de código/SKU, lo
+  // guardamos como null en vez de string vacío. Sin esto, dos productos
+  // sin código quedarían ambos con codigo_barras='' y el chequeo de
+  // duplicados los marcaría erróneamente como conflicto.
+  const codigoTrim = cambios.codigo_barras?.trim()
+  const skuTrim = cambios.sku?.trim()
+  const cambiosNormalizados: Partial<Producto> = { ...cambios }
+  if ('codigo_barras' in cambios) cambiosNormalizados.codigo_barras = codigoTrim || null
+  if ('sku' in cambios) cambiosNormalizados.sku = skuTrim || null
+
+  // Validar duplicados (replicación de la guarda de alta). Sólo chequea
+  // si el valor nuevo es NO vacío. Replica el patrón de guardarProducto.
+  if (codigoTrim) {
     const { data: dup } = await supabase
       .from('productos')
       .select('id')
-      .eq('codigo_barras', cambios.codigo_barras)
+      .eq('codigo_barras', codigoTrim)
       .neq('id', id)
       .maybeSingle()
     if (dup) return { error: 'codigo_duplicado' }
   }
-  if (cambios.sku) {
+  if (skuTrim) {
     const { data: dup } = await supabase
       .from('productos')
       .select('id')
-      .eq('sku', cambios.sku)
+      .eq('sku', skuTrim)
       .neq('id', id)
       .maybeSingle()
     if (dup) return { error: 'sku_duplicado' }
@@ -104,7 +112,7 @@ export async function actualizarProducto(
 
   const { data, error } = await supabase
     .from('productos')
-    .update(cambios)
+    .update(cambiosNormalizados)
     .eq('id', id)
     .select()
     .single()

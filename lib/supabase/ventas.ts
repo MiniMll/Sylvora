@@ -123,6 +123,12 @@ interface AnularVentaResult {
 /**
  * Marca una venta como anulada y restituye el stock de sus items.
  *
+ * TODO: mover a RPC transaccional única para evitar estado anulada sin
+ * restitución de stock ante cortes de red. Hoy el UPDATE de `estado` y
+ * los `restituir_stock` viajan en queries separadas; si el cliente
+ * pierde red entre ambas, la venta queda como 'anulada' pero el stock
+ * no se devuelve.
+ *
  * Guardas implementadas:
  *  - Sin doble anulación: el UPDATE filtra por `estado = 'completada'`
  *    (optimistic concurrency). Si dos sesiones intentan anular la misma
