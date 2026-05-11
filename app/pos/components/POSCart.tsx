@@ -27,8 +27,10 @@ function POSCartImpl() {
         </button>
       </div>
 
-      {/* Items */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
+      {/* Items — className .pos-cart-items aplica min-height en mobile
+          para que el cajero siempre vea 1-2 items aunque el panel
+          esté comprimido por el teclado virtual. */}
+      <div className="pos-cart-items" style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
         {store.items.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--text2)', fontSize: 12, padding: '32px 0', animation: 'fadeIn 0.3s ease' }}>
             <div style={{

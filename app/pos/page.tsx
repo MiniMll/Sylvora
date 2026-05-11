@@ -151,10 +151,16 @@ export default function POSPage() {
         <POSProducts busqueda={busqueda} resultados={resultados} onSelect={seleccionar} />
       </div>
 
-      {/* Panel derecho: ticket + pago */}
+      {/* Panel derecho: ticket + pago.
+          POSPayment va wrappeada con .pos-payment-section: el CSS
+          mobile le aplica flex-shrink: 0 para que métodos+Cobrar
+          NUNCA queden fuera del viewport en pantalla angosta. En
+          desktop el wrapper es un pass-through neutro. */}
       <div className="pos-cart-panel" style={{ width: 320, display: 'flex', flexDirection: 'column', ...cardStyle, margin: 16, marginLeft: 8, overflow: 'hidden' }}>
         <POSCart />
-        <POSPayment />
+        <div className="pos-payment-section">
+          <POSPayment />
+        </div>
       </div>
 
       {/* Modal cantidad variable (kg/litro/metro) */}

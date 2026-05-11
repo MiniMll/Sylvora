@@ -132,23 +132,59 @@ button:active { transform: scale(0.97); }
   .mobile-full { width: 100% !important; }
 }
 
-/* POS: stack vertical en tablet/mobile.
-   Mismo breakpoint que el sidebar (768px) para coherencia. */
+/* POS mobile-first.
+   Layout fix-height (100dvh) — el browser ajusta el viewport cuando
+   aparece el teclado virtual, así el botón Cobrar nunca queda fuera
+   de pantalla. Mismo breakpoint que el sidebar (768px).
+
+   - Search panel arriba, grow (flex: 1 1 0).
+   - Cart panel abajo, max 60dvh, intrinsic. Sus children competen
+     por el espacio; los items scrollean internamente.
+   - POSPayment (.pos-payment-section) NUNCA se encoge — flex-shrink: 0
+     garantiza que métodos + Cobrar quedan siempre visibles.
+   - Items area (.pos-cart-items) tiene min-height 64px → siempre se
+     ven 1-2 items para confirmación visual al scanear.
+
+   dvh es supported en iOS 15.4+, Chrome 108+, Firefox 101+. Fallback
+   vh para browsers viejos (keyboard puede tapar UI; aceptable). */
 @media (max-width: 768px) {
   .pos-layout {
     flex-direction: column !important;
-    height: auto !important;
-    min-height: 100vh;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
   }
   .pos-search-panel {
-    margin-right: 16px !important;
-    max-height: 60vh;
-    flex-shrink: 0 !important;
+    flex: 1 1 0 !important;
+    margin: 8px 8px 4px !important;
+    min-height: 0 !important;
   }
   .pos-cart-panel {
+    flex: 0 1 auto !important;
     width: auto !important;
-    margin-left: 16px !important;
-    margin-top: 0 !important;
+    max-height: 60dvh !important;
+    margin: 4px 8px !important;
+    margin-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    min-height: 0 !important;
+  }
+  .pos-cart-items {
+    min-height: 64px !important;
+  }
+  .pos-payment-section {
+    flex-shrink: 0 !important;
+  }
+}
+
+/* Fallback iOS Safari < 15.4 (sin dvh): layout usa vh estático.
+   El teclado virtual puede solapar UI en estos navegadores. */
+@supports not (height: 100dvh) {
+  @media (max-width: 768px) {
+    .pos-layout {
+      height: 100vh !important;
+      max-height: 100vh !important;
+    }
+    .pos-cart-panel {
+      max-height: 60vh !important;
+    }
   }
 }
 
