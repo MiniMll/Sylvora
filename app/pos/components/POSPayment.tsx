@@ -1,11 +1,12 @@
 'use client'
 import { memo, useEffect, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { CheckCircle, Loader2, Printer, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { formatPeso } from '@/lib/utils'
+import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
 import { guardarVenta } from '@/lib/supabase/ventas'
 import type { MetodoPago } from '@/types'
+import type { Venta } from '@/types/database'
 
 const METODOS: { id: MetodoPago; label: string }[] = [
   { id: 'efectivo', label: 'Efectivo' },
@@ -22,6 +23,10 @@ function POSPaymentImpl() {
   // Estado local del campo "monto recibido" para calcular vuelto.
   // No se persiste — vive sólo durante la venta.
   const [montoRecibido, setMontoRecibido] = useState('')
+  // Última venta confirmada, retenida brevemente para que el toast
+  // de éxito pueda ofrecer Imprimir / Compartir. Se limpia al
+  // cobrar la siguiente o tras unos segundos.
+  const [ventaParaTicket, setVentaParaTicket] = useState<Venta | null>(null)
 
   const cobrarRef = useRef<() => void>(() => {})
 
@@ -68,13 +73,109 @@ function POSPaymentImpl() {
       store.setCargandoVenta(false)
       setCobrado(true)
       setMontoRecibido('')
-      toast.success(`Venta de ${formatPeso(totalActual)} registrada`, { id: 'pos-cobrar' })
+
+      // Construir Venta enriquecida (con items_venta) para
+      // print/share desde el toast. La función guardarVenta sólo
+      // retorna el row de la tabla ventas; los items los tenemos
+      // del input local.
+      const ventaImprimible: Venta = {
+        ...(result as Venta),
+        items_venta: itemsParaVenta.map((i, idx) => ({
+          id: `tmp-${idx}`,
+          venta_id: result.id,
+          producto_id: i.producto_id || null,
+          nombre_producto: i.nombre_producto,
+          precio_unitario: i.precio_unitario,
+          cantidad: i.cantidad,
+          subtotal: i.subtotal,
+          peso_kg: i.peso_kg ?? null,
+        })),
+      }
+      setVentaParaTicket(ventaImprimible)
+
+      // Toast con acciones inline (Sonner custom JSX).
+      toast.custom((t) => (
+        <div style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          borderLeft: '4px solid var(--g)',
+          borderRadius: 12,
+          padding: '12px 16px',
+          minWidth: 320,
+          maxWidth: 400,
+          boxShadow: 'var(--shadow-md)',
+          fontFamily: 'DM Sans, sans-serif',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'rgba(0,200,150,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CheckCircle size={15} color="var(--g)" strokeWidth={1.8} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                Venta de {formatPeso(totalActual)} registrada
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text2)' }}>
+                Ticket #{String(ventaImprimible.numero_ticket).padStart(4, '0')}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={() => {
+                // Pequeño delay para que el toast se cierre antes del print
+                // (sino el toast aparece en la preview de impresión).
+                toast.dismiss(t)
+                setTimeout(() => window.print(), 100)
+              }}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                padding: '7px 10px', borderRadius: 7,
+                background: 'var(--bg2)', color: 'var(--text)',
+                border: '1px solid var(--border)',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}>
+              <Printer size={12} /> Imprimir
+            </button>
+            <button
+              onClick={async () => {
+                toast.dismiss(t)
+                const r = await shareOrCopy(
+                  formatTicketText(ventaImprimible),
+                  `Ticket #${String(ventaImprimible.numero_ticket).padStart(4, '0')}`,
+                )
+                if (r === 'copied') toast.success('Ticket copiado al portapapeles', { id: 'pos-share' })
+                else if (r === 'error') toast.error('No se pudo compartir', { id: 'pos-share' })
+              }}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                padding: '7px 10px', borderRadius: 7,
+                background: 'var(--bg2)', color: 'var(--text)',
+                border: '1px solid var(--border)',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}>
+              <Share2 size={12} /> Compartir
+            </button>
+          </div>
+        </div>
+      ), { id: 'pos-cobrar', duration: 6000 })
+
       setTimeout(() => {
         setCobrado(false)
         store.limpiarTicket()
         // Devuelve foco al input del scanner para la próxima venta.
         store.requestRefocus()
       }, COBRADO_FEEDBACK_MS)
+
+      // Liberar la venta retenida después de la duración del toast,
+      // para que el printable off-screen no quede colgado en DOM
+      // indefinidamente.
+      setTimeout(() => setVentaParaTicket(null), 30_000)
     } catch {
       toast.error('Error al guardar la venta. Probá de nuevo.', { id: 'pos-cobrar' })
       store.setCargandoVenta(false)
@@ -229,7 +330,89 @@ function POSPaymentImpl() {
           ) : cobrado ? '¡Cobrado!' : 'Cobrar'}
         </button>
       </div>
+
+      {/* Ticket printable off-screen. Solo presente cuando hay una
+          venta recién cobrada (~30s). CSS @media print lo muestra al
+          imprimir; .print-only lo saca de la pantalla normalmente. */}
+      {ventaParaTicket && (
+        <div data-printable className="print-only">
+          <PrintableTicket venta={ventaParaTicket} />
+        </div>
+      )}
     </>
+  )
+}
+
+/**
+ * Layout del ticket para impresión térmica 80mm. Diseño plano, fácil
+ * de leer en papel térmico. Comparte estructura con el modal de
+ * detalle de ventas (en vez de duplicar, se podría extraer pero la
+ * variación de styling para print justifica un componente propio).
+ */
+function PrintableTicket({ venta }: { venta: Venta }) {
+  const fecha = new Date(venta.created_at).toLocaleString('es-AR', {
+    weekday: 'long', day: 'numeric', month: 'long',
+    hour: '2-digit', minute: '2-digit',
+  })
+  return (
+    <div style={{
+      fontFamily: 'DM Mono, monospace',
+      fontSize: 11,
+      color: 'black',
+      background: 'white',
+      padding: 8,
+      lineHeight: 1.4,
+    }}>
+      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
+        SYLVORA
+      </div>
+      <div style={{ textAlign: 'center', fontSize: 10, marginBottom: 12 }}>
+        Ticket #{String(venta.numero_ticket).padStart(4, '0')}
+      </div>
+      <div style={{ fontSize: 10, marginBottom: 8 }}>{fecha}</div>
+      <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '6px 0', marginBottom: 8 }}>
+        {(venta.items_venta || []).map((item, i) => {
+          const qty = item.peso_kg ? `${item.peso_kg} kg` : `${item.cantidad} ×`
+          return (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+              <span style={{ flex: 1, marginRight: 8 }}>{qty} {item.nombre_producto}</span>
+              <span>{formatPeso(item.subtotal)}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span>Subtotal</span><span>{formatPeso(venta.subtotal)}</span>
+      </div>
+      {venta.descuento_porcentaje > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span>Descuento -{venta.descuento_porcentaje}%</span><span>-{formatPeso(venta.descuento_monto)}</span>
+        </div>
+      )}
+      {venta.recargo_porcentaje > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span>Recargo +{venta.recargo_porcentaje}%</span><span>+{formatPeso(venta.recargo_monto)}</span>
+        </div>
+      )}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        fontWeight: 700, fontSize: 13,
+        borderTop: '1px solid #000', marginTop: 6, paddingTop: 6,
+      }}>
+        <span>TOTAL</span><span>{formatPeso(venta.total)}</span>
+      </div>
+      <div style={{ marginTop: 8, fontSize: 10, textTransform: 'capitalize' }}>
+        Método: {venta.metodo_pago}
+      </div>
+      {venta.estado === 'anulada' && (
+        <div style={{ marginTop: 8, fontWeight: 700, textAlign: 'center', border: '1px solid #000', padding: 4 }}>
+          ** VENTA ANULADA **
+        </div>
+      )}
+      <div style={{ textAlign: 'center', marginTop: 14, fontSize: 9 }}>
+        Gracias por su compra
+      </div>
+    </div>
   )
 }
 

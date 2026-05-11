@@ -89,6 +89,16 @@ export interface CierreCaja {
   debito: number
   credito?: number
   mercadopago: number
+  /** Efectivo contado físicamente al cerrar (opcional — el cajero
+   *  puede cerrar sin contar y diferencia_efectivo queda null). */
+  efectivo_contado?: number | null
+  /** efectivo_contado - efectivo_esperado.
+   *  - 0  → caja cuadra
+   *  - >0 → sobrante
+   *  - <0 → faltante
+   *  Persistida para conservar el valor histórico aunque cambien
+   *  ventas o egresos posteriormente. */
+  diferencia_efectivo?: number | null
   created_at: string
 }
 

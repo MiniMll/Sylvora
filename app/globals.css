@@ -188,6 +188,54 @@ button:active { transform: scale(0.97); }
   }
 }
 
+/* Print rules para tickets.
+   - Oculta toda la UI (sidebar, modales backdrops, toasts) excepto
+     el subtree marcado con [data-printable].
+   - El elemento printable se posiciona a top:0 ocupando el ancho de
+     papel térmico estándar (80mm). En navegadores que respetan
+     @page size, también se setea el tamaño de página.
+   - Botones dentro del printable se ocultan (X, Cerrar, Imprimir, etc.). */
+@media print {
+  body * { visibility: hidden !important; }
+  [data-printable], [data-printable] * {
+    visibility: visible !important;
+  }
+  [data-printable] {
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 80mm !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+  [data-printable] button,
+  [data-printable] [data-no-print] {
+    display: none !important;
+  }
+  @page {
+    margin: 6mm;
+    size: 80mm auto;
+  }
+}
+
+/* Off-screen utility para mantener el printable en el DOM sin que
+   afecte el layout normal. Solo se "renderiza" durante @media print. */
+.print-only {
+  position: fixed;
+  top: -10000px;
+  left: -10000px;
+  pointer-events: none;
+  opacity: 0;
+}
+
 /* Modales: clamp ancho en pantallas angostas para que no overflow.
    Aplicar atributo data-modal-card al div interno del modal. */
 @media (max-width: 600px) {

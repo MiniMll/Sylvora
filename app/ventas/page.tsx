@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { getVentas, anularVenta } from '@/lib/supabase/ventas'
-import { formatPeso } from '@/lib/utils'
+import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
 import { puedeAnularVenta } from '@/lib/permissions'
-import { Search, TrendingUp, Receipt, Hash, X, Loader2, AlertTriangle } from 'lucide-react'
+import { Search, TrendingUp, Receipt, Hash, X, Loader2, AlertTriangle, Printer, Share2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { Venta } from '@/types/database'
 
@@ -44,6 +44,21 @@ export default function VentasPage() {
       : true
     return matchMetodo && matchBusq && matchFecha
   })
+
+  const handleImprimir = () => {
+    // El modal detalle YA tiene data-printable. CSS @media print
+    // se encarga de mostrar solo ese subtree.
+    window.print()
+  }
+
+  const handleCompartir = async () => {
+    if (!detalle) return
+    const text = formatTicketText(detalle)
+    const r = await shareOrCopy(text, `Ticket #${String(detalle.numero_ticket).padStart(4, '0')}`)
+    if (r === 'copied') toast.success('Ticket copiado al portapapeles', { id: 'venta-share' })
+    else if (r === 'error') toast.error('No se pudo compartir', { id: 'venta-share' })
+    // 'shared' y 'cancelled' → silencioso (el OS ya dio feedback)
+  }
 
   const handleAnular = async () => {
     if (!detalle || anulando) return
@@ -269,7 +284,7 @@ export default function VentasPage() {
         const permiso = puedeAnularVenta(detalle)
         return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, width: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+          <div data-modal-card data-printable className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, width: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
@@ -362,13 +377,40 @@ export default function VentasPage() {
               </div>
 
               {/* Acciones */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+                <button onClick={handleImprimir}
+                  title="Imprimir ticket"
+                  style={{
+                    flex: '1 1 auto', minWidth: 100,
+                    padding: '10px', borderRadius: 8,
+                    background: 'var(--bg2)', color: 'var(--text)',
+                    border: '1px solid var(--border)',
+                    fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}>
+                  <Printer size={14} /> Imprimir
+                </button>
+                <button onClick={handleCompartir}
+                  title="Compartir ticket"
+                  style={{
+                    flex: '1 1 auto', minWidth: 100,
+                    padding: '10px', borderRadius: 8,
+                    background: 'var(--bg2)', color: 'var(--text)',
+                    border: '1px solid var(--border)',
+                    fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}>
+                  <Share2 size={14} /> Compartir
+                </button>
                 {permiso.allowed && (
                   <button
                     onClick={() => setConfirmarAnular(true)}
                     disabled={anulando}
                     style={{
-                      flex: 1, padding: '10px', borderRadius: 8,
+                      flex: '1 1 auto', minWidth: 100,
+                      padding: '10px', borderRadius: 8,
                       background: 'var(--bg2)', color: '#ff4757',
                       border: '1px solid rgba(255,71,87,0.3)',
                       fontSize: 13, fontWeight: 600,
@@ -381,7 +423,7 @@ export default function VentasPage() {
                 )}
                 <button onClick={() => setDetalle(null)}
                   style={{
-                    flex: permiso.allowed ? 1 : 1,
+                    flex: '1 1 100%',
                     padding: '10px', borderRadius: 8,
                     background: '#5b4cff', color: 'white', border: 'none',
                     fontSize: 13, fontWeight: 600, cursor: 'pointer',

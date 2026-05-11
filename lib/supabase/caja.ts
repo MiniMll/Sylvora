@@ -54,16 +54,27 @@ interface CerrarCajaInput {
   debito: number
   credito: number
   mercadopago: number
+  /** Efectivo físicamente contado en la caja al cerrar. Opcional —
+   *  si el cajero no cuenta, no se persiste ni se calcula diferencia. */
+  efectivo_contado?: number | null
+  /** efectivo_contado - efectivo_esperado. Calculado en el caller. */
+  diferencia_efectivo?: number | null
 }
 
+/**
+ * Persiste un cierre de caja del día. Backward-compat con schemas que
+ * todavía no corrieron las migraciones de `credito` y/o
+ * `efectivo_contado/diferencia_efectivo`: si el insert falla por
+ * columna inexistente, reintenta sin esos campos.
+ *
+ * Mantiene `transferencia: 0` por compatibilidad con schema antiguo
+ * que tiene la columna pero ya no aplica al producto actual.
+ */
 export async function cerrarCaja(resumen: CerrarCajaInput): Promise<boolean> {
   const supabase = getBrowserClient()
   const comercioId = await getComercioId()
   if (!comercioId) return false
 
-  // Mantenemos la columna legacy `transferencia` en 0 para no romper
-  // schemas existentes. La columna `credito` puede no existir hasta que
-  // se corra supabase-migracion-credito.sql — el fallback la descarta.
   const payload: Record<string, any> = {
     comercio_id: comercioId,
     fecha: new Date().toISOString().split('T')[0],
@@ -77,14 +88,28 @@ export async function cerrarCaja(resumen: CerrarCajaInput): Promise<boolean> {
     credito: resumen.credito,
     mercadopago: resumen.mercadopago,
   }
-
-  const { error } = await supabase.from('cierres_caja').insert(payload)
-  if (error && /credito/i.test(error.message)) {
-    delete payload.credito
-    const retry = await supabase.from('cierres_caja').insert(payload)
-    return !retry.error
+  if (resumen.efectivo_contado !== undefined && resumen.efectivo_contado !== null) {
+    payload.efectivo_contado = resumen.efectivo_contado
+    payload.diferencia_efectivo = resumen.diferencia_efectivo ?? null
   }
-  return !error
+
+  // Reintento recursivo eliminando columnas que el schema todavía no tiene.
+  const tryInsert = async (p: Record<string, any>): Promise<boolean> => {
+    const { error } = await supabase.from('cierres_caja').insert(p)
+    if (!error) return true
+    const msg = error.message
+    if (/efectivo_contado|diferencia_efectivo/i.test(msg)) {
+      const { efectivo_contado: _a, diferencia_efectivo: _b, ...rest } = p
+      return tryInsert(rest)
+    }
+    if (/credito/i.test(msg)) {
+      const { credito: _c, ...rest } = p
+      return tryInsert(rest)
+    }
+    return false
+  }
+
+  return tryInsert(payload)
 }
 
 export async function getCierresCaja(): Promise<CierreCaja[]> {

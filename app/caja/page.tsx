@@ -17,6 +17,9 @@ export default function CajaPage() {
   const [modalCierre, setModalCierre] = useState(false)
   const [cerrando, setCerrando] = useState(false)
   const [cierresAnteriores, setCierresAnteriores] = useState<any[]>([])
+  // Conteo físico de efectivo al cerrar. String para permitir el
+  // input vacío (= "no conté"). Se parsea a number al confirmar.
+  const [efectivoContado, setEfectivoContado] = useState('')
 
   useEffect(() => {
     getCajaHoy().then(({ ventas, movimientos }) => {
@@ -52,28 +55,43 @@ export default function CajaPage() {
   const porMetodo: Record<string, number> = {}
   ventas.forEach(v => { porMetodo[v.metodo_pago] = (porMetodo[v.metodo_pago] || 0) + Number(v.total) })
 
+  // Efectivo esperado en caja = ventas efectivo - egresos efectivo.
+  // Asume caja inicial 0 (Sylvora no maneja saldo de apertura todavía).
+  const porMetodoFn = (metodo: string) =>
+    ventas.filter(v => v.metodo_pago === metodo).reduce((s, v) => s + Number(v.total), 0)
+  const efectivoVentas = porMetodoFn('efectivo')
+  const egresosEfectivo = movimientos
+    .filter(m => m.tipo === 'egreso' && m.metodo_pago === 'efectivo')
+    .reduce((s, m) => s + Number(m.monto), 0)
+  const efectivoEsperado = efectivoVentas - egresosEfectivo
+
+  const contadoNum = efectivoContado.trim() === '' ? null : Number(efectivoContado)
+  const diferencia = contadoNum === null || Number.isNaN(contadoNum)
+    ? null
+    : contadoNum - efectivoEsperado
+
   const handleCerrarCaja = async () => {
     setCerrando(true)
-    const porMetodoFn = (metodo: string) =>
-      ventas.filter(v => v.metodo_pago === metodo).reduce((s, v) => s + Number(v.total), 0)
-
     const ok = await cerrarCaja({
       total_ventas: totalVentas,
       total_egresos: totalEgresos,
       saldo_neto: saldo,
       cantidad_ventas: ventas.length,
-      efectivo: porMetodoFn('efectivo'),
+      efectivo: efectivoVentas,
       debito: porMetodoFn('debito'),
       credito: porMetodoFn('credito'),
       mercadopago: porMetodoFn('mercadopago'),
+      efectivo_contado: contadoNum,
+      diferencia_efectivo: diferencia,
     })
 
     if (ok) {
-      toast.success('Caja cerrada correctamente')
+      toast.success('Caja cerrada correctamente', { id: 'cerrar-caja' })
       const cierres = await getCierresCaja()
       setCierresAnteriores(cierres)
+      setEfectivoContado('')
     } else {
-      toast.error('Error al cerrar la caja')
+      toast.error('Error al cerrar la caja', { id: 'cerrar-caja' })
     }
     setCerrando(false)
     setModalCierre(false)
@@ -236,29 +254,45 @@ export default function CajaPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg3)' }}>
-                {['Fecha', 'Ventas', 'Egresos', 'Saldo neto', 'Transacciones'].map(h => (
+                {['Fecha', 'Ventas', 'Egresos', 'Saldo neto', 'Transacciones', 'Diferencia'].map(h => (
                   <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {cierresAnteriores.map((c: any) => (
-                <tr key={c.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ padding: '9px 12px', color: 'var(--text)' }}>
-                    {new Date(c.fecha).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                  </td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#00c896', fontWeight: 600 }}>
-                    ${Number(c.total_ventas).toLocaleString('es-AR')}
-                  </td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#ff4757', fontWeight: 600 }}>
-                    ${Number(c.total_egresos).toLocaleString('es-AR')}
-                  </td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#5b4cff', fontWeight: 700 }}>
-                    ${Number(c.saldo_neto).toLocaleString('es-AR')}
-                  </td>
-                  <td style={{ padding: '9px 12px', color: 'var(--text2)' }}>{c.cantidad_ventas} ventas</td>
-                </tr>
-              ))}
+              {cierresAnteriores.map((c: any) => {
+                // Backward-compat: cierres antiguos no tienen diferencia_efectivo.
+                const dif = c.diferencia_efectivo
+                const tieneDiferencia = dif !== null && dif !== undefined
+                return (
+                  <tr key={c.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
+                    <td style={{ padding: '9px 12px', color: 'var(--text)' }}>
+                      {new Date(c.fecha).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#00c896', fontWeight: 600 }}>
+                      ${Number(c.total_ventas).toLocaleString('es-AR')}
+                    </td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#ff4757', fontWeight: 600 }}>
+                      ${Number(c.total_egresos).toLocaleString('es-AR')}
+                    </td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#5b4cff', fontWeight: 700 }}>
+                      ${Number(c.saldo_neto).toLocaleString('es-AR')}
+                    </td>
+                    <td style={{ padding: '9px 12px', color: 'var(--text2)' }}>{c.cantidad_ventas} ventas</td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>
+                      {!tieneDiferencia ? (
+                        <span style={{ color: 'var(--text2)' }}>—</span>
+                      ) : Number(dif) === 0 ? (
+                        <span style={{ color: 'var(--g)' }}>OK</span>
+                      ) : (
+                        <span style={{ color: Number(dif) > 0 ? 'var(--w)' : 'var(--r)' }}>
+                          {Number(dif) >= 0 ? '+' : '−'}{formatPeso(Math.abs(Number(dif)))}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -346,10 +380,10 @@ export default function CajaPage() {
               </div>
             </div>
 
-            <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+            <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Por método de pago</div>
               {['efectivo', 'debito', 'credito', 'mercadopago'].map(metodo => {
-                const total = ventas.filter(v => v.metodo_pago === metodo).reduce((s, v) => s + Number(v.total), 0)
+                const total = porMetodoFn(metodo)
                 if (total === 0) return null
                 return (
                   <div key={metodo} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12 }}>
@@ -360,6 +394,73 @@ export default function CajaPage() {
                   </div>
                 )
               })}
+            </div>
+
+            {/* Conteo físico del efectivo. Opcional: si el cajero
+                no llena el campo, se guarda el cierre sin contado y
+                la diferencia queda null en histórico ("—"). */}
+            <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+                Conteo de efectivo
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 12 }}>
+                <span style={{ color: 'var(--text2)' }}>Efectivo esperado en caja</span>
+                <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--text)' }}>
+                  {formatPeso(efectivoEsperado)}
+                </span>
+              </div>
+              <label style={{ display: 'block', fontSize: 11, color: 'var(--text2)', marginBottom: 6 }}>
+                Efectivo contado en caja
+              </label>
+              <input
+                type="number"
+                inputMode="decimal"
+                placeholder="$ Dejar vacío para no contar"
+                value={efectivoContado}
+                onChange={e => setEfectivoContado(e.target.value)}
+                style={{
+                  width: '100%',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  fontFamily: 'DM Mono, monospace',
+                  border: '1px solid var(--border)',
+                  borderRadius: 9,
+                  padding: '10px 14px',
+                  background: 'var(--bg2)',
+                  color: 'var(--text)',
+                  outline: 'none',
+                  textAlign: 'right',
+                }}
+              />
+              {diferencia !== null && (
+                <div style={{
+                  marginTop: 10,
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  background:
+                    diferencia === 0 ? 'rgba(0,200,150,0.10)' :
+                    diferencia > 0  ? 'rgba(255,184,0,0.10)' :
+                                       'rgba(255,71,87,0.10)',
+                  color:
+                    diferencia === 0 ? 'var(--g)' :
+                    diferencia > 0  ? 'var(--w)' :
+                                       'var(--r)',
+                }}>
+                  <span>
+                    {diferencia === 0 && 'Caja cuadra'}
+                    {diferencia > 0  && 'Sobrante'}
+                    {diferencia < 0  && 'Faltante'}
+                  </span>
+                  <span style={{ fontFamily: 'DM Mono, monospace' }}>
+                    {diferencia >= 0 ? '+' : '−'}{formatPeso(Math.abs(diferencia))}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
