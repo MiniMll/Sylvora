@@ -189,17 +189,28 @@ button:active { transform: scale(0.97); }
 }
 
 /* Print rules para tickets.
-   - Oculta toda la UI (sidebar, modales backdrops, toasts) excepto
-     el subtree marcado con [data-printable].
-   - El elemento printable se posiciona a top:0 ocupando el ancho de
-     papel térmico estándar (80mm). En navegadores que respetan
-     @page size, también se setea el tamaño de página.
-   - Botones dentro del printable se ocultan (X, Cerrar, Imprimir, etc.). */
+   Estrategia: el ticket vive off-screen (.print-only) en el DOM,
+   y @media print lo trae al frente cancelando todos los offsets +
+   ocultando el resto de la UI (sidebars, modales, toasts).
+   Solo funciona si TODAS las reglas que esconden están overrideadas
+   en print — especialmente opacity, que no aplica visibility. */
 @media print {
+  /* Ocultar todo. Visibility en lugar de display para no romper
+     el layout flex/grid de la app durante el print preview. */
   body * { visibility: hidden !important; }
+
+  /* Esconder además Sonner (toasts) que renderiza vía portal y
+     puede quedar visible si su posición ignora visibility. */
+  [data-sonner-toaster] { display: none !important; }
+
+  /* Sólo el subtree printable visible. */
   [data-printable], [data-printable] * {
     visibility: visible !important;
   }
+
+  /* El printable se posiciona en top:0 left:0 con ancho 80mm.
+     Cancelo TODAS las propiedades que .print-only u otras clases
+     usan para ocultarlo (incluyendo opacity, que era el bug). */
   [data-printable] {
     display: block !important;
     position: absolute !important;
@@ -215,25 +226,33 @@ button:active { transform: scale(0.97); }
     overflow: visible !important;
     background: white !important;
     color: black !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
   }
+
   [data-printable] button,
   [data-printable] [data-no-print] {
     display: none !important;
   }
+
   @page {
     margin: 6mm;
     size: 80mm auto;
   }
 }
 
-/* Off-screen utility para mantener el printable en el DOM sin que
-   afecte el layout normal. Solo se "renderiza" durante @media print. */
+/* Off-screen utility: mantiene elementos en el DOM (para que
+   window.print() los encuentre via [data-printable]) sin que
+   ocupen lugar en el layout normal ni sean visibles/interactuables. */
 .print-only {
   position: fixed;
   top: -10000px;
   left: -10000px;
+  width: 80mm;
   pointer-events: none;
   opacity: 0;
+  z-index: -1;
 }
 
 /* Modales: clamp ancho en pantallas angostas para que no overflow.

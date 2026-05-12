@@ -60,43 +60,77 @@ export function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ')
 }
 
+// Labels canónicos para método de pago. La DB guarda valores en lowercase
+// (efectivo, mercadopago, etc.) pero en UI/ticket queremos versión legible.
+export const METODO_PAGO_LABEL: Record<string, string> = {
+  efectivo: 'Efectivo',
+  mercadopago: 'Mercado Pago',
+  debito: 'Débito',
+  credito: 'Crédito',
+  transferencia: 'Transferencia',
+  qr: 'QR',
+}
+
+export function labelMetodoPago(metodo: string): string {
+  return METODO_PAGO_LABEL[metodo?.toLowerCase()] ?? metodo
+}
+
+/**
+ * Formatea una fecha de venta como "lunes 11 de mayo · 01:14 hs"
+ * — pensado para ticket impreso y texto compartido. 24h, sin coma.
+ */
+export function formatFechaTicket(iso: string): string {
+  const d = new Date(iso)
+  const fecha = d.toLocaleDateString('es-AR', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  })
+  const hora = d.toLocaleTimeString('es-AR', {
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+  return `${fecha} · ${hora} hs`
+}
+
 /**
  * Genera el texto plano del ticket para compartir vía WhatsApp/email
- * o copiar al clipboard. Formato pensado para ser legible en mobile.
+ * o copiar al clipboard. Formato pensado para ser legible en mobile,
+ * con jerarquía clara: brand → ticket → items → total → método → footer.
  */
 export function formatTicketText(venta: Venta): string {
-  const fecha = new Date(venta.created_at).toLocaleString('es-AR', {
-    weekday: 'long', day: 'numeric', month: 'long',
-    hour: '2-digit', minute: '2-digit',
-  })
   const items = (venta.items_venta || []).map(i => {
     const qty = i.peso_kg ? `${i.peso_kg} kg` : `${i.cantidad} ×`
-    return `${qty}  ${i.nombre_producto}  —  ${formatPeso(i.subtotal)}`
+    return `• ${qty} ${i.nombre_producto} — ${formatPeso(i.subtotal)}`
   }).join('\n')
 
+  const ticketN = String(venta.numero_ticket).padStart(4, '0')
+
   const lines: string[] = [
-    `Ticket #${String(venta.numero_ticket).padStart(4, '0')}`,
-    fecha,
+    `SYLVORA · Ticket #${ticketN}`,
+    formatFechaTicket(venta.created_at),
     '',
     items || '(sin detalle de items)',
     '',
-    `Subtotal: ${formatPeso(venta.subtotal)}`,
   ]
-  if (venta.descuento_porcentaje > 0) {
-    lines.push(`Descuento -${venta.descuento_porcentaje}%: -${formatPeso(venta.descuento_monto)}`)
-  }
-  if (venta.recargo_porcentaje > 0) {
-    lines.push(`Recargo +${venta.recargo_porcentaje}%: +${formatPeso(venta.recargo_monto)}`)
+
+  // Mostrar subtotal solo si hay ajustes (descuento/recargo); si no, ruido.
+  const hayAjustes = venta.descuento_porcentaje > 0 || venta.recargo_porcentaje > 0
+  if (hayAjustes) {
+    lines.push(`Subtotal: ${formatPeso(venta.subtotal)}`)
+    if (venta.descuento_porcentaje > 0) {
+      lines.push(`Descuento -${venta.descuento_porcentaje}%: -${formatPeso(venta.descuento_monto)}`)
+    }
+    if (venta.recargo_porcentaje > 0) {
+      lines.push(`Recargo +${venta.recargo_porcentaje}%: +${formatPeso(venta.recargo_monto)}`)
+    }
   }
   lines.push(`TOTAL: ${formatPeso(venta.total)}`)
-  lines.push('')
-  lines.push(`Método: ${venta.metodo_pago}`)
+  lines.push(`Método: ${labelMetodoPago(venta.metodo_pago)}`)
+
   if (venta.estado === 'anulada') {
     lines.push('')
     lines.push('** VENTA ANULADA **')
   }
   lines.push('')
-  lines.push('— Sylvora')
+  lines.push('Gracias por tu compra.')
   return lines.join('\n')
 }
 

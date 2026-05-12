@@ -2,10 +2,11 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { getVentas, anularVenta } from '@/lib/supabase/ventas'
-import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
+import { formatPeso, formatTicketText, shareOrCopy, formatFechaTicket, labelMetodoPago } from '@/lib/utils'
 import { puedeAnularVenta } from '@/lib/permissions'
 import { Search, TrendingUp, Receipt, Hash, X, Loader2, AlertTriangle, Printer, Share2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { TicketReceipt } from '@/components/TicketReceipt'
 import type { Venta } from '@/types/database'
 
 export default function VentasPage() {
@@ -46,9 +47,11 @@ export default function VentasPage() {
   })
 
   const handleImprimir = () => {
-    // El modal detalle YA tiene data-printable. CSS @media print
-    // se encarga de mostrar solo ese subtree.
-    window.print()
+    // El printable off-screen tiene data-printable; CSS @media print
+    // se encarga de aislar solo ese subtree. Tiny delay para asegurar
+    // que cualquier render pendiente del componente esté commiteado
+    // antes de invocar window.print().
+    setTimeout(() => window.print(), 50)
   }
 
   const handleCompartir = async () => {
@@ -284,14 +287,14 @@ export default function VentasPage() {
         const permiso = puedeAnularVenta(detalle)
         return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card data-printable className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, width: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, width: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
                   Ticket #{String(detalle.numero_ticket).padStart(4, '0')}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2 }}>
-                  {new Date(detalle.created_at).toLocaleString('es-AR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2, textTransform: 'capitalize' }}>
+                  {formatFechaTicket(detalle.created_at)}
                 </div>
               </div>
               <button onClick={() => setDetalle(null)}
@@ -373,7 +376,7 @@ export default function VentasPage() {
               {/* Método */}
               <div style={{ marginTop: 12, background: 'rgba(91,76,255,0.05)', borderRadius: 8, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                 <span style={{ color: 'var(--text2)' }}>Método de pago</span>
-                <span style={{ fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{detalle.metodo_pago}</span>
+                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{labelMetodoPago(detalle.metodo_pago)}</span>
               </div>
 
               {/* Acciones */}
@@ -437,6 +440,15 @@ export default function VentasPage() {
         </div>
         )
       })()}
+
+      {/* Ticket printable off-screen — usado solo por window.print().
+          Mismo componente que POSPayment para garantizar consistencia
+          entre el flujo post-cobro y el de historial. */}
+      {detalle && (
+        <div data-printable className="print-only">
+          <TicketReceipt venta={detalle} />
+        </div>
+      )}
 
       {/* Confirmación anular */}
       {confirmarAnular && detalle && (

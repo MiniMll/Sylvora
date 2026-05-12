@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
 import { guardarVenta } from '@/lib/supabase/ventas'
+import { TicketReceipt } from '@/components/TicketReceipt'
 import type { MetodoPago } from '@/types'
 import type { Venta } from '@/types/database'
 
@@ -336,83 +337,10 @@ function POSPaymentImpl() {
           imprimir; .print-only lo saca de la pantalla normalmente. */}
       {ventaParaTicket && (
         <div data-printable className="print-only">
-          <PrintableTicket venta={ventaParaTicket} />
+          <TicketReceipt venta={ventaParaTicket} />
         </div>
       )}
     </>
-  )
-}
-
-/**
- * Layout del ticket para impresión térmica 80mm. Diseño plano, fácil
- * de leer en papel térmico. Comparte estructura con el modal de
- * detalle de ventas (en vez de duplicar, se podría extraer pero la
- * variación de styling para print justifica un componente propio).
- */
-function PrintableTicket({ venta }: { venta: Venta }) {
-  const fecha = new Date(venta.created_at).toLocaleString('es-AR', {
-    weekday: 'long', day: 'numeric', month: 'long',
-    hour: '2-digit', minute: '2-digit',
-  })
-  return (
-    <div style={{
-      fontFamily: 'DM Mono, monospace',
-      fontSize: 11,
-      color: 'black',
-      background: 'white',
-      padding: 8,
-      lineHeight: 1.4,
-    }}>
-      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
-        SYLVORA
-      </div>
-      <div style={{ textAlign: 'center', fontSize: 10, marginBottom: 12 }}>
-        Ticket #{String(venta.numero_ticket).padStart(4, '0')}
-      </div>
-      <div style={{ fontSize: 10, marginBottom: 8 }}>{fecha}</div>
-      <div style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '6px 0', marginBottom: 8 }}>
-        {(venta.items_venta || []).map((item, i) => {
-          const qty = item.peso_kg ? `${item.peso_kg} kg` : `${item.cantidad} ×`
-          return (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <span style={{ flex: 1, marginRight: 8 }}>{qty} {item.nombre_producto}</span>
-              <span>{formatPeso(item.subtotal)}</span>
-            </div>
-          )
-        })}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <span>Subtotal</span><span>{formatPeso(venta.subtotal)}</span>
-      </div>
-      {venta.descuento_porcentaje > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Descuento -{venta.descuento_porcentaje}%</span><span>-{formatPeso(venta.descuento_monto)}</span>
-        </div>
-      )}
-      {venta.recargo_porcentaje > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Recargo +{venta.recargo_porcentaje}%</span><span>+{formatPeso(venta.recargo_monto)}</span>
-        </div>
-      )}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        fontWeight: 700, fontSize: 13,
-        borderTop: '1px solid #000', marginTop: 6, paddingTop: 6,
-      }}>
-        <span>TOTAL</span><span>{formatPeso(venta.total)}</span>
-      </div>
-      <div style={{ marginTop: 8, fontSize: 10, textTransform: 'capitalize' }}>
-        Método: {venta.metodo_pago}
-      </div>
-      {venta.estado === 'anulada' && (
-        <div style={{ marginTop: 8, fontWeight: 700, textAlign: 'center', border: '1px solid #000', padding: 4 }}>
-          ** VENTA ANULADA **
-        </div>
-      )}
-      <div style={{ textAlign: 'center', marginTop: 14, fontSize: 9 }}>
-        Gracias por su compra
-      </div>
-    </div>
   )
 }
 
