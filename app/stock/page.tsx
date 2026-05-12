@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { toast } from 'sonner'
 import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
+import { Modal } from '@/components/ui/Modal'
 import { stockColor, stockLabel } from '@/lib/utils'
 
 export default function StockPage() {
@@ -242,19 +243,18 @@ export default function StockPage() {
       </div>
 
       {/* Modal editar stock + lotes */}
-      {modalProducto && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 24, width: 500, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{modalProducto.nombre}</div>
-                <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2 }}>
-                  Stock actual: <b style={{ color: stockColor(modalProducto.stock_actual, modalProducto.stock_minimo), fontFamily: 'DM Mono, monospace' }}>{modalProducto.stock_actual}</b>
-                  {' '}· Mínimo: {modalProducto.stock_minimo}
-                </div>
+      <Modal
+        open={!!modalProducto}
+        onClose={() => { setModalProducto(null); setEditandoLote(null) }}
+        size="md">
+        {modalProducto && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{modalProducto.nombre}</div>
+              <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2 }}>
+                Stock actual: <b style={{ color: stockColor(modalProducto.stock_actual, modalProducto.stock_minimo), fontFamily: 'DM Mono, monospace' }}>{modalProducto.stock_actual}</b>
+                {' '}· Mínimo: {modalProducto.stock_minimo}
               </div>
-              <button onClick={() => { setModalProducto(null); setEditandoLote(null) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text2)' }}>✕</button>
             </div>
 
             {/* Lotes existentes */}
@@ -343,9 +343,9 @@ export default function StockPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react'
 import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja } from '@/lib/supabase/caja'
 import { formatPeso } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingDown, CheckCircle, X, Loader2, AlertCircle, Banknote, Smartphone, CreditCard } from 'lucide-react'
+import { TrendingDown, CheckCircle, Loader2, AlertCircle, Banknote, Smartphone, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/Spinner'
+import { Modal } from '@/components/ui/Modal'
 
 export default function CajaPage() {
   const [ventas, setVentas] = useState<any[]>([])
@@ -303,68 +304,75 @@ export default function CajaPage() {
       )}
 
       {/* Modal egreso */}
-      {modalEgreso && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380, boxShadow: 'var(--shadow-lg)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <TrendingDown size={16} color="#ff4757" /> Registrar egreso
-              </div>
-              <button onClick={() => setModalEgreso(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text2)' }}>
-                <X size={20} />
-              </button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Descripción *</label>
-                <input value={egreso.descripcion} onChange={e => setEgreso(p => ({ ...p, descripcion: e.target.value }))}
-                  placeholder="Ej: Compra de mercadería"
-                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Monto *</label>
-                <input value={egreso.monto} onChange={e => setEgreso(p => ({ ...p, monto: e.target.value }))}
-                  type="number" placeholder="$ 0.00"
-                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'DM Mono, monospace' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Método de pago</label>
-                <select value={egreso.metodo} onChange={e => setEgreso(p => ({ ...p, metodo: e.target.value }))}
-                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}>
-                  <option value="efectivo">Efectivo</option>
-                  <option value="debito">Débito</option>
-                  <option value="credito">Crédito</option>
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-              <button onClick={() => setModalEgreso(false)}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.1)', background: 'var(--card)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cancelar
-              </button>
-              <button onClick={guardarEgreso} disabled={guardando}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--r)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                {guardando ? <><Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> Guardando...</> : 'Registrar'}
-              </button>
-            </div>
+      <Modal
+        open={modalEgreso}
+        onClose={() => setModalEgreso(false)}
+        size="sm"
+        footer={
+          <>
+            <button onClick={() => setModalEgreso(false)}
+              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.1)', background: 'var(--card)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Cancelar
+            </button>
+            <button onClick={guardarEgreso} disabled={guardando}
+              style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--r)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              {guardando ? <><Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> Guardando...</> : 'Registrar'}
+            </button>
+          </>
+        }>
+        <div style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <TrendingDown size={16} color="#ff4757" /> Registrar egreso
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Descripción *</label>
+            <input value={egreso.descripcion} onChange={e => setEgreso(p => ({ ...p, descripcion: e.target.value }))}
+              placeholder="Ej: Compra de mercadería"
+              style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Monto *</label>
+            <input value={egreso.monto} onChange={e => setEgreso(p => ({ ...p, monto: e.target.value }))}
+              type="number" placeholder="$ 0.00"
+              style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'DM Mono, monospace' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Método de pago</label>
+            <select value={egreso.metodo} onChange={e => setEgreso(p => ({ ...p, metodo: e.target.value }))}
+              style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}>
+              <option value="efectivo">Efectivo</option>
+              <option value="debito">Débito</option>
+              <option value="credito">Crédito</option>
+            </select>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Modal cierre de caja */}
-      {modalCierre && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 420, boxShadow: 'var(--shadow-lg)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircle size={18} color="#5b4cff" /> Cerrar caja del día
-              </div>
-              <button onClick={() => setModalCierre(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text2)' }}>
-                <X size={20} />
-              </button>
-            </div>
+      <Modal
+        open={modalCierre}
+        onClose={() => { if (!cerrando) setModalCierre(false) }}
+        size="md"
+        footer={
+          <>
+            <button onClick={() => setModalCierre(false)}
+              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+              Cancelar
+            </button>
+            <button onClick={handleCerrarCaja} disabled={cerrando}
+              style={{ flex: 2, padding: '11px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              {cerrando
+                ? <><Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> Cerrando...</>
+                : <><CheckCircle size={14} /> Confirmar cierre</>
+              }
+            </button>
+          </>
+        }>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <CheckCircle size={18} color="#5b4cff" /> Cerrar caja del día
+        </div>
 
-            <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Resumen del día</div>
               {[
                 { label: 'Total ventas', value: totalVentas, color: 'var(--g)' },
@@ -467,22 +475,7 @@ export default function CajaPage() {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setModalCierre(false)}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
-                Cancelar
-              </button>
-              <button onClick={handleCerrarCaja} disabled={cerrando}
-                style={{ flex: 2, padding: '11px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                {cerrando
-                  ? <><Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> Cerrando...</>
-                  : <><CheckCircle size={14} /> Confirmar cierre</>
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </Modal>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )

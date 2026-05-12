@@ -7,6 +7,7 @@ import { puedeAnularVenta } from '@/lib/permissions'
 import { Search, TrendingUp, Receipt, Hash, X, Loader2, AlertTriangle, Printer, Share2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { TicketReceipt } from '@/components/TicketReceipt'
+import { Modal } from '@/components/ui/Modal'
 import type { Venta } from '@/types/database'
 
 export default function VentasPage() {
@@ -288,8 +289,8 @@ export default function VentasPage() {
         const isAnulada = detalle.estado === 'anulada'
         const permiso = puedeAnularVenta(detalle)
         return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, width: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+        <Modal open onClose={() => setDetalle(null)} size="md">
+          <div style={{ margin: -18 }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
@@ -439,7 +440,7 @@ export default function VentasPage() {
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
         )
       })()}
 
@@ -453,9 +454,48 @@ export default function VentasPage() {
       )}
 
       {/* Confirmación anular */}
-      {confirmarAnular && detalle && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380, textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
+      <Modal
+        open={!!confirmarAnular && !!detalle}
+        onClose={() => { if (!anulando) setConfirmarAnular(false) }}
+        size="sm"
+        footer={
+          <>
+            <button
+              onClick={() => setConfirmarAnular(false)}
+              disabled={anulando}
+              style={{
+                flex: 1, padding: '11px', borderRadius: 9,
+                border: '1px solid var(--border)', background: 'var(--bg2)',
+                fontSize: 13, fontWeight: 500,
+                cursor: anulando ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit', color: 'var(--text)',
+                opacity: anulando ? 0.6 : 1,
+              }}>
+              Cancelar
+            </button>
+            <button
+              onClick={handleAnular}
+              disabled={anulando}
+              style={{
+                flex: 1, padding: '11px', borderRadius: 9,
+                background: 'var(--r)', color: 'white', border: 'none',
+                fontSize: 13, fontWeight: 600,
+                cursor: anulando ? 'wait' : 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                opacity: anulando ? 0.85 : 1,
+              }}>
+              {anulando ? (
+                <>
+                  <Loader2 size={13} style={{ animation: 'spin 0.75s linear infinite' }} />
+                  Anulando…
+                </>
+              ) : 'Sí, anular'}
+            </button>
+          </>
+        }>
+        {detalle && (
+          <div style={{ textAlign: 'center' }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
               background: 'rgba(255,71,87,0.1)',
@@ -475,47 +515,12 @@ export default function VentasPage() {
               fontSize: 12, color: 'var(--r)',
               background: 'rgba(255,71,87,0.06)',
               borderRadius: 8, padding: '8px 12px',
-              marginBottom: 20,
             }}>
               Esta acción no se puede deshacer.
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setConfirmarAnular(false)}
-                disabled={anulando}
-                style={{
-                  flex: 1, padding: '11px', borderRadius: 9,
-                  border: '1px solid var(--border)', background: 'var(--bg2)',
-                  fontSize: 13, fontWeight: 500,
-                  cursor: anulando ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit', color: 'var(--text)',
-                  opacity: anulando ? 0.6 : 1,
-                }}>
-                Cancelar
-              </button>
-              <button
-                onClick={handleAnular}
-                disabled={anulando}
-                style={{
-                  flex: 1, padding: '11px', borderRadius: 9,
-                  background: 'var(--r)', color: 'white', border: 'none',
-                  fontSize: 13, fontWeight: 600,
-                  cursor: anulando ? 'wait' : 'pointer',
-                  fontFamily: 'inherit',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  opacity: anulando ? 0.85 : 1,
-                }}>
-                {anulando ? (
-                  <>
-                    <Loader2 size={13} style={{ animation: 'spin 0.75s linear infinite' }} />
-                    Anulando…
-                  </>
-                ) : 'Sí, anular'}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   )
 }

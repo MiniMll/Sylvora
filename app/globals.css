@@ -324,6 +324,19 @@ button:active { transform: scale(0.97); }
   background: var(--bg3);
 }
 
+/* === Modal footer responsive ==================================
+   En mobile angosto los botones del footer no entran horizontal.
+   Pasan a stack vertical, full width, primary arriba (orden visual
+   invertido vía column-reverse: primer botón JSX = primero abajo). */
+@media (max-width: 480px) {
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+  .modal-footer > * {
+    width: 100% !important;
+  }
+}
+
 /* === Notificaciones dropdown ==================================
    Desktop: anclado debajo del sidebar (left: 220).
    Mobile: ocupa el viewport con padding lateral. */

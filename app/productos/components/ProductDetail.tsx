@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react'
 import { Package, X, Layers } from 'lucide-react'
 import { formatPeso, calcularMargen, stockColor, stockLabel, formatStock } from '@/lib/utils'
+import { Modal } from '@/components/ui/Modal'
 import type { Producto, Lote } from '@/types/database'
 
 function CodigoBarras({ codigo }: { codigo: string }) {
@@ -39,8 +40,8 @@ export function ProductDetail({
   const mg = calcularMargen(producto.precio_costo, producto.precio_venta)
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, width: 500, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+    <Modal open onClose={onClose} size="md">
+      <div style={{ margin: -18, marginBottom: 18 }}>
         <div style={{ height: 180, background: 'var(--bg3)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, position: 'relative' }}>
           {producto.imagen_url
             ? <img src={producto.imagen_url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -49,7 +50,8 @@ export function ProductDetail({
           <button onClick={onClose}
             style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: 'none', color: 'white', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
         </div>
-        <div style={{ padding: 20 }}>
+      </div>
+      <div>
           <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>{producto.nombre}</div>
           <div style={{ fontSize: 11, color: 'var(--text2)', fontFamily: 'DM Mono, monospace', marginBottom: 16 }}>{producto.sku} · {producto.codigo_barras}</div>
 
@@ -161,8 +163,7 @@ export function ProductDetail({
               🗑️
             </button>
           </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

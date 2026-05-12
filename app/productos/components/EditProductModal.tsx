@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import type { Producto } from '@/types/database'
+import { Modal } from '@/components/ui/Modal'
 
 const inp: React.CSSProperties = {
   border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px',
@@ -69,12 +70,23 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 24, width: 500, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>✏️ Editar producto</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text2)' }}>✕</button>
-        </div>
+    <Modal
+      open
+      onClose={onClose}
+      title="✏️ Editar producto"
+      size="md"
+      footer={
+        <>
+          <button onClick={onClose}
+            style={{ padding: '10px 16px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+            Cancelar
+          </button>
+          <button onClick={() => onGuardar(form, imgFile)} disabled={guardando}
+            style={{ flex: 1, padding: '10px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+            {guardando ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+        </>
+      }>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Imagen</label>
           <label style={{ width: 80, height: 70, borderRadius: 10, overflow: 'hidden', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--bg3)', fontSize: 28 }}>
@@ -112,17 +124,6 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
             </select>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button onClick={() => onGuardar(form, imgFile)} disabled={guardando}
-            style={{ flex: 1, padding: '10px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {guardando ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-          <button onClick={onClose}
-            style={{ padding: '10px 16px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
-            Cancelar
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

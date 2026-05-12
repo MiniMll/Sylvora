@@ -10,6 +10,7 @@ import { ProductFilters, type Vista } from './components/ProductFilters'
 import { ProductGrid } from './components/ProductGrid'
 import { ProductDetail } from './components/ProductDetail'
 import { EditProductModal, type EditFormValues } from './components/EditProductModal'
+import { Modal } from '@/components/ui/Modal'
 
 const inpStyle: React.CSSProperties = {
   border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px',
@@ -259,15 +260,27 @@ export default function ProductosPage() {
       )}
 
       {/* Modal agregar lote */}
-      {modalLote && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 24, width: 380, boxShadow: 'var(--shadow-lg)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z'/></svg>
-                Agregar lote
-              </div>
-              <button onClick={() => setModalLote(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text2)' }}>✕</button>
+      <Modal
+        open={!!modalLote}
+        onClose={() => setModalLote(null)}
+        size="sm"
+        footer={
+          <>
+            <button onClick={() => setModalLote(null)}
+              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+              Cancelar
+            </button>
+            <button onClick={guardarNuevoLote} disabled={guardandoLote}
+              style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--g)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {guardandoLote ? 'Guardando...' : 'Agregar lote'}
+            </button>
+          </>
+        }>
+        {modalLote && (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+              <svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z'/></svg>
+              Agregar lote
             </div>
             <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 14, background: 'var(--bg3)', padding: '8px 12px', borderRadius: 8 }}>
               {modalLote.nombre} · Stock: <b style={{ color: 'var(--text)' }}>{formatStock(modalLote.stock_actual, modalLote.unidad_venta)}</b>
@@ -291,45 +304,40 @@ export default function ProductosPage() {
                   type="date" style={inpStyle} />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button onClick={() => setModalLote(null)}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
-                Cancelar
-              </button>
-              <button onClick={guardarNuevoLote} disabled={guardandoLote}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--g)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {guardandoLote ? 'Guardando...' : 'Agregar lote'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {/* Modal confirmar borrar */}
-      {confirmarBorrar && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 380, textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
+      <Modal
+        open={!!confirmarBorrar}
+        onClose={() => setConfirmarBorrar(null)}
+        size="sm"
+        footer={
+          <>
+            <button onClick={() => setConfirmarBorrar(null)}
+              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+              Cancelar
+            </button>
+            <button onClick={borrarProducto}
+              style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--r)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Sí, borrar
+            </button>
+          </>
+        }>
+        {confirmarBorrar && (
+          <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🗑️</div>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, color: 'var(--text)' }}>¿Borrar producto?</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 20, background: 'var(--bg3)', borderRadius: 10, padding: '10px 16px' }}>
               {confirmarBorrar.nombre}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--r)', background: 'rgba(255,71,87,0.06)', borderRadius: 8, padding: '8px 12px', marginBottom: 20 }}>
+            <div style={{ fontSize: 12, color: 'var(--r)', background: 'rgba(255,71,87,0.06)', borderRadius: 8, padding: '8px 12px' }}>
               Esta acción no se puede deshacer
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setConfirmarBorrar(null)}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
-                Cancelar
-              </button>
-              <button onClick={borrarProducto}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--r)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Sí, borrar
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   )
 }

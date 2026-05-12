@@ -12,6 +12,7 @@ import { POSSearch } from './components/POSSearch'
 import { POSProducts } from './components/POSProducts'
 import { POSCart } from './components/POSCart'
 import { POSPayment } from './components/POSPayment'
+import { Modal } from '@/components/ui/Modal'
 
 const necesitaModal = (p: Producto) => ['kg', 'litro', 'metro'].includes(p.unidad_venta)
 
@@ -164,9 +165,24 @@ export default function POSPage() {
       </div>
 
       {/* Modal cantidad variable (kg/litro/metro) */}
-      {modalCantidad && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div data-modal-card className="scale-in" style={{ background: 'var(--card)', borderRadius: 20, padding: 28, width: 360, textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
+      <Modal
+        open={!!modalCantidad}
+        onClose={cerrarModalCantidad}
+        size="sm"
+        footer={
+          <>
+            <button onClick={cerrarModalCantidad}
+              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+              Cancelar
+            </button>
+            <button onClick={agregarConCantidad}
+              style={{ flex: 2, padding: '11px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Agregar al ticket
+            </button>
+          </>
+        }>
+        {modalCantidad && (
+          <div style={{ textAlign: 'center' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(91,76,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
               {modalCantidad.unidad_venta === 'kg' ? <Scale size={24} color="#5b4cff" />
                 : modalCantidad.unidad_venta === 'litro' ? <Beaker size={24} color="#5b4cff" />
@@ -187,7 +203,6 @@ export default function POSPage() {
                 onChange={e => setCantidadIngresada(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === 'Enter') agregarConCantidad()
-                  if (e.key === 'Escape') cerrarModalCantidad()
                 }}
                 placeholder={modalCantidad.unidad_venta === 'kg' ? 'Ej: 0.500' : 'Ej: 2'}
                 step={modalCantidad.unidad_venta === 'kg' ? '0.001' : '1'}
@@ -197,7 +212,7 @@ export default function POSPage() {
                 style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 700, fontFamily: 'DM Mono, monospace', border: '2px solid var(--ac)', borderRadius: 12, padding: '12px', outline: 'none', background: 'var(--bg2)', color: 'var(--text)' }} />
             </div>
             {cantidadIngresada && Number(cantidadIngresada) > 0 && (
-              <div style={{ background: 'rgba(91,76,255,0.08)', borderRadius: 10, padding: '10px', marginBottom: 16, fontSize: 14, color: 'var(--text)' }}>
+              <div style={{ background: 'rgba(91,76,255,0.08)', borderRadius: 10, padding: '10px', fontSize: 14, color: 'var(--text)' }}>
                 Total: <b style={{ color: 'var(--ac)', fontFamily: 'DM Mono, monospace' }}>
                   {modalCantidad.unidad_venta === 'kg'
                     ? formatPeso((modalCantidad.precio_por_kg ?? 0) * Number(cantidadIngresada))
@@ -205,19 +220,9 @@ export default function POSPage() {
                 </b>
               </div>
             )}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={cerrarModalCantidad}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
-                Cancelar
-              </button>
-              <button onClick={agregarConCantidad}
-                style={{ flex: 2, padding: '11px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Agregar al ticket
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   )
 }
