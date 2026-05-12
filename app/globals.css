@@ -307,9 +307,10 @@ button:active { transform: scale(0.97); }
   -webkit-overflow-scrolling: touch;
   border-radius: var(--radius);
 }
-.table-scroll table {
-  min-width: 600px;
-}
+/* min-width lo aporta cada tabla con style={{ minWidth }} inline,
+   según cuántas columnas tenga. Sin esto las tablas chicas
+   (3-4 col del dashboard) tendrían scroll en desktop que no
+   necesitan. */
 
 /* Primera columna sticky para tablas con muchas columnas
    donde perder el identificador rompe la lectura. */

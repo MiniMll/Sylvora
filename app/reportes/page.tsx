@@ -190,7 +190,7 @@ export default function ReportesPage() {
           </div>
         ) : (
           <div className="table-scroll">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg3)' }}>
                 {['#', 'Producto', 'Unidades', 'Total vendido', 'Costo', 'Ganancia', 'Margen'].map((h, i) => (

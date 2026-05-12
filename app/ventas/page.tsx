@@ -206,7 +206,7 @@ export default function VentasPage() {
           </div>
         ) : (
           <div className="table-scroll">
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg3)' }}>
                 {['Fecha', 'Ticket', 'Método', 'Descuento', 'Recargo', 'Total', 'Estado', ''].map(h => (

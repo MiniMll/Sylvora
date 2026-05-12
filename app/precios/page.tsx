@@ -149,7 +149,7 @@ export default function PreciosPage() {
           <span style={{ fontSize: 11, color: 'var(--text2)' }}>{productos.length} productos</span>
         </div>
         <div className="table-scroll">
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr style={{ background: 'var(--bg3)' }}>
               {['', 'Producto', 'Precio costo', 'Precio venta', 'Margen', 'Nuevo precio venta'].map((h, i) => (
