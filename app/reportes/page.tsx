@@ -106,9 +106,9 @@ export default function ReportesPage() {
       {/* Gráfico ventas por mes */}
       <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.2px', color: 'var(--text)' }}>Ventas por mes — últimos 6 meses</div>
-        <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 12 }}>Total recaudado por mes</div>
+        <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Total recaudado por mes</div>
         {ventas.length === 0 ? (
-          <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72', fontSize: 12 }}>
+          <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', fontSize: 12 }}>
             Sin datos de ventas todavía
           </div>
         ) : (
@@ -132,9 +132,9 @@ export default function ReportesPage() {
 
  }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.2px', color: 'var(--text)' }}>Rentabilidad por producto</div>
-          <div style={{ fontSize: 11, color: '#6b6b72', marginBottom: 12 }}>Ventas vs costo</div>
+          <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Ventas vs costo</div>
           {topProductos.length === 0 ? (
-            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b6b72', fontSize: 12 }}>
+            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', fontSize: 12 }}>
               Sin ventas registradas
             </div>
           ) : (
@@ -159,7 +159,7 @@ export default function ReportesPage() {
  }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, letterSpacing: '-0.2px', color: 'var(--text)' }}>Por método de pago</div>
           {Object.entries(porMetodo).length === 0 ? (
-            <div style={{ color: '#6b6b72', fontSize: 12 }}>Sin datos</div>
+            <div style={{ color: 'var(--text2)', fontSize: 12 }}>Sin datos</div>
           ) : Object.entries(porMetodo).map(([metodo, total]) => {
             const pct = Math.round(((total as number) / totalMes) * 100)
             return (
@@ -171,7 +171,7 @@ export default function ReportesPage() {
                 <div style={{ height: 6, background: 'var(--bg3)', borderRadius: 3, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${pct}%`, background: 'var(--ac)', borderRadius: 3 }} />
                 </div>
-                <div style={{ fontSize: 10, color: '#6b6b72', border: '1px solid var(--border)',}}></div>
+                <div style={{ fontSize: 10, color: 'var(--text2)', border: '1px solid var(--border)',}}></div>
             </div>
             )
           })}
@@ -193,7 +193,7 @@ export default function ReportesPage() {
             <thead>
               <tr style={{ background: 'var(--bg3)' }}>
                 {['#', 'Producto', 'Unidades', 'Total vendido', 'Costo', 'Ganancia', 'Margen'].map(h => (
-                  <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: '#6b6b72', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
+                  <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -215,7 +215,7 @@ export default function ReportesPage() {
                     <td style={{ padding: '9px 12px', fontWeight: 500 }}>{p.nombre}</td>
                     <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace' }}>{p.cantidad}</td>
                     <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--ac)', fontWeight: 600 }}>{formatPeso(p.total)}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: '#6b6b72' }}>{formatPeso(p.costo)}</td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--text2)' }}>{formatPeso(p.costo)}</td>
                     <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--g)', fontWeight: 600 }}>{formatPeso(gan)}</td>
                     <td style={{ padding: '9px 12px' }}>
                       <span style={{ background: mg >= 35 ? 'rgba(0,200,150,0.1)' : 'rgba(255,184,0,0.1)', color: mg >= 35 ? 'var(--g)' : 'var(--w)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>

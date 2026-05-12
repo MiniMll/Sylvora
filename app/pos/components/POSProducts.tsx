@@ -86,7 +86,7 @@ export function POSProducts({ busqueda, resultados, onSelect }: Props) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</div>
                   <div style={{ fontSize: 11, color: 'var(--text2)', fontFamily: 'DM Mono, monospace' }}>{p.codigo_barras || p.sku}</div>
-                  <div style={{ fontSize: 11, color: sinStock ? '#888898' : p.stock_actual <= 5 ? 'var(--r)' : 'var(--text2)', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: sinStock ? 'var(--text2)' : p.stock_actual <= 5 ? 'var(--r)' : 'var(--text2)', marginTop: 2 }}>
                     {sinStock ? 'Sin stock' :
                       p.unidad_venta === 'kg' ? `${p.stock_actual.toFixed(2)} kg disponibles` :
                       `Stock: ${p.stock_actual}`}
@@ -103,7 +103,7 @@ export function POSProducts({ busqueda, resultados, onSelect }: Props) {
                     <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 2 }}>Toca para ingresar cantidad</div>
                   )}
                   {sinStock && (
-                    <div style={{ fontSize: 10, color: '#888898', marginTop: 2 }}>Sin stock</div>
+                    <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 2 }}>Sin stock</div>
                   )}
                 </div>
               </button>

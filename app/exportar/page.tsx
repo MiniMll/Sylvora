@@ -244,7 +244,7 @@ export default function ExportarPage() {
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, letterSpacing: '-0.2px', color: 'var(--text)' }}>⚙️ Opciones</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
-            <label style={{ fontSize: 11, color: '#6b6b72', display: 'block', marginBottom: 4 }}>Período</label>
+            <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>Período</label>
             <select value={periodo} onChange={e => setPeriodo(e.target.value)}
               style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}>
               <option value="hoy">Hoy</option>
@@ -254,7 +254,7 @@ export default function ExportarPage() {
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 11, color: '#6b6b72', display: 'block', marginBottom: 4 }}>Logo en encabezado</label>
+            <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>Logo en encabezado</label>
             <select style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}>
               <option>Sí</option><option>No</option>
             </select>

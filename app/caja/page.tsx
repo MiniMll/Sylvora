@@ -187,7 +187,7 @@ export default function CajaPage() {
               <div style={{ height: 5, background: 'var(--bg3)', borderRadius: 3, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${Math.round(((total as number) / totalVentas) * 100)}%`, background: 'var(--ac)', borderRadius: 3 }} />
               </div>
-              <div style={{ fontSize: 10, color: '#6b6b72', marginTop: 2 }}>
+              <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 2 }}>
                 {Math.round(((total as number) / totalVentas) * 100)}%
               </div>
             </div>
@@ -208,7 +208,7 @@ export default function CajaPage() {
               <thead>
                 <tr style={{ background: 'var(--bg3)' }}>
                   {['Hora', 'Tipo', 'Descripción', 'Método', 'Monto'].map(h => (
-                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: '#6b6b72', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
+                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -222,7 +222,7 @@ export default function CajaPage() {
                       <span style={{ background: 'rgba(0,200,150,0.1)', color: 'var(--g)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Venta</span>
                     </td>
                     <td style={{ padding: '8px 12px' }}>Ticket #{String(v.numero_ticket).padStart(4, '0')}</td>
-                    <td style={{ padding: '8px 12px', color: '#6b6b72', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
+                    <td style={{ padding: '8px 12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
                     <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--g)' }}>+{formatPeso(v.total)}</td>
                   </tr>
                 ))}
@@ -235,7 +235,7 @@ export default function CajaPage() {
                       <span style={{ background: 'rgba(255,71,87,0.1)', color: 'var(--r)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Egreso</span>
                     </td>
                     <td style={{ padding: '8px 12px' }}>{m.descripcion}</td>
-                    <td style={{ padding: '8px 12px', color: '#6b6b72', textTransform: 'capitalize' }}>{m.metodo_pago}</td>
+                    <td style={{ padding: '8px 12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{m.metodo_pago}</td>
                     <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--r)' }}>-{formatPeso(m.monto)}</td>
                   </tr>
                 ))}
@@ -306,25 +306,25 @@ export default function CajaPage() {
               <div style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <TrendingDown size={16} color="#ff4757" /> Registrar egreso
               </div>
-              <button onClick={() => setModalEgreso(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b6b72' }}>
+              <button onClick={() => setModalEgreso(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text2)' }}>
                 <X size={20} />
               </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Descripción *</label>
+                <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Descripción *</label>
                 <input value={egreso.descripcion} onChange={e => setEgreso(p => ({ ...p, descripcion: e.target.value }))}
                   placeholder="Ej: Compra de mercadería"
                   style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Monto *</label>
+                <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Monto *</label>
                 <input value={egreso.monto} onChange={e => setEgreso(p => ({ ...p, monto: e.target.value }))}
                   type="number" placeholder="$ 0.00"
                   style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'DM Mono, monospace' }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Método de pago</label>
+                <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Método de pago</label>
                 <select value={egreso.metodo} onChange={e => setEgreso(p => ({ ...p, metodo: e.target.value }))}
                   style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}>
                   <option value="efectivo">Efectivo</option>
