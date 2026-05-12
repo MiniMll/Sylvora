@@ -89,7 +89,7 @@ export default function RegistroPage() {
 
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#5b4cff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ color: 'white', fontWeight: 700, fontSize: 14, letterSpacing: '-0.04em' }}>Sy</span></div>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--ac)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ color: 'white', fontWeight: 700, fontSize: 14, letterSpacing: '-0.04em' }}>Sy</span></div>
           <div>
             <div style={{ fontSize: 17, fontWeight: 600, color: '#1a1a1e', letterSpacing: '-0.01em' }}>Sylvora</div>
             <div style={{ fontSize: 11, color: 'var(--text2)' }}>Crear cuenta gratis</div>
@@ -99,7 +99,7 @@ export default function RegistroPage() {
         {/* Pasos */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
           {[1, 2].map(p => (
-            <div key={p} style={{ flex: 1, height: 4, borderRadius: 2, background: paso >= p ? '#5b4cff' : 'var(--bg3)', transition: 'background 0.3s' }} />
+            <div key={p} style={{ flex: 1, height: 4, borderRadius: 2, background: paso >= p ? 'var(--ac)' : 'var(--bg3)', transition: 'background 0.3s' }} />
           ))}
         </div>
 
@@ -128,7 +128,7 @@ export default function RegistroPage() {
             </div>
 
             {error && (
-              <div style={{ marginTop: 14, background: 'rgba(255,71,87,0.06)', border: '1px solid rgba(255,71,87,0.18)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, color: '#ff4757' }}>
+              <div style={{ marginTop: 14, background: 'rgba(255,71,87,0.06)', border: '1px solid rgba(255,71,87,0.18)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, color: 'var(--r)' }}>
                 {error}
               </div>
             )}
@@ -138,7 +138,7 @@ export default function RegistroPage() {
               if (form.password !== form.confirmar) { setError('Las contraseñas no coinciden'); return }
               setError(''); setPaso(2)
             }}
-              style={{ width: '100%', marginTop: 20, padding: '12px', borderRadius: 11, background: '#5b4cff', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 10px rgba(91,76,255,0.25)', letterSpacing: '-0.1px' }}>
+              style={{ width: '100%', marginTop: 20, padding: '12px', borderRadius: 11, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 10px rgba(91,76,255,0.25)', letterSpacing: '-0.1px' }}>
               Siguiente
             </button>
           </>
@@ -171,7 +171,7 @@ export default function RegistroPage() {
             </div>
 
             {error && (
-              <div style={{ marginTop: 14, background: 'rgba(255,71,87,0.06)', border: '1px solid rgba(255,71,87,0.18)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, color: '#ff4757' }}>
+              <div style={{ marginTop: 14, background: 'rgba(255,71,87,0.06)', border: '1px solid rgba(255,71,87,0.18)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, color: 'var(--r)' }}>
                 {error}
               </div>
             )}
@@ -182,7 +182,7 @@ export default function RegistroPage() {
                 Atrás
               </button>
               <button onClick={registrar} disabled={cargando}
-                style={{ flex: 2, padding: '12px', borderRadius: 11, background: '#5b4cff', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: cargando ? 'wait' : 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 10px rgba(91,76,255,0.25)' }}>
+                style={{ flex: 2, padding: '12px', borderRadius: 11, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: cargando ? 'wait' : 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 10px rgba(91,76,255,0.25)' }}>
                 {cargando ? 'Creando cuenta...' : 'Crear cuenta gratis'}
               </button>
             </div>
@@ -191,7 +191,7 @@ export default function RegistroPage() {
 
         <div style={{ marginTop: 20, textAlign: 'center', fontSize: 12, color: 'var(--text2)' }}>
           ¿Ya tenés cuenta?{' '}
-          <Link href="/login" style={{ color: '#5b4cff', textDecoration: 'none', fontWeight: 500 }}>Iniciar sesión</Link>
+          <Link href="/login" style={{ color: 'var(--ac)', textDecoration: 'none', fontWeight: 500 }}>Iniciar sesión</Link>
         </div>
       </div>
     </div>

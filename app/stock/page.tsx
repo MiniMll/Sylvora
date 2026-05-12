@@ -156,7 +156,7 @@ export default function StockPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
-                  <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'monospace', color: k.color }}>{k.value}</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: k.color }}>{k.value}</div>
                 </div>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon size={16} color={k.color} />
@@ -174,7 +174,7 @@ export default function StockPage() {
         </div>
       )}
       {criticos.length > 0 && (
-        <div style={{ background: 'rgba(255,71,87,0.06)', border: '1px solid rgba(255,71,87,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#ff4757' }}>
+        <div style={{ background: 'rgba(255,71,87,0.06)', border: '1px solid rgba(255,71,87,0.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: 'var(--r)' }}>
           <b>{criticos.length} crítico{criticos.length > 1 ? 's' : ''}:</b> {criticos.map(p => p.nombre).join(', ')}
         </div>
       )}
@@ -219,8 +219,8 @@ export default function StockPage() {
               return (
                 <tr key={p.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '9px 12px', fontWeight: 500, color: 'var(--text)' }}>{p.nombre}</td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: 10, color: 'var(--text2)' }}>{p.sku || '—'}</td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontWeight: 700, color: sc, fontSize: 14 }}>{p.stock_actual}</td>
+                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>{p.sku || '—'}</td>
+                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 700, color: sc, fontSize: 14 }}>{p.stock_actual}</td>
                   <td style={{ padding: '9px 12px', color: 'var(--text2)' }}>{p.stock_minimo}</td>
                   <td style={{ padding: '9px 12px', color: 'var(--text2)' }}>{p.stock_ideal}</td>
                   <td style={{ padding: '9px 12px' }}>
@@ -247,7 +247,7 @@ export default function StockPage() {
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{modalProducto.nombre}</div>
                 <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2 }}>
-                  Stock actual: <b style={{ color: stockColor(modalProducto.stock_actual, modalProducto.stock_minimo), fontFamily: 'monospace' }}>{modalProducto.stock_actual}</b>
+                  Stock actual: <b style={{ color: stockColor(modalProducto.stock_actual, modalProducto.stock_minimo), fontFamily: 'DM Mono, monospace' }}>{modalProducto.stock_actual}</b>
                   {' '}· Mínimo: {modalProducto.stock_minimo}
                 </div>
               </div>
@@ -273,15 +273,15 @@ export default function StockPage() {
                       <div key={lote.id} style={{ background: 'var(--bg3)', borderRadius: 10, padding: '10px 12px', border: `1px solid ${vencido ? 'rgba(255,71,87,0.3)' : 'var(--border)'}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, fontFamily: 'monospace', color: 'var(--text)' }}>{lote.numero_lote}</div>
+                            <div style={{ fontSize: 12, fontWeight: 600, fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{lote.numero_lote}</div>
                             {lote.fecha_vencimiento && (
-                              <div style={{ fontSize: 10, color: vencido ? '#ff4757' : 'var(--text2)', marginTop: 2 }}>
+                              <div style={{ fontSize: 10, color: vencido ? 'var(--r)' : 'var(--text2)', marginTop: 2 }}>
                                 {vencido ? 'Vencido: ' : 'Vence: '}
                                 {new Date(lote.fecha_vencimiento).toLocaleDateString('es-AR')}
                               </div>
                             )}
                           </div>
-                          <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'monospace', color: 'var(--text)', minWidth: 40, textAlign: 'right' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: 'var(--text)', minWidth: 40, textAlign: 'right' }}>
                             {lote.cantidad}
                           </div>
                           <button onClick={() => { setEditandoLote(lote); setNuevoStockLote(lote.cantidad.toString()) }}
@@ -289,7 +289,7 @@ export default function StockPage() {
                             Editar
                           </button>
                           <button onClick={() => borrarLote(lote)} disabled={borrandoLote === lote.id}
-                            style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: '#ff4757' }}>
+                            style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--r)' }}>
                             {borrandoLote === lote.id ? '...' : '🗑️'}
                           </button>
                         </div>
@@ -298,7 +298,7 @@ export default function StockPage() {
                             <input type="number" value={nuevoStockLote} onChange={e => setNuevoStockLote(e.target.value)}
                               style={{ ...inp, flex: 1 }} placeholder="Nueva cantidad" autoFocus />
                             <button onClick={guardarEdicionLote}
-                              style={{ padding: '7px 12px', borderRadius: 7, background: '#5b4cff', color: 'white', border: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                              style={{ padding: '7px 12px', borderRadius: 7, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                               ✓
                             </button>
                             <button onClick={() => setEditandoLote(null)}
@@ -336,7 +336,7 @@ export default function StockPage() {
                   </div>
                 </div>
                 <button onClick={guardarNuevoLote} disabled={guardandoLote}
-                  style={{ padding: '10px', borderRadius: 9, background: '#00c896', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
+                  style={{ padding: '10px', borderRadius: 9, background: 'var(--g)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
                   {guardandoLote ? 'Agregando...' : 'Agregar lote al stock'}
                 </button>
               </div>

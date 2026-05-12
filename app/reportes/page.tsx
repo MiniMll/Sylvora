@@ -90,7 +90,7 @@ export default function ReportesPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', marginBottom: 3, color: 'var(--text)' }}>{k.value}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'DM Mono, monospace', marginBottom: 3, color: 'var(--text)' }}>{k.value}</div>
                   <div style={{ fontSize: 11, color: 'var(--text2)' }}>{k.sub}</div>
                 </div>
                 <div style={{ width: 30, height: 30, borderRadius: 8, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -166,10 +166,10 @@ export default function ReportesPage() {
               <div key={metodo} style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                   <span style={{ fontWeight: 500, textTransform: 'capitalize' }}>{metodo}</span>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{pct}%</span>
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>{pct}%</span>
                 </div>
                 <div style={{ height: 6, background: 'var(--bg3)', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: '#5b4cff', borderRadius: 3 }} />
+                  <div style={{ height: '100%', width: `${pct}%`, background: 'var(--ac)', borderRadius: 3 }} />
                 </div>
                 <div style={{ fontSize: 10, color: '#6b6b72', border: '1px solid var(--border)',}}></div>
             </div>
@@ -213,12 +213,12 @@ export default function ReportesPage() {
                       ) : `#${i + 1}`}
                     </td>
                     <td style={{ padding: '9px 12px', fontWeight: 500 }}>{p.nombre}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace' }}>{p.cantidad}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#5b4cff', fontWeight: 600 }}>{formatPeso(p.total)}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#6b6b72' }}>{formatPeso(p.costo)}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#00c896', fontWeight: 600 }}>{formatPeso(gan)}</td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace' }}>{p.cantidad}</td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--ac)', fontWeight: 600 }}>{formatPeso(p.total)}</td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: '#6b6b72' }}>{formatPeso(p.costo)}</td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--g)', fontWeight: 600 }}>{formatPeso(gan)}</td>
                     <td style={{ padding: '9px 12px' }}>
-                      <span style={{ background: mg >= 35 ? 'rgba(0,200,150,0.1)' : 'rgba(255,184,0,0.1)', color: mg >= 35 ? '#00c896' : '#ffb800', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>
+                      <span style={{ background: mg >= 35 ? 'rgba(0,200,150,0.1)' : 'rgba(255,184,0,0.1)', color: mg >= 35 ? 'var(--g)' : 'var(--w)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>
                         {mg}%
                       </span>
                     </td>

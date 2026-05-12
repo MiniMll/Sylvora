@@ -114,7 +114,7 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
           <button onClick={() => onGuardar(form, imgFile)} disabled={guardando}
-            style={{ flex: 1, padding: '10px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+            style={{ flex: 1, padding: '10px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
             {guardando ? 'Guardando...' : 'Guardar cambios'}
           </button>
           <button onClick={onClose}

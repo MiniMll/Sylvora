@@ -75,7 +75,7 @@ export function POSProducts({ busqueda, resultados, onSelect }: Props) {
             return (
               <button key={p.id} onClick={() => onSelect(p)}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.15s', opacity: sinStock ? 0.6 : 1 }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = '#5b4cff')}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ac)')}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
                 <div style={{ width: 52, height: 52, borderRadius: 8, overflow: 'hidden', background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {p.imagen_url
@@ -85,15 +85,15 @@ export function POSProducts({ busqueda, resultados, onSelect }: Props) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text2)', fontFamily: 'monospace' }}>{p.codigo_barras || p.sku}</div>
-                  <div style={{ fontSize: 11, color: sinStock ? '#888898' : p.stock_actual <= 5 ? '#ff4757' : 'var(--text2)', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text2)', fontFamily: 'DM Mono, monospace' }}>{p.codigo_barras || p.sku}</div>
+                  <div style={{ fontSize: 11, color: sinStock ? '#888898' : p.stock_actual <= 5 ? 'var(--r)' : 'var(--text2)', marginTop: 2 }}>
                     {sinStock ? 'Sin stock' :
                       p.unidad_venta === 'kg' ? `${p.stock_actual.toFixed(2)} kg disponibles` :
                       `Stock: ${p.stock_actual}`}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#5b4cff', fontFamily: 'monospace' }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace' }}>
                     {p.unidad_venta === 'kg' ? `${formatPeso(p.precio_por_kg ?? 0)}/kg`
                       : p.unidad_venta === 'litro' ? `${formatPeso(p.precio_venta)}/L`
                       : p.unidad_venta === 'metro' ? `${formatPeso(p.precio_venta)}/m`

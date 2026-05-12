@@ -153,7 +153,7 @@ export default function VentasPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'monospace', color: 'var(--text)' }}>{k.value}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{k.value}</div>
                 </div>
                 <div style={{ width: 30, height: 30, borderRadius: 8, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon size={15} color={k.color} />
@@ -231,21 +231,21 @@ export default function VentasPage() {
                     <td style={{ padding: '9px 12px', color: 'var(--text2)', fontSize: 11 }}>
                       {new Date(v.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--text)' }}>
                       #{String(v.numero_ticket).padStart(4, '0')}
                     </td>
                     <td style={{ padding: '9px 12px', color: 'var(--text)', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
-                    <td style={{ padding: '9px 12px', color: '#00c896', fontWeight: 500 }}>
+                    <td style={{ padding: '9px 12px', color: 'var(--g)', fontWeight: 500 }}>
                       {v.descuento_porcentaje > 0 ? `-${v.descuento_porcentaje}%` : '—'}
                     </td>
-                    <td style={{ padding: '9px 12px', color: '#ff4757', fontWeight: 500 }}>
+                    <td style={{ padding: '9px 12px', color: 'var(--r)', fontWeight: 500 }}>
                       {v.recargo_porcentaje > 0 ? `+${v.recargo_porcentaje}%` : '—'}
                     </td>
                     <td style={{
                       padding: '9px 12px',
-                      fontFamily: 'monospace',
+                      fontFamily: 'DM Mono, monospace',
                       fontWeight: 600,
-                      color: isAnulada ? 'var(--text2)' : '#5b4cff',
+                      color: isAnulada ? 'var(--text2)' : 'var(--ac)',
                       textDecoration: isAnulada ? 'line-through' : 'none',
                     }}>
                       {formatPeso(v.total)}
@@ -254,14 +254,14 @@ export default function VentasPage() {
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5,
                         background: isAnulada ? 'rgba(255,71,87,0.12)' : 'rgba(0,200,150,0.1)',
-                        color: isAnulada ? '#ff4757' : '#00c896',
+                        color: isAnulada ? 'var(--r)' : 'var(--g)',
                         padding: '3px 9px', borderRadius: 999,
                         fontSize: 10, fontWeight: 600, letterSpacing: '0.02em',
                         // Cursor not-allowed sólo en el badge anulada para
                         // reforzar "este estado es final, no hay acción".
                         cursor: isAnulada ? 'not-allowed' : 'default',
                       }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: isAnulada ? '#ff4757' : '#00c896' }} />
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: isAnulada ? 'var(--r)' : 'var(--g)' }} />
                         {isAnulada ? 'Anulada' : v.estado}
                       </span>
                     </td>
@@ -270,7 +270,7 @@ export default function VentasPage() {
                       // En anulada el "Ver" se vuelve neutro: la fila
                       // sigue clickeable para leer pero no sugiere
                       // acción nueva.
-                      color: isAnulada ? 'var(--text2)' : '#5b4cff',
+                      color: isAnulada ? 'var(--text2)' : 'var(--ac)',
                       fontSize: 11,
                     }}>Ver</td>
                   </tr>
@@ -314,7 +314,7 @@ export default function VentasPage() {
                 gap: 10,
               }}>
                 <AlertTriangle size={16} color="#ff4757" strokeWidth={1.8} />
-                <div style={{ fontSize: 12, color: '#ff4757', fontWeight: 600 }}>
+                <div style={{ fontSize: 12, color: 'var(--r)', fontWeight: 600 }}>
                   Esta venta fue anulada. El stock fue restituido al inventario.
                 </div>
               </div>
@@ -335,7 +335,7 @@ export default function VentasPage() {
                           {item.cantidad} x {formatPeso(item.precio_unitario)}
                         </div>
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace', color: '#5b4cff' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: 'var(--ac)' }}>
                         {formatPeso(item.subtotal)}
                       </div>
                     </div>
@@ -349,25 +349,25 @@ export default function VentasPage() {
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text2)', marginBottom: 5 }}>
                   <span>Subtotal</span>
-                  <span style={{ fontFamily: 'monospace' }}>{formatPeso(detalle.subtotal)}</span>
+                  <span style={{ fontFamily: 'DM Mono, monospace' }}>{formatPeso(detalle.subtotal)}</span>
                 </div>
                 {detalle.descuento_porcentaje > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#00c896', marginBottom: 5 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--g)', marginBottom: 5 }}>
                     <span>Descuento -{detalle.descuento_porcentaje}%</span>
-                    <span style={{ fontFamily: 'monospace' }}>-{formatPeso(detalle.descuento_monto)}</span>
+                    <span style={{ fontFamily: 'DM Mono, monospace' }}>-{formatPeso(detalle.descuento_monto)}</span>
                   </div>
                 )}
                 {detalle.recargo_porcentaje > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#ff4757', marginBottom: 5 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--r)', marginBottom: 5 }}>
                     <span>Recargo +{detalle.recargo_porcentaje}%</span>
-                    <span style={{ fontFamily: 'monospace' }}>+{formatPeso(detalle.recargo_monto)}</span>
+                    <span style={{ fontFamily: 'DM Mono, monospace' }}>+{formatPeso(detalle.recargo_monto)}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                   <span style={{ color: 'var(--text)' }}>TOTAL</span>
                   <span style={{
-                    fontFamily: 'monospace',
-                    color: isAnulada ? 'var(--text2)' : '#5b4cff',
+                    fontFamily: 'DM Mono, monospace',
+                    color: isAnulada ? 'var(--text2)' : 'var(--ac)',
                     textDecoration: isAnulada ? 'line-through' : 'none',
                   }}>{formatPeso(detalle.total)}</span>
                 </div>
@@ -414,7 +414,7 @@ export default function VentasPage() {
                     style={{
                       flex: '1 1 auto', minWidth: 100,
                       padding: '10px', borderRadius: 8,
-                      background: 'var(--bg2)', color: '#ff4757',
+                      background: 'var(--bg2)', color: 'var(--r)',
                       border: '1px solid rgba(255,71,87,0.3)',
                       fontSize: 13, fontWeight: 600,
                       cursor: anulando ? 'not-allowed' : 'pointer',
@@ -428,7 +428,7 @@ export default function VentasPage() {
                   style={{
                     flex: '1 1 100%',
                     padding: '10px', borderRadius: 8,
-                    background: '#5b4cff', color: 'white', border: 'none',
+                    background: 'var(--ac)', color: 'white', border: 'none',
                     fontSize: 13, fontWeight: 600, cursor: 'pointer',
                     fontFamily: 'inherit',
                   }}>
@@ -470,7 +470,7 @@ export default function VentasPage() {
               y se devolverá el stock al inventario.
             </div>
             <div style={{
-              fontSize: 12, color: '#ff4757',
+              fontSize: 12, color: 'var(--r)',
               background: 'rgba(255,71,87,0.06)',
               borderRadius: 8, padding: '8px 12px',
               marginBottom: 20,
@@ -496,7 +496,7 @@ export default function VentasPage() {
                 disabled={anulando}
                 style={{
                   flex: 1, padding: '11px', borderRadius: 9,
-                  background: '#ff4757', color: 'white', border: 'none',
+                  background: 'var(--r)', color: 'white', border: 'none',
                   fontSize: 13, fontWeight: 600,
                   cursor: anulando ? 'wait' : 'pointer',
                   fontFamily: 'inherit',

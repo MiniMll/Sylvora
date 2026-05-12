@@ -194,11 +194,11 @@ export default function POSPage() {
                 max={Math.max(modalCantidad.stock_actual * 5, 1000)}
                 autoFocus
                 onFocus={e => e.target.select()}
-                style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 700, fontFamily: 'monospace', border: '2px solid #5b4cff', borderRadius: 12, padding: '12px', outline: 'none', background: 'var(--bg2)', color: 'var(--text)' }} />
+                style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 700, fontFamily: 'DM Mono, monospace', border: '2px solid var(--ac)', borderRadius: 12, padding: '12px', outline: 'none', background: 'var(--bg2)', color: 'var(--text)' }} />
             </div>
             {cantidadIngresada && Number(cantidadIngresada) > 0 && (
               <div style={{ background: 'rgba(91,76,255,0.08)', borderRadius: 10, padding: '10px', marginBottom: 16, fontSize: 14, color: 'var(--text)' }}>
-                Total: <b style={{ color: '#5b4cff', fontFamily: 'monospace' }}>
+                Total: <b style={{ color: 'var(--ac)', fontFamily: 'DM Mono, monospace' }}>
                   {modalCantidad.unidad_venta === 'kg'
                     ? formatPeso((modalCantidad.precio_por_kg ?? 0) * Number(cantidadIngresada))
                     : formatPeso(modalCantidad.precio_venta * Number(cantidadIngresada))}
@@ -211,7 +211,7 @@ export default function POSPage() {
                 Cancelar
               </button>
               <button onClick={agregarConCantidad}
-                style={{ flex: 2, padding: '11px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ flex: 2, padding: '11px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                 Agregar al ticket
               </button>
             </div>

@@ -297,7 +297,7 @@ export default function ProductosPage() {
                 Cancelar
               </button>
               <button onClick={guardarNuevoLote} disabled={guardandoLote}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, background: '#00c896', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--g)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {guardandoLote ? 'Guardando...' : 'Agregar lote'}
               </button>
             </div>
@@ -314,7 +314,7 @@ export default function ProductosPage() {
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 20, background: 'var(--bg3)', borderRadius: 10, padding: '10px 16px' }}>
               {confirmarBorrar.nombre}
             </div>
-            <div style={{ fontSize: 12, color: '#ff4757', background: 'rgba(255,71,87,0.06)', borderRadius: 8, padding: '8px 12px', marginBottom: 20 }}>
+            <div style={{ fontSize: 12, color: 'var(--r)', background: 'rgba(255,71,87,0.06)', borderRadius: 8, padding: '8px 12px', marginBottom: 20 }}>
               Esta acción no se puede deshacer
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -323,7 +323,7 @@ export default function ProductosPage() {
                 Cancelar
               </button>
               <button onClick={borrarProducto}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, background: '#ff4757', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--r)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                 Sí, borrar
               </button>
             </div>

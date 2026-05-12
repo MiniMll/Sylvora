@@ -161,18 +161,18 @@ export default function NuevoProductoPage() {
             </div>
             <div>
               <label style={lbl}>Código de barras (EAN)</label>
-              <input style={{ ...inp, fontFamily: 'monospace' }} placeholder="7790001001234" value={form.codigo_barras} onChange={e => set('codigo_barras', e.target.value)} />
+              <input style={{ ...inp, fontFamily: 'DM Mono, monospace' }} placeholder="7790001001234" value={form.codigo_barras} onChange={e => set('codigo_barras', e.target.value)} />
             </div>
             <div>
               <label style={lbl}>SKU interno</label>
-              <input style={{ ...inp, fontFamily: 'monospace' }} placeholder="SKU-001" value={form.sku} onChange={e => set('sku', e.target.value)} />
+              <input style={{ ...inp, fontFamily: 'DM Mono, monospace' }} placeholder="SKU-001" value={form.sku} onChange={e => set('sku', e.target.value)} />
             </div>
 
             {/* Imagen */}
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={lbl}>Imagen del producto</label>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <label style={{ width: 100, height: 80, border: `2px dashed ${imgPreview ? '#5b4cff' : 'var(--border)'}`, borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', flexShrink: 0, background: 'var(--bg3)' }}>
+                <label style={{ width: 100, height: 80, border: `2px dashed ${imgPreview ? 'var(--ac)' : 'var(--border)'}`, borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', flexShrink: 0, background: 'var(--bg3)' }}>
                   {imgPreview
                     ? <img src={imgPreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : <><svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5'><path d='M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z'/><circle cx='12' cy='13' r='4'/></svg><span style={{ fontSize: 10, color: 'var(--text2)', marginTop: 4 }}>Subir imagen</span></>
@@ -181,7 +181,7 @@ export default function NuevoProductoPage() {
                 </label>
                 <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 8 }}>
                   PNG, JPG · máx. 2MB<br />
-                  {imgPreview && <button onClick={() => { setImgPreview(null); setImgFile(null) }} style={{ marginTop: 6, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', color: '#ff4757', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>✕ Quitar</button>}
+                  {imgPreview && <button onClick={() => { setImgPreview(null); setImgFile(null) }} style={{ marginTop: 6, padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', color: 'var(--r)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>✕ Quitar</button>}
                 </div>
               </div>
             </div>
@@ -234,7 +234,7 @@ export default function NuevoProductoPage() {
             {!esKg && margenCalc !== null && (
               <div>
                 <label style={lbl}>Margen calculado</label>
-                <div style={{ ...inp, color: margenCalc < 20 ? '#ff4757' : margenCalc < 35 ? '#ffb800' : '#00c896', fontWeight: 600 }}>
+                <div style={{ ...inp, color: margenCalc < 20 ? 'var(--r)' : margenCalc < 35 ? 'var(--w)' : 'var(--g)', fontWeight: 600 }}>
                   {margenCalc}% de margen
                 </div>
               </div>
@@ -273,7 +273,7 @@ export default function NuevoProductoPage() {
             <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
               <div style={{ background: 'rgba(0,200,150,0.08)', borderRadius: 8, padding: '8px 12px', fontSize: 11, border: '1px solid rgba(0,200,150,0.2)', width: '100%' }}>
                 <div style={{ color: 'var(--text2)', marginBottom: 2 }}>Stock inicial total</div>
-                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'monospace', color: '#00c896' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: 'var(--g)' }}>
                   {esKg ? `${stockInicialTotal.toFixed(2)} kg` : stockInicialTotal}
                 </div>
               </div>
@@ -294,7 +294,7 @@ export default function NuevoProductoPage() {
               <input value={lote.vencimiento} onChange={e => updateLote(lote.id, 'vencimiento', e.target.value)}
                 type="date" style={{ ...inp, flex: 1 }} />
               {lotes.length > 1 && (
-                <button onClick={() => quitarLote(lote.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff4757', fontSize: 16, flexShrink: 0 }}>✕</button>
+                <button onClick={() => quitarLote(lote.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--r)', fontSize: 16, flexShrink: 0 }}>✕</button>
               )}
             </div>
           ))}

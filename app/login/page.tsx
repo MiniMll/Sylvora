@@ -69,7 +69,7 @@ export default function LoginPage() {
           <div style={{
             width: 38, height: 38,
             borderRadius: 10,
-            background: '#5b4cff',
+            background: 'var(--ac)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span style={{ color: 'white', fontWeight: 700, fontSize: 15, letterSpacing: '-0.04em' }}>Sy</span>
@@ -91,7 +91,7 @@ export default function LoginPage() {
               onChange={e => setEmail(e.target.value)}
               placeholder="tu@email.com"
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              onFocus={e => { e.target.style.borderColor = '#5b4cff'; e.target.style.boxShadow = '0 0 0 3px rgba(91,76,255,0.1)' }}
+              onFocus={e => { e.target.style.borderColor = 'var(--ac)'; e.target.style.boxShadow = '0 0 0 3px rgba(91,76,255,0.1)' }}
               onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,0.12)'; e.target.style.boxShadow = 'none' }}
               style={inp}
             />
@@ -105,7 +105,7 @@ export default function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              onFocus={e => { e.target.style.borderColor = '#5b4cff'; e.target.style.boxShadow = '0 0 0 3px rgba(91,76,255,0.1)' }}
+              onFocus={e => { e.target.style.borderColor = 'var(--ac)'; e.target.style.boxShadow = '0 0 0 3px rgba(91,76,255,0.1)' }}
               onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,0.12)'; e.target.style.boxShadow = 'none' }}
               style={inp}
             />
@@ -120,7 +120,7 @@ export default function LoginPage() {
             borderRadius: 10,
             padding: '9px 14px',
             fontSize: 12.5,
-            color: '#ff4757',
+            color: 'var(--r)',
             display: 'flex',
             alignItems: 'center',
             gap: 7,
@@ -138,7 +138,7 @@ export default function LoginPage() {
             marginTop: 22,
             padding: '12px',
             borderRadius: 11,
-            background: cargando ? '#7a6fff' : '#5b4cff',
+            background: cargando ? '#7a6fff' : 'var(--ac)',
             color: 'white',
             border: 'none',
             fontSize: 14,
@@ -153,8 +153,8 @@ export default function LoginPage() {
             transition: 'all 0.15s',
             letterSpacing: '-0.1px',
           }}
-          onMouseEnter={e => { if (!cargando) (e.currentTarget.style.background = '#4a3dee') }}
-          onMouseLeave={e => { if (!cargando) (e.currentTarget.style.background = '#5b4cff') }}>
+          onMouseEnter={e => { if (!cargando) (e.currentTarget.style.background = 'var(--ac-hover)') }}
+          onMouseLeave={e => { if (!cargando) (e.currentTarget.style.background = 'var(--ac)') }}>
           {cargando
             ? <><Loader2 size={15} style={{ animation: 'spin 0.75s linear infinite' }} /> Ingresando...</>
             : <>Ingresar <ArrowRight size={15} /></>
@@ -163,7 +163,7 @@ export default function LoginPage() {
 
         <div style={{ marginTop: 22, textAlign: 'center', fontSize: 13, color: '#888898' }}>
           ¿No tenés cuenta?{' '}
-          <a href="/registro" style={{ color: '#5b4cff', textDecoration: 'none', fontWeight: 600 }}>
+          <a href="/registro" style={{ color: 'var(--ac)', textDecoration: 'none', fontWeight: 600 }}>
             Crear cuenta gratis
           </a>
         </div>

@@ -22,7 +22,7 @@ function POSCartImpl() {
           <ShoppingCart size={14} /> Ticket
         </span>
         <button onClick={store.limpiarTicket}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff4757', fontSize: 12, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--r)', fontSize: 12, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }}>
           <X size={13} /> Limpiar
         </button>
       </div>
@@ -114,18 +114,18 @@ function POSCartImpl() {
                 </div>
                 <button onClick={() => store.quitarItem(item.producto_id)}
                   aria-label="Quitar item"
-                  style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid rgba(255,71,87,0.22)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4757', flexShrink: 0 }}>
+                  style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid rgba(255,71,87,0.22)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--r)', flexShrink: 0 }}>
                   <X size={11} />
                 </button>
               </>
             ) : (
               <button onClick={() => store.quitarItem(item.producto_id)}
                 aria-label="Quitar item"
-                style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4757' }}>
+                style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--r)' }}>
                 <X size={13} />
               </button>
             )}
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#5b4cff', fontFamily: 'monospace', minWidth: 56, textAlign: 'right' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', minWidth: 56, textAlign: 'right' }}>
               {formatPeso(item.subtotal)}
             </div>
           </div>
@@ -143,13 +143,13 @@ function POSCartImpl() {
             <div style={{ display: 'flex', gap: 3 }}>
               {row.presets.map(v => (
                 <button key={v} onClick={() => row.set(row.val === v ? 0 : v)}
-                  style={{ fontSize: 9, padding: '2px 6px', borderRadius: 5, border: '1px solid', borderColor: row.val === v ? '#5b4cff' : 'var(--border)', background: row.val === v ? '#5b4cff' : 'var(--bg2)', color: row.val === v ? 'white' : 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ fontSize: 9, padding: '2px 6px', borderRadius: 5, border: '1px solid', borderColor: row.val === v ? 'var(--ac)' : 'var(--border)', background: row.val === v ? 'var(--ac)' : 'var(--bg2)', color: row.val === v ? 'white' : 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>
                   {row.prefix}{v}%
                 </button>
               ))}
             </div>
             <input type="number" value={row.val || ''} onChange={e => row.set(Number(e.target.value))} placeholder="0"
-              style={{ marginLeft: 'auto', width: 44, textAlign: 'center', fontSize: 11, fontFamily: 'monospace', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 5px', outline: 'none', background: 'var(--bg2)', color: 'var(--text)' }} />
+              style={{ marginLeft: 'auto', width: 44, textAlign: 'center', fontSize: 11, fontFamily: 'DM Mono, monospace', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 5px', outline: 'none', background: 'var(--bg2)', color: 'var(--text)' }} />
           </div>
         ))}
       </div>
@@ -157,21 +157,21 @@ function POSCartImpl() {
       {/* Totales */}
       <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text2)', marginBottom: 4 }}>
-          <span>Subtotal</span><span style={{ fontFamily: 'monospace' }}>{formatPeso(store.subtotal())}</span>
+          <span>Subtotal</span><span style={{ fontFamily: 'DM Mono, monospace' }}>{formatPeso(store.subtotal())}</span>
         </div>
         {store.descuentoPct > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#00c896', marginBottom: 4 }}>
-            <span>Descuento -{store.descuentoPct}%</span><span style={{ fontFamily: 'monospace' }}>-{formatPeso(store.descuentoMonto())}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--g)', marginBottom: 4 }}>
+            <span>Descuento -{store.descuentoPct}%</span><span style={{ fontFamily: 'DM Mono, monospace' }}>-{formatPeso(store.descuentoMonto())}</span>
           </div>
         )}
         {store.recargoPct > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#ff4757', marginBottom: 4 }}>
-            <span>Recargo +{store.recargoPct}%</span><span style={{ fontFamily: 'monospace' }}>+{formatPeso(store.recargoMonto())}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--r)', marginBottom: 4 }}>
+            <span>Recargo +{store.recargoPct}%</span><span style={{ fontFamily: 'DM Mono, monospace' }}>+{formatPeso(store.recargoMonto())}</span>
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
           <span style={{ fontSize: 15, color: 'var(--text)' }}>TOTAL</span>
-          <span style={{ fontSize: 16, color: '#5b4cff', fontFamily: 'monospace' }}>{formatPeso(store.total())}</span>
+          <span style={{ fontSize: 16, color: 'var(--ac)', fontFamily: 'DM Mono, monospace' }}>{formatPeso(store.total())}</span>
         </div>
       </div>
     </>

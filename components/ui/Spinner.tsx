@@ -28,7 +28,7 @@ export function Spinner({ texto = 'Cargando...' }: { texto?: string }) {
           inset: 0,
           borderRadius: '50%',
           border: '3px solid transparent',
-          borderTopColor: '#5b4cff',
+          borderTopColor: 'var(--ac)',
           animation: 'spin 0.75s cubic-bezier(0.4,0,0.2,1) infinite',
         }} />
       </div>

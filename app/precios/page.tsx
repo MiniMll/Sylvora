@@ -90,7 +90,7 @@ export default function PreciosPage() {
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
               {(['porcentaje', 'fijo'] as const).map(t => (
                 <button key={t} onClick={() => setTipo(t)}
-                  style={{ flex: 1, padding: '8px', border: 'none', background: tipo === t ? '#5b4cff' : 'var(--bg2)', color: tipo === t ? 'white' : 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ flex: 1, padding: '8px', border: 'none', background: tipo === t ? 'var(--ac)' : 'var(--bg2)', color: tipo === t ? 'white' : 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                   {t === 'porcentaje' ? '% Porcentaje' : '$ Fijo'}
                 </button>
               ))}
@@ -122,11 +122,11 @@ export default function PreciosPage() {
         {seleccionados.size > 0 && aumento && (
           <div style={{ marginTop: 14, background: 'rgba(91,76,255,0.06)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 13, color: 'var(--text)' }}>
-              <b style={{ color: '#5b4cff' }}>{seleccionados.size}</b> productos seleccionados
+              <b style={{ color: 'var(--ac)' }}>{seleccionados.size}</b> productos seleccionados
               {tipo === 'porcentaje' ? ` · +${aumento}%` : ` · +$${Number(aumento).toLocaleString('es-AR')}`}
             </div>
             <button onClick={aplicarAumento} disabled={actualizando}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 20px', borderRadius: 8, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 20px', borderRadius: 8, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               <TrendingUp size={13} />
               {actualizando ? 'Actualizando...' : 'Aplicar aumento'}
             </button>
@@ -168,7 +168,7 @@ export default function PreciosPage() {
                   onMouseEnter={e => !sel && (e.currentTarget.style.background = 'var(--bg3)')}
                   onMouseLeave={e => !sel && (e.currentTarget.style.background = 'transparent')}>
                   <td style={{ padding: '9px 12px' }}>
-                    <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${sel ? '#5b4cff' : 'var(--border)'}`, background: sel ? '#5b4cff' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${sel ? 'var(--ac)' : 'var(--border)'}`, background: sel ? 'var(--ac)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {sel && <Check size={10} color="white" />}
                     </div>
                   </td>
@@ -176,18 +176,18 @@ export default function PreciosPage() {
                     <div>{p.nombre}</div>
                     <div style={{ fontSize: 10, color: 'var(--text2)' }}>{p.sku}</div>
                   </td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: 'var(--text)' }}>{formatPeso(p.precio_costo)}</td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#5b4cff', fontWeight: 600 }}>
+                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{formatPeso(p.precio_costo)}</td>
+                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--ac)', fontWeight: 600 }}>
                     {p.unidad_venta === 'kg' ? `${formatPeso(precioActual)}/kg` : formatPeso(precioActual)}
                   </td>
                   <td style={{ padding: '9px 12px' }}>
-                    <span style={{ background: mg >= 35 ? 'rgba(0,200,150,0.1)' : 'rgba(255,184,0,0.1)', color: mg >= 35 ? '#00c896' : '#ffb800', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>
+                    <span style={{ background: mg >= 35 ? 'rgba(0,200,150,0.1)' : 'rgba(255,184,0,0.1)', color: mg >= 35 ? 'var(--g)' : 'var(--w)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>
                       {mg}%
                     </span>
                   </td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontWeight: 600 }}>
+                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>
                     {precioNuevo && sel ? (
-                      <span style={{ color: '#00c896' }}>
+                      <span style={{ color: 'var(--g)' }}>
                         {formatPeso(precioNuevo)}
                         <span style={{ fontSize: 10, color: 'var(--text2)', marginLeft: 4 }}>
                           +{formatPeso(precioNuevo - precioActual)}

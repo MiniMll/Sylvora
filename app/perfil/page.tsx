@@ -150,17 +150,17 @@ export default function PerfilPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
             Plan activo
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #5b4cff, #9b8fff)', borderRadius: 12, padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, var(--ac), #9b8fff)', borderRadius: 12, padding: '16px 20px' }}>
             <div>
               <div style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Plan Pro</div>
               <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 2 }}>Productos ilimitados · 3 usuarios</div>
             </div>
-            <div style={{ color: 'white', fontFamily: 'monospace', fontSize: 20, fontWeight: 700 }}>$17.990<span style={{ fontSize: 11, fontWeight: 400 }}>/mes</span></div>
+            <div style={{ color: 'white', fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 700 }}>$17.990<span style={{ fontSize: 11, fontWeight: 400 }}>/mes</span></div>
           </div>
         </div>
 
         <button onClick={guardar} disabled={guardando}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 24px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 24px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           <Save size={14} />
           {guardando ? 'Guardando...' : 'Guardar cambios'}
         </button>

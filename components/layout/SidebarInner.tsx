@@ -48,7 +48,7 @@ function SidebarInnerImpl({
             <div style={{
               width: 30, height: 30,
               borderRadius: 8,
-              background: '#5b4cff',
+              background: 'var(--ac)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
@@ -122,7 +122,7 @@ function SidebarInnerImpl({
                       position: 'absolute', left: -8, top: '50%',
                       transform: 'translateY(-50%)',
                       width: 3, height: 16,
-                      background: '#5b4cff',
+                      background: 'var(--ac)',
                       borderRadius: '0 3px 3px 0',
                     }} />
                   )}
@@ -141,7 +141,7 @@ function SidebarInnerImpl({
           <div style={{
             width: 28, height: 28,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg,#ff6b35,#ffd23f)',
+            background: 'linear-gradient(135deg,var(--o),#ffd23f)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'white', fontSize: 10, fontWeight: 700,
             flexShrink: 0,
@@ -167,7 +167,7 @@ function SidebarInnerImpl({
             fontSize: 12, fontFamily: 'inherit',
             transition: 'all 0.15s',
           }}
-          onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(255,71,87,0.1)'); (e.currentTarget.style.color = '#ff4757') }}
+          onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(255,71,87,0.1)'); (e.currentTarget.style.color = 'var(--r)') }}
           onMouseLeave={e => { (e.currentTarget.style.background = 'none'); (e.currentTarget.style.color = 'rgba(255,255,255,0.3)') }}>
           <LogOut size={13} />
           Cerrar sesión

@@ -185,9 +185,9 @@ function ListaView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
                     <span style={{ fontWeight: 500, color: 'var(--text)' }}>{p.nombre}</span>
                   </div>
                 </td>
-                <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: 'var(--text2)', fontSize: 11 }}>{p.sku || p.codigo_barras || '—'}</td>
+                <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', color: 'var(--text2)', fontSize: 11 }}>{p.sku || p.codigo_barras || '—'}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--text2)' }}>{p.categoria || '—'}</td>
-                <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#5b4cff' }}>
+                <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontWeight: 700, color: 'var(--ac)' }}>
                   {p.unidad_venta === 'kg'
                     ? `${formatPeso(p.precio_por_kg || 0)}/kg`
                     : p.unidad_venta === 'litro'
@@ -195,7 +195,7 @@ function ListaView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
                     : formatPeso(p.precio_venta)
                   }
                 </td>
-                <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: sc }}>
+                <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontWeight: 700, color: sc }}>
                   {formatStock(p.stock_actual, p.unidad_venta)}
                 </td>
                 <td style={{ padding: '10px 14px' }}>

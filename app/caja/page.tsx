@@ -123,11 +123,11 @@ export default function CajaPage() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setModalEgreso(true)}
-            style={{ padding: '8px 16px', borderRadius: 8, background: '#ff4757', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--r)', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
             <TrendingDown size={14} /> Registrar egreso
           </button>
           <button onClick={() => setModalCierre(true)}
-            style={{ padding: '8px 16px', borderRadius: 8, background: '#5b4cff', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
             <CheckCircle size={14} /> Cerrar caja
           </button>
         </div>
@@ -136,15 +136,15 @@ export default function CajaPage() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
         {[
-          { label: 'Total ventas', value: formatPeso(totalVentas), sub: `${ventas.length} operaciones`, color: '#5b4cff' },
-          { label: 'Egresos', value: formatPeso(totalEgresos), sub: `${movimientos.filter(m => m.tipo === 'egreso').length} movimientos`, color: '#ff6b35' },
-          { label: 'Saldo neto', value: formatPeso(saldo), sub: 'Ventas - Egresos', color: '#00c896' },
+          { label: 'Total ventas', value: formatPeso(totalVentas), sub: `${ventas.length} operaciones`, color: 'var(--ac)' },
+          { label: 'Egresos', value: formatPeso(totalEgresos), sub: `${movimientos.filter(m => m.tipo === 'egreso').length} movimientos`, color: 'var(--o)' },
+          { label: 'Saldo neto', value: formatPeso(saldo), sub: 'Ventas - Egresos', color: 'var(--g)' },
           { label: 'Ticket promedio', value: ventas.length ? formatPeso(totalVentas / ventas.length) : '$0', sub: 'Por transacción', color: '#ffd23f' },
         ].map(k => (
           <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
             <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
-            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'monospace', marginBottom: 3 }}>{k.value}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'DM Mono, monospace', marginBottom: 3 }}>{k.value}</div>
             <div style={{ fontSize: 11, color: 'var(--text2)' }}>{k.sub}</div>
           </div>
         ))}
@@ -182,10 +182,10 @@ export default function CajaPage() {
             <div key={metodo} style={{ marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                 <span style={{ fontWeight: 500, textTransform: 'capitalize' }}>{metodo}</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatPeso(total as number)}</span>
+                <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>{formatPeso(total as number)}</span>
               </div>
               <div style={{ height: 5, background: 'var(--bg3)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.round(((total as number) / totalVentas) * 100)}%`, background: '#5b4cff', borderRadius: 3 }} />
+                <div style={{ height: '100%', width: `${Math.round(((total as number) / totalVentas) * 100)}%`, background: 'var(--ac)', borderRadius: 3 }} />
               </div>
               <div style={{ fontSize: 10, color: '#6b6b72', marginTop: 2 }}>
                 {Math.round(((total as number) / totalVentas) * 100)}%
@@ -215,28 +215,28 @@ export default function CajaPage() {
               <tbody>
                 {ventas.map((v: any) => (
                   <tr key={v.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 10, color: 'var(--text2)' }}>
+                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>
                       {new Date(v.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td style={{ padding: '8px 12px' }}>
-                      <span style={{ background: 'rgba(0,200,150,0.1)', color: '#00c896', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Venta</span>
+                      <span style={{ background: 'rgba(0,200,150,0.1)', color: 'var(--g)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Venta</span>
                     </td>
                     <td style={{ padding: '8px 12px' }}>Ticket #{String(v.numero_ticket).padStart(4, '0')}</td>
                     <td style={{ padding: '8px 12px', color: '#6b6b72', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontWeight: 600, color: '#00c896' }}>+{formatPeso(v.total)}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--g)' }}>+{formatPeso(v.total)}</td>
                   </tr>
                 ))}
                 {movimientos.filter(m => m.tipo === 'egreso').map((m: any) => (
                   <tr key={m.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 10, color: 'var(--text2)' }}>
+                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>
                       {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td style={{ padding: '8px 12px' }}>
-                      <span style={{ background: 'rgba(255,71,87,0.1)', color: '#ff4757', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Egreso</span>
+                      <span style={{ background: 'rgba(255,71,87,0.1)', color: 'var(--r)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Egreso</span>
                     </td>
                     <td style={{ padding: '8px 12px' }}>{m.descripcion}</td>
                     <td style={{ padding: '8px 12px', color: '#6b6b72', textTransform: 'capitalize' }}>{m.metodo_pago}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontWeight: 600, color: '#ff4757' }}>-{formatPeso(m.monto)}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--r)' }}>-{formatPeso(m.monto)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -269,13 +269,13 @@ export default function CajaPage() {
                     <td style={{ padding: '9px 12px', color: 'var(--text)' }}>
                       {new Date(c.fecha).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
                     </td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#00c896', fontWeight: 600 }}>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--g)', fontWeight: 600 }}>
                       ${Number(c.total_ventas).toLocaleString('es-AR')}
                     </td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#ff4757', fontWeight: 600 }}>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--r)', fontWeight: 600 }}>
                       ${Number(c.total_egresos).toLocaleString('es-AR')}
                     </td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', color: '#5b4cff', fontWeight: 700 }}>
+                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--ac)', fontWeight: 700 }}>
                       ${Number(c.saldo_neto).toLocaleString('es-AR')}
                     </td>
                     <td style={{ padding: '9px 12px', color: 'var(--text2)' }}>{c.cantidad_ventas} ventas</td>
@@ -321,7 +321,7 @@ export default function CajaPage() {
                 <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Monto *</label>
                 <input value={egreso.monto} onChange={e => setEgreso(p => ({ ...p, monto: e.target.value }))}
                   type="number" placeholder="$ 0.00"
-                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'monospace' }} />
+                  style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'DM Mono, monospace' }} />
               </div>
               <div>
                 <label style={{ fontSize: 11, color: '#6b6b72', fontWeight: 500, display: 'block', marginBottom: 4 }}>Método de pago</label>
@@ -339,7 +339,7 @@ export default function CajaPage() {
                 Cancelar
               </button>
               <button onClick={guardarEgreso} disabled={guardando}
-                style={{ flex: 1, padding: '11px', borderRadius: 9, background: '#ff4757', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--r)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 {guardando ? <><Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> Guardando...</> : 'Registrar'}
               </button>
             </div>
@@ -363,13 +363,13 @@ export default function CajaPage() {
             <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Resumen del día</div>
               {[
-                { label: 'Total ventas', value: totalVentas, color: '#00c896' },
-                { label: 'Total egresos', value: totalEgresos, color: '#ff4757' },
-                { label: 'Saldo neto', value: saldo, color: '#5b4cff' },
+                { label: 'Total ventas', value: totalVentas, color: 'var(--g)' },
+                { label: 'Total egresos', value: totalEgresos, color: 'var(--r)' },
+                { label: 'Saldo neto', value: saldo, color: 'var(--ac)' },
               ].map(row => (
                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
                   <span style={{ color: 'var(--text2)' }}>{row.label}</span>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: row.color }}>
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 700, color: row.color }}>
                     ${Number(row.value).toLocaleString('es-AR')}
                   </span>
                 </div>
@@ -388,7 +388,7 @@ export default function CajaPage() {
                 return (
                   <div key={metodo} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12 }}>
                     <span style={{ color: 'var(--text2)', textTransform: 'capitalize' }}>{metodo}</span>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>
+                    <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--text)' }}>
                       ${total.toLocaleString('es-AR')}
                     </span>
                   </div>
@@ -469,7 +469,7 @@ export default function CajaPage() {
                 Cancelar
               </button>
               <button onClick={handleCerrarCaja} disabled={cerrando}
-                style={{ flex: 2, padding: '11px', borderRadius: 9, background: '#5b4cff', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                style={{ flex: 2, padding: '11px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 {cerrando
                   ? <><Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> Cerrando...</>
                   : <><CheckCircle size={14} /> Confirmar cierre</>
