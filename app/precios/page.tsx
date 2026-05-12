@@ -1,21 +1,52 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { getProductos, actualizarProducto } from '@/lib/supabase/productos'
 import { toast } from 'sonner'
-import { TrendingUp, Check, Package } from 'lucide-react'
+import { TrendingUp, ChevronDown, AlertTriangle, X } from 'lucide-react'
+import { formatPeso } from '@/lib/utils'
+import type { Producto } from '@/types/database'
+
+// Página de actualización de precios.
+// UX primaria: editar el precio final directo por producto (input inline).
+// UX secundaria: batch %/$ colapsado, que precarga los inputs inline
+// para que el usuario pueda ajustar excepciones antes de confirmar.
+// Save: sticky bar inferior con "Aplicar N cambios" — una sola ruta
+// de persistencia para todo, sea edición manual o batch.
 
 export default function PreciosPage() {
-  const [productos, setProductos] = useState<any[]>([])
-  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
-  const [aumento, setAumento] = useState('')
-  const [tipo, setTipo] = useState<'porcentaje' | 'fijo'>('porcentaje')
-  const [aplicaA, setAplicaA] = useState<'venta' | 'costo' | 'ambos'>('venta')
+  const [productos, setProductos] = useState<Producto[]>([])
+  const [overrides, setOverrides] = useState<Record<string, number>>({})
   const [cargando, setCargando] = useState(true)
   const [actualizando, setActualizando] = useState(false)
 
+  // Batch state
+  const [batchOpen, setBatchOpen] = useState(false)
+  const [batchTipo, setBatchTipo] = useState<'porcentaje' | 'fijo'>('porcentaje')
+  const [batchValor, setBatchValor] = useState('')
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
+
   useEffect(() => {
-    getProductos().then(data => { setProductos(data); setCargando(false) })
+    getProductos().then(data => { setProductos(data as Producto[]); setCargando(false) })
   }, [])
+
+  const precioActualOf = (p: Producto) =>
+    p.unidad_venta === 'kg' ? (p.precio_por_kg || 0) : p.precio_venta
+
+  const dirtyIds = useMemo(() => {
+    return productos
+      .filter(p => overrides[p.id] !== undefined && overrides[p.id] !== precioActualOf(p))
+      .map(p => p.id)
+  }, [productos, overrides])
+
+  const setOverride = (id: string, valor: string) => {
+    setOverrides(prev => {
+      const next = { ...prev }
+      const n = Number(valor)
+      if (valor === '' || Number.isNaN(n)) delete next[id]
+      else next[id] = n
+      return next
+    })
+  }
 
   const toggleSeleccion = (id: string) => {
     setSeleccionados(prev => {
@@ -30,41 +61,55 @@ export default function PreciosPage() {
     else setSeleccionados(new Set(productos.map(p => p.id)))
   }
 
-  const calcularNuevoPrecio = (precio: number) => {
-    if (!aumento) return precio
-    if (tipo === 'porcentaje') return Math.round(precio * (1 + Number(aumento) / 100))
-    return Math.round(precio + Number(aumento))
-  }
-
-  const aplicarAumento = async () => {
-    if (!aumento || seleccionados.size === 0) {
-      toast.error('Seleccioná productos y un valor de aumento')
+  const previsualizarBatch = () => {
+    const n = Number(batchValor)
+    if (!batchValor || Number.isNaN(n) || seleccionados.size === 0) {
+      toast.error('Seleccioná productos y un valor')
       return
     }
-    setActualizando(true)
-    let ok = 0
-    for (const id of seleccionados) {
-      const p = productos.find(x => x.id === id)
-      if (!p) continue
-      const cambios: any = {}
-      if (aplicaA === 'venta' || aplicaA === 'ambos') {
-        if (p.unidad_venta === 'kg') cambios.precio_por_kg = calcularNuevoPrecio(p.precio_por_kg || 0)
-        else cambios.precio_venta = calcularNuevoPrecio(p.precio_venta)
-      }
-      if (aplicaA === 'costo' || aplicaA === 'ambos') {
-        cambios.precio_costo = calcularNuevoPrecio(p.precio_costo)
-      }
-      await actualizarProducto(id, cambios)
-      ok++
+    const next: Record<string, number> = { ...overrides }
+    for (const p of productos) {
+      if (!seleccionados.has(p.id)) continue
+      const actual = precioActualOf(p)
+      const nuevo = batchTipo === 'porcentaje'
+        ? Math.round(actual * (1 + n / 100))
+        : Math.round(actual + n)
+      next[p.id] = nuevo
     }
-    setProductos(await getProductos())
-    toast.success(`${ok} productos actualizados`)
-    setActualizando(false)
-    setSeleccionados(new Set())
-    setAumento('')
+    setOverrides(next)
+    toast.success(`${seleccionados.size} productos precargados — revisá y aplicá`)
   }
 
-  const formatPeso = (n: number) => '$' + n.toLocaleString('es-AR')
+  const descartarCambios = () => {
+    setOverrides({})
+    setSeleccionados(new Set())
+    setBatchValor('')
+  }
+
+  const aplicarCambios = async () => {
+    if (dirtyIds.length === 0) return
+    setActualizando(true)
+    let ok = 0
+    for (const id of dirtyIds) {
+      const p = productos.find(x => x.id === id)
+      if (!p) continue
+      const nuevo = overrides[id]
+      const cambios: Partial<Producto> = p.unidad_venta === 'kg'
+        ? { precio_por_kg: nuevo }
+        : { precio_venta: nuevo }
+      try {
+        await actualizarProducto(id, cambios)
+        ok++
+      } catch {
+        // ignore per-row error, count via ok
+      }
+    }
+    setProductos(await getProductos() as Producto[])
+    setOverrides({})
+    setSeleccionados(new Set())
+    setActualizando(false)
+    toast.success(`${ok} precios actualizados`)
+  }
 
   if (cargando) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}>
@@ -73,130 +118,158 @@ export default function PreciosPage() {
   )
 
   return (
-    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '24px', flex: 1, overflowY: 'auto', paddingBottom: dirtyIds.length > 0 ? 100 : 24 }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Actualización de Precios</h1>
-        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Actualizá precios de varios productos a la vez</p>
+        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Editá el precio de venta directamente en cada fila. Para subir todo un porcentaje, usá el aumento masivo.</p>
       </div>
 
-      {/* Panel de aumento */}
-      <div style={{ background: 'var(--card)', borderRadius: 16, padding: 20, border: '1px solid var(--border)', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-          <TrendingUp size={16} color="#5b4cff" /> Configurar aumento
-        </div>
-        <div className="kpi-grid">
-          <div>
-            <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 5 }}>Tipo de aumento</label>
-            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-              {(['porcentaje', 'fijo'] as const).map(t => (
-                <button key={t} onClick={() => setTipo(t)}
-                  style={{ flex: 1, padding: '8px', border: 'none', background: tipo === t ? 'var(--ac)' : 'var(--bg2)', color: tipo === t ? 'white' : 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {t === 'porcentaje' ? '% Porcentaje' : '$ Fijo'}
-                </button>
-              ))}
+      {/* Batch colapsable — secundario */}
+      <div style={{ background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)', marginBottom: 16, overflow: 'hidden' }}>
+        <button
+          onClick={() => setBatchOpen(o => !o)}
+          style={{
+            width: '100%',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 14px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            color: 'var(--text2)',
+            fontSize: 12,
+            fontWeight: 500,
+          }}
+          aria-expanded={batchOpen}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <TrendingUp size={13} />
+            Aumento masivo a varios productos
+          </span>
+          <ChevronDown size={14} style={{ transform: batchOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+        </button>
+        {batchOpen && (
+          <div style={{ padding: '4px 14px 14px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 8, marginTop: 12, alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                {(['porcentaje', 'fijo'] as const).map(t => (
+                  <button key={t} onClick={() => setBatchTipo(t)}
+                    style={{ padding: '0 12px', border: 'none', background: batchTipo === t ? 'var(--ac)' : 'var(--bg2)', color: batchTipo === t ? 'white' : 'var(--text)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {t === 'porcentaje' ? '%' : '$'}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="number"
+                value={batchValor}
+                onChange={e => setBatchValor(e.target.value)}
+                placeholder={batchTipo === 'porcentaje' ? 'Ej: 15' : 'Ej: 500'}
+                style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)' }}
+              />
+              <button onClick={previsualizarBatch}
+                style={{ padding: '0 14px', borderRadius: 8, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Precargar
+              </button>
             </div>
-          </div>
-          <div>
-            <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 5 }}>
-              {tipo === 'porcentaje' ? 'Porcentaje de aumento' : 'Monto fijo a agregar'}
-            </label>
-            <input
-              type="number"
-              value={aumento}
-              onChange={e => setAumento(e.target.value)}
-              placeholder={tipo === 'porcentaje' ? 'Ej: 15' : 'Ej: 500'}
-              style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)' }}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 5 }}>Aplicar a</label>
-            <select value={aplicaA} onChange={e => setAplicaA(e.target.value as any)}
-              style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12, outline: 'none', fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)' }}>
-              <option value="venta">Precio de venta</option>
-              <option value="costo">Precio de costo</option>
-              <option value="ambos">Ambos precios</option>
-            </select>
-          </div>
-        </div>
-
-        {seleccionados.size > 0 && aumento && (
-          <div style={{ marginTop: 14, background: 'rgba(91,76,255,0.06)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 13, color: 'var(--text)' }}>
-              <b style={{ color: 'var(--ac)' }}>{seleccionados.size}</b> productos seleccionados
-              {tipo === 'porcentaje' ? ` · +${aumento}%` : ` · +$${Number(aumento).toLocaleString('es-AR')}`}
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text2)' }}>
+              {seleccionados.size === 0
+                ? 'Marcá productos en la tabla con el checkbox para aplicar.'
+                : <><b style={{ color: 'var(--ac)' }}>{seleccionados.size}</b> productos seleccionados — el valor se va a precargar en los inputs para que puedas ajustar excepciones antes de confirmar.</>}
             </div>
-            <button onClick={aplicarAumento} disabled={actualizando}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 20px', borderRadius: 8, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <TrendingUp size={13} />
-              {actualizando ? 'Actualizando...' : 'Aplicar aumento'}
-            </button>
           </div>
         )}
       </div>
 
-      {/* Tabla productos */}
+      {/* Tabla principal */}
       <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input type="checkbox"
               checked={seleccionados.size === productos.length && productos.length > 0}
               onChange={seleccionarTodos}
-              style={{ width: 16, height: 16, cursor: 'pointer' }} />
+              style={{ width: 16, height: 16, cursor: 'pointer' }}
+              aria-label="Seleccionar todos" />
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-              {seleccionados.size === 0 ? 'Seleccionar todos' : `${seleccionados.size} seleccionados`}
+              {seleccionados.size === 0 ? 'Productos' : `${seleccionados.size} seleccionados`}
             </span>
           </div>
-          <span style={{ fontSize: 11, color: 'var(--text2)' }}>{productos.length} productos</span>
+          <span style={{ fontSize: 11, color: 'var(--text2)' }}>{productos.length} productos · {dirtyIds.length > 0 && <b style={{ color: 'var(--ac)' }}>{dirtyIds.length} con cambios</b>}</span>
         </div>
         <div className="table-scroll">
         <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr style={{ background: 'var(--bg3)' }}>
-              {['', 'Producto', 'Precio costo', 'Precio venta', 'Margen', 'Nuevo precio venta'].map((h, i) => (
+              {['', 'Producto', 'Costo', 'Precio actual', 'Margen', 'Nuevo precio'].map((h, i) => (
                 <th key={i} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {productos.map((p: any) => {
+            {productos.map(p => {
               const sel = seleccionados.has(p.id)
-              const precioActual = p.unidad_venta === 'kg' ? (p.precio_por_kg || 0) : p.precio_venta
-              const precioNuevo = aumento ? calcularNuevoPrecio(precioActual) : null
+              const actual = precioActualOf(p)
+              const override = overrides[p.id]
+              const dirty = override !== undefined && override !== actual
+              const delta = override !== undefined ? override - actual : 0
+              const deltaPct = actual > 0 ? Math.round((delta / actual) * 1000) / 10 : 0
               const mg = p.precio_venta > 0 ? Math.round((1 - p.precio_costo / p.precio_venta) * 100) : 0
+              const bajoCosto = override !== undefined && override < p.precio_costo
+
               return (
-                <tr key={p.id} onClick={() => toggleSeleccion(p.id)}
-                  style={{ borderTop: '1px solid var(--border)', cursor: 'pointer', background: sel ? 'rgba(91,76,255,0.05)' : 'transparent' }}
-                  onMouseEnter={e => !sel && (e.currentTarget.style.background = 'var(--bg3)')}
-                  onMouseLeave={e => !sel && (e.currentTarget.style.background = 'transparent')}>
-                  <td style={{ padding: '9px 12px' }}>
-                    <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${sel ? 'var(--ac)' : 'var(--border)'}`, background: sel ? 'var(--ac)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {sel && <Check size={10} color="white" />}
-                    </div>
+                <tr key={p.id} style={{
+                  borderTop: '1px solid var(--border)',
+                  background: dirty ? 'rgba(91,76,255,0.04)' : 'transparent',
+                  boxShadow: dirty ? 'inset 3px 0 0 var(--ac)' : 'none',
+                  transition: 'background 0.15s, box-shadow 0.15s',
+                }}>
+                  <td style={{ padding: '9px 12px', width: 36 }}>
+                    <input type="checkbox" checked={sel} onChange={() => toggleSeleccion(p.id)}
+                      style={{ width: 14, height: 14, cursor: 'pointer' }}
+                      aria-label={`Seleccionar ${p.nombre}`} />
                   </td>
                   <td style={{ padding: '9px 12px', fontWeight: 500, color: 'var(--text)' }}>
                     <div>{p.nombre}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text2)' }}>{p.sku}</div>
+                    {p.sku && <div style={{ fontSize: 10, color: 'var(--text2)', fontFamily: 'DM Mono, monospace' }}>{p.sku}</div>}
                   </td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{formatPeso(p.precio_costo)}</td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--ac)', fontWeight: 600 }}>
-                    {p.unidad_venta === 'kg' ? `${formatPeso(precioActual)}/kg` : formatPeso(precioActual)}
+                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--text2)' }}>{formatPeso(p.precio_costo)}</td>
+                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--text)', fontWeight: 500 }}>
+                    {p.unidad_venta === 'kg' ? `${formatPeso(actual)}/kg` : formatPeso(actual)}
                   </td>
                   <td style={{ padding: '9px 12px' }}>
                     <span style={{ background: mg >= 35 ? 'rgba(0,200,150,0.1)' : 'rgba(255,184,0,0.1)', color: mg >= 35 ? 'var(--g)' : 'var(--w)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>
                       {mg}%
                     </span>
                   </td>
-                  <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>
-                    {precioNuevo && sel ? (
-                      <span style={{ color: 'var(--g)' }}>
-                        {formatPeso(precioNuevo)}
-                        <span style={{ fontSize: 10, color: 'var(--text2)', marginLeft: 4 }}>
-                          +{formatPeso(precioNuevo - precioActual)}
-                        </span>
-                      </span>
-                    ) : (
-                      <span style={{ color: 'var(--text2)' }}>—</span>
-                    )}
+                  <td style={{ padding: '9px 12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 140 }}>
+                      <input
+                        type="number"
+                        value={override !== undefined ? override : ''}
+                        onChange={e => setOverride(p.id, e.target.value)}
+                        placeholder={String(actual)}
+                        style={{
+                          width: '100%',
+                          border: `1px solid ${dirty ? 'var(--ac)' : 'var(--border)'}`,
+                          borderRadius: 6,
+                          padding: '6px 8px',
+                          fontSize: 13,
+                          fontFamily: 'DM Mono, monospace',
+                          fontWeight: 600,
+                          color: dirty ? 'var(--ac)' : 'var(--text)',
+                          background: 'var(--bg2)',
+                          outline: 'none',
+                        }}
+                      />
+                      {dirty && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--text2)', fontFamily: 'DM Mono, monospace' }}>
+                          <span>{delta >= 0 ? '+' : ''}{formatPeso(delta).replace('$', '$')} · {delta >= 0 ? '+' : ''}{deltaPct}%</span>
+                          {bajoCosto && (
+                            <span title="Precio bajo el costo" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--w)' }}>
+                              <AlertTriangle size={10} /> bajo costo
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
@@ -205,6 +278,62 @@ export default function PreciosPage() {
         </table>
         </div>
       </div>
+
+      {/* Sticky bar inferior — Aplicar / Descartar */}
+      {dirtyIds.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: 16,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          borderRadius: 14,
+          boxShadow: 'var(--shadow-lg)',
+          padding: '10px 12px 10px 16px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          zIndex: 50,
+          animation: 'slideUp 0.2s ease',
+        }}>
+          <span style={{ fontSize: 13, color: 'var(--text)' }}>
+            <b style={{ color: 'var(--ac)' }}>{dirtyIds.length}</b> {dirtyIds.length === 1 ? 'cambio pendiente' : 'cambios pendientes'}
+          </span>
+          <button
+            onClick={descartarCambios}
+            disabled={actualizando}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '7px 10px',
+              borderRadius: 8,
+              background: 'transparent',
+              color: 'var(--text2)',
+              border: '1px solid var(--border)',
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}>
+            <X size={12} /> Descartar
+          </button>
+          <button
+            onClick={aplicarCambios}
+            disabled={actualizando}
+            style={{
+              padding: '7px 16px',
+              borderRadius: 8,
+              background: 'var(--ac)',
+              color: 'white',
+              border: 'none',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: actualizando ? 'wait' : 'pointer',
+              fontFamily: 'inherit',
+              opacity: actualizando ? 0.7 : 1,
+            }}>
+            {actualizando ? 'Aplicando...' : `Aplicar ${dirtyIds.length}`}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
