@@ -84,7 +84,7 @@ export default function PreciosPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
           <TrendingUp size={16} color="#5b4cff" /> Configurar aumento
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+        <div className="kpi-grid">
           <div>
             <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 5 }}>Tipo de aumento</label>
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
@@ -148,6 +148,7 @@ export default function PreciosPage() {
           </div>
           <span style={{ fontSize: 11, color: 'var(--text2)' }}>{productos.length} productos</span>
         </div>
+        <div className="table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr style={{ background: 'var(--bg3)' }}>
@@ -202,6 +203,7 @@ export default function PreciosPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

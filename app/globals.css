@@ -215,7 +215,8 @@ button:active { transform: scale(0.97); }
     display: block !important;
     position: absolute !important;
     top: 0 !important;
-    left: 0 !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
     width: 80mm !important;
     max-height: none !important;
     margin: 0 !important;
@@ -228,7 +229,6 @@ button:active { transform: scale(0.97); }
     color: black !important;
     opacity: 1 !important;
     pointer-events: auto !important;
-    transform: none !important;
   }
 
   [data-printable] button,
@@ -271,6 +271,73 @@ button:active { transform: scale(0.97); }
   .dashboard-grid-2,
   .dashboard-grid-equal {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* === Responsive grids =========================================
+   KPI grids que naturalmente colapsan 4→3→2→1 según viewport.
+   Reemplaza el patrón `repeat(N,1fr)` que rompía en mobile. */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.kpi-grid-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+/* Layout "chart + sidebar" que stackea en mobile. */
+.split-2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+.split-2.reverse { grid-template-columns: 1fr 2fr; }
+@media (max-width: 768px) {
+  .split-2, .split-2.reverse { grid-template-columns: 1fr; }
+}
+
+/* === Tabla con scroll horizontal ==============================
+   Wrapper para tablas densas. El min-width lo aporta cada tabla
+   según cuántas columnas tenga. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+}
+.table-scroll table {
+  min-width: 600px;
+}
+
+/* Primera columna sticky para tablas con muchas columnas
+   donde perder el identificador rompe la lectura. */
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background: var(--card);
+  z-index: 1;
+}
+.row-hover:hover .sticky-col {
+  background: var(--bg3);
+}
+
+/* === Notificaciones dropdown ==================================
+   Desktop: anclado debajo del sidebar (left: 220).
+   Mobile: ocupa el viewport con padding lateral. */
+.notif-dropdown {
+  position: fixed;
+  top: 58px;
+  left: 220px;
+  width: 292px;
+}
+@media (max-width: 768px) {
+  .notif-dropdown {
+    top: 58px;
+    left: 12px;
+    right: 12px;
+    width: auto;
   }
 }
 

@@ -53,7 +53,7 @@ export function ProductDetail({
           <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: 'var(--text)' }}>{producto.nombre}</div>
           <div style={{ fontSize: 11, color: 'var(--text2)', fontFamily: 'DM Mono, monospace', marginBottom: 16 }}>{producto.sku} · {producto.codigo_barras}</div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: producto.unidad_venta === 'kg' ? '1fr 1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+          <div className="kpi-grid-sm" style={{ marginBottom: 16 }}>
             {producto.unidad_venta === 'kg' ? (
               <>
                 <div style={{ background: 'var(--bg3)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>

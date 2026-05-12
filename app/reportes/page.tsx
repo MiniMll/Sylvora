@@ -76,7 +76,7 @@ export default function ReportesPage() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+      <div className="kpi-grid" style={{ marginBottom: 16 }}>
         {[
           { label: 'Ventas totales', value: formatPeso(totalMes), sub: `${ventas.length} transacciones`, color: '#5b4cff', icon: TrendingUp },
           { label: 'Ganancia estimada', value: formatPeso(ganancia), sub: `Margen ${margenProm}%`, color: '#00c896', icon: DollarSign },
@@ -126,7 +126,7 @@ export default function ReportesPage() {
 
 
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, marginBottom: 16 }}>
+      <div className="split-2" style={{ marginBottom: 16 }}>
         {/* Top productos */}
         <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)'
 
@@ -189,11 +189,12 @@ export default function ReportesPage() {
             <div className="empty-sub">Sin ventas registradas todavía</div>
           </div>
         ) : (
+          <div className="table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg3)' }}>
-                {['#', 'Producto', 'Unidades', 'Total vendido', 'Costo', 'Ganancia', 'Margen'].map(h => (
-                  <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
+                {['#', 'Producto', 'Unidades', 'Total vendido', 'Costo', 'Ganancia', 'Margen'].map((h, i) => (
+                  <th key={h} className={i === 0 ? 'sticky-col' : undefined} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500, background: 'var(--bg3)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -203,7 +204,7 @@ export default function ReportesPage() {
                 const mg = p.total > 0 ? Math.round((gan / p.total) * 100) : 0
                 return (
                   <tr key={i} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '9px 12px', fontWeight: 700, color: i === 0 ? '#ffd23f' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--text2)' }}>
+                    <td className="sticky-col" style={{ padding: '9px 12px', fontWeight: 700, color: i === 0 ? '#ffd23f' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--text2)' }}>
                       {i < 3 ? (
                         <Medal
                           size={16}
@@ -227,6 +228,7 @@ export default function ReportesPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

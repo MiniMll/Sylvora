@@ -134,7 +134,7 @@ export default function CajaPage() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+      <div className="kpi-grid">
         {[
           { label: 'Total ventas', value: formatPeso(totalVentas), sub: `${ventas.length} operaciones`, color: 'var(--ac)' },
           { label: 'Egresos', value: formatPeso(totalEgresos), sub: `${movimientos.filter(m => m.tipo === 'egreso').length} movimientos`, color: 'var(--o)' },
@@ -173,7 +173,7 @@ export default function CajaPage() {
       </div>
 
       {/* Por método + movimientos */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+      <div className="split-2 reverse">
         <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>Por método de pago</div>
           {Object.entries(porMetodo).length === 0 ? (
@@ -204,6 +204,7 @@ export default function CajaPage() {
               <div className="empty-sub">No hay movimientos hoy</div>
             </div>
           ) : (
+            <div className="table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: 'var(--bg3)' }}>
@@ -241,6 +242,7 @@ export default function CajaPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
@@ -251,6 +253,7 @@ export default function CajaPage() {
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
             Historial de cierres
           </div>
+          <div className="table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg3)' }}>
@@ -295,6 +298,7 @@ export default function CajaPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

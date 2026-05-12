@@ -57,9 +57,7 @@ export function Notificaciones() {
       {visible && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 98 }} onClick={() => setVisible(false)} />
-          <div style={{
-            position: 'fixed', top: 58, left: 220,
-            width: 292,
+          <div className="notif-dropdown" style={{
             background: 'var(--card)',
             border: '1px solid var(--border)',
             borderRadius: 16,

@@ -142,7 +142,7 @@ export default function StockPage() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 16 }}>
+      <div className="kpi-grid" style={{ marginBottom: 16 }}>
         {[
           { label: 'Sin stock', value: sinStock.length, color: '#888898', Icon: XCircle },
           { label: 'Críticos', value: criticos.length, color: '#ff4757', Icon: AlertTriangle },
@@ -204,11 +204,12 @@ export default function StockPage() {
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
           Detalle de stock ({productos.length} productos)
         </div>
+        <div className="table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr style={{ background: 'var(--bg3)' }}>
-              {['Producto', 'SKU', 'Stock actual', 'Mínimo', 'Ideal', 'Estado', ''].map(h => (
-                <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
+              {['Producto', 'SKU', 'Stock actual', 'Mínimo', 'Ideal', 'Estado', ''].map((h, i) => (
+                <th key={h} className={i === 0 ? 'sticky-col' : undefined} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500, background: 'var(--bg3)' }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -218,7 +219,7 @@ export default function StockPage() {
               const sl = stockLabel(p.stock_actual, p.stock_minimo)
               return (
                 <tr key={p.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ padding: '9px 12px', fontWeight: 500, color: 'var(--text)' }}>{p.nombre}</td>
+                  <td className="sticky-col" style={{ padding: '9px 12px', fontWeight: 500, color: 'var(--text)' }}>{p.nombre}</td>
                   <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>{p.sku || '—'}</td>
                   <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 700, color: sc, fontSize: 14 }}>{p.stock_actual}</td>
                   <td style={{ padding: '9px 12px', color: 'var(--text2)' }}>{p.stock_minimo}</td>
@@ -237,6 +238,7 @@ export default function StockPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Modal editar stock + lotes */}

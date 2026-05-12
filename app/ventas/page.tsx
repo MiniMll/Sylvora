@@ -92,7 +92,7 @@ export default function VentasPage() {
         <Skeleton width={280} height={13} radius={4} style={{ marginTop: 8 }} />
       </div>
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
+      <div className="kpi-grid" style={{ marginBottom: 16 }}>
         {[0, 1, 2].map(i => (
           <div key={i} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
             <Skeleton width={80} height={10} radius={3} style={{ marginBottom: 8 }} />
@@ -140,7 +140,7 @@ export default function VentasPage() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 16 }}>
+      <div className="kpi-grid" style={{ marginBottom: 16 }}>
         {[
           { label: 'Total período', value: formatPeso(totalFiltrado), icon: TrendingUp, color: '#5b4cff' },
           { label: 'Ticket promedio', value: formatPeso(ticketProm), icon: Receipt, color: '#00c896' },
@@ -205,6 +205,7 @@ export default function VentasPage() {
             <div className="empty-sub">No hay ventas que coincidan con los filtros</div>
           </div>
         ) : (
+          <div className="table-scroll">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg3)' }}>
@@ -278,6 +279,7 @@ export default function VentasPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

@@ -256,6 +256,7 @@ export default function DashboardPage() {
           {topProductos.length === 0 ? (
             <div style={{ padding: 24, textAlign: 'center', color: 'var(--text2)', fontSize: 12 }}>Sin ventas registradas</div>
           ) : (
+            <div className="table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: 'var(--bg3)' }}>
@@ -274,6 +275,7 @@ export default function DashboardPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
@@ -290,6 +292,7 @@ export default function DashboardPage() {
               <CheckCircle size={14} color="var(--g)" strokeWidth={1.8} /> Todo el stock está OK
             </div>
           ) : (
+            <div className="table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: 'var(--bg3)' }}>
@@ -324,6 +327,7 @@ export default function DashboardPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>
