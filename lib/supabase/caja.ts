@@ -103,10 +103,7 @@ export async function cerrarCaja(resumen: CerrarCajaInput): Promise<boolean> {
       .select('id')
       .single()
 
-    if (!error && data?.id) {
-      console.log('[cerrarCaja] insert OK, id:', data.id)
-      return true
-    }
+    if (!error && data?.id) return true
 
     const msg = error?.message || ''
 
@@ -155,6 +152,5 @@ export async function getCierresCaja(): Promise<CierreCaja[]> {
     .limit(30)
 
   if (error) { console.error('[getCierresCaja]', error); return [] }
-  console.log('[getCierresCaja] rows:', data?.length ?? 0)
   return (data ?? []) as CierreCaja[]
 }
