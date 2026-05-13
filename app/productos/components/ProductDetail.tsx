@@ -44,7 +44,7 @@ export function ProductDetail({
       <div style={{ margin: -18, marginBottom: 18 }}>
         <div style={{ height: 180, background: 'var(--bg3)', borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, position: 'relative' }}>
           {producto.imagen_url
-            ? <img src={producto.imagen_url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <img src={producto.imagen_url} alt={producto.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             : <Package size={48} color="rgba(255,255,255,0.3)" />
           }
           <button onClick={onClose}

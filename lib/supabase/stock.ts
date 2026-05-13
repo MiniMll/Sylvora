@@ -22,13 +22,19 @@ interface AgregarLoteInput {
 export async function agregarLote(lote: AgregarLoteInput): Promise<boolean> {
   const supabase = getBrowserClient()
 
-  // Si ya existe lote con el mismo número, sumamos a su cantidad.
-  const { data: existente } = await supabase
+  // Fusión solo si coincide numero_lote + fecha_vencimiento. Dos lotes
+  // con el mismo numero pero distinta fecha son lotes distintos (mismo
+  // proveedor, mismo packaging, distinta tanda). fecha null se trata
+  // como su propia clase: dos lotes sin fecha y mismo numero sí fusionan.
+  let query = supabase
     .from('lotes')
     .select('*')
     .eq('producto_id', lote.producto_id)
     .eq('numero_lote', lote.numero_lote)
-    .single()
+  query = lote.fecha_vencimiento
+    ? query.eq('fecha_vencimiento', lote.fecha_vencimiento)
+    : query.is('fecha_vencimiento', null)
+  const { data: existente } = await query.maybeSingle()
 
   if (existente) {
     const { error } = await supabase
