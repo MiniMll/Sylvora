@@ -56,6 +56,36 @@ export function esStockCritico(actual: number, minimo: number): boolean {
   return actual <= minimo * 0.3
 }
 
+/**
+ * Texto + color semántico para una fecha de vencimiento de lote.
+ * Devuelve string vacío cuando fecha es null/undefined.
+ *
+ * Reglas:
+ * - rojo (--r): vencido, vence hoy, vence mañana
+ * - amarillo (--w): vence en 2-7 días
+ * - texto normal: vence en 8-30 días
+ * - texto secundario: vence en más de 30 días (muestra la fecha)
+ */
+export function formatVencimiento(fecha: string | null | undefined): { texto: string; color: string } {
+  if (!fecha) return { texto: '', color: 'var(--text2)' }
+
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const venc = new Date(fecha)
+  venc.setHours(0, 0, 0, 0)
+
+  const msPorDia = 24 * 60 * 60 * 1000
+  const diasDif = Math.round((venc.getTime() - hoy.getTime()) / msPorDia)
+
+  if (diasDif < -1) return { texto: `Vencido hace ${Math.abs(diasDif)} días`, color: 'var(--r)' }
+  if (diasDif === -1) return { texto: 'Vencido ayer', color: 'var(--r)' }
+  if (diasDif === 0) return { texto: 'Vence hoy', color: 'var(--r)' }
+  if (diasDif === 1) return { texto: 'Vence mañana', color: 'var(--r)' }
+  if (diasDif <= 7) return { texto: `Vence en ${diasDif} días`, color: 'var(--w)' }
+  if (diasDif <= 30) return { texto: `Vence en ${diasDif} días`, color: 'var(--text)' }
+  return { texto: `Vence: ${venc.toLocaleDateString('es-AR')}`, color: 'var(--text2)' }
+}
+
 export function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ')
 }

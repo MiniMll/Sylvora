@@ -8,7 +8,7 @@ import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2 } from
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
-import { stockColor, stockLabel } from '@/lib/utils'
+import { stockColor, stockLabel, formatVencimiento } from '@/lib/utils'
 
 export default function StockPage() {
   const [productos, setProductos] = useState<any[]>([])
@@ -271,17 +271,15 @@ export default function StockPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {lotesModal.map((lote: any) => {
                     const vencido = lote.fecha_vencimiento && new Date(lote.fecha_vencimiento) < new Date()
+                    const venc = formatVencimiento(lote.fecha_vencimiento)
                     const editando = editandoLote?.id === lote.id
                     return (
                       <div key={lote.id} style={{ background: 'var(--bg3)', borderRadius: 10, padding: '10px 12px', border: `1px solid ${vencido ? 'rgba(255,71,87,0.3)' : 'var(--border)'}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 12, fontWeight: 600, fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{lote.numero_lote}</div>
-                            {lote.fecha_vencimiento && (
-                              <div style={{ fontSize: 10, color: vencido ? 'var(--r)' : 'var(--text2)', marginTop: 2 }}>
-                                {vencido ? 'Vencido: ' : 'Vence: '}
-                                {new Date(lote.fecha_vencimiento).toLocaleDateString('es-AR')}
-                              </div>
+                            {venc.texto && (
+                              <div style={{ fontSize: 10, color: venc.color, marginTop: 2 }}>{venc.texto}</div>
                             )}
                           </div>
                           <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: 'var(--text)', minWidth: 40, textAlign: 'right' }}>

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import { Package, X, Layers } from 'lucide-react'
-import { formatPeso, calcularMargen, stockColor, stockLabel, formatStock } from '@/lib/utils'
+import { formatPeso, calcularMargen, stockColor, stockLabel, formatStock, formatVencimiento } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import type { Producto, Lote } from '@/types/database'
@@ -120,16 +120,13 @@ export function ProductDetail({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {lotes.map(lote => {
                   const vencido = lote.fecha_vencimiento && new Date(lote.fecha_vencimiento) < new Date()
-                  const proxVencer = lote.fecha_vencimiento && !vencido && (new Date(lote.fecha_vencimiento).getTime() - Date.now()) < 30 * 24 * 60 * 60 * 1000
+                  const venc = formatVencimiento(lote.fecha_vencimiento)
                   return (
                     <div key={lote.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg3)', borderRadius: 8, padding: '8px 12px', border: `1px solid ${vencido ? 'rgba(255,71,87,0.3)' : 'var(--border)'}` }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>{lote.numero_lote}</div>
-                        {lote.fecha_vencimiento && (
-                          <div style={{ fontSize: 10, color: vencido ? 'var(--r)' : proxVencer ? 'var(--w)' : 'var(--text2)' }}>
-                            {vencido ? 'Vencido: ' : proxVencer ? 'Vence pronto: ' : 'Vence: '}
-                            {new Date(lote.fecha_vencimiento).toLocaleDateString('es-AR')}
-                          </div>
+                        {venc.texto && (
+                          <div style={{ fontSize: 10, color: venc.color }}>{venc.texto}</div>
                         )}
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>
