@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja } from '@/lib/supabase/caja'
 import { formatPeso } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -22,6 +22,10 @@ export default function CajaPage() {
   // Conteo físico de efectivo al cerrar. String para permitir el
   // input vacío (= "no conté"). Se parsea a number al confirmar.
   const [efectivoContado, setEfectivoContado] = useState('')
+  // Highlight breve del historial post-cierre: scroll + acento violeta
+  // ~2.5s para que el cajero vea inmediatamente que el cierre se registró.
+  const [cierreApenas, setCierreApenas] = useState(false)
+  const historialRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     getCajaHoy().then(({ ventas, movimientos }) => {
@@ -77,11 +81,8 @@ export default function CajaPage() {
     ? null
     : contadoNum - efectivoEsperado
 
-  // Cierres del día actual — se muestran como filas en "Movimientos del día"
-  // para que el cajero vea inmediatamente que ya cerró caja sin tener que
-  // scrollear hasta el "Historial de cierres" del fondo.
   const hoyStr = new Date().toISOString().split('T')[0]
-  const cierresHoy = cierresAnteriores.filter(c => c.fecha === hoyStr)
+  const cerradoHoy = cierresAnteriores.some(c => c.fecha === hoyStr)
 
   const handleCerrarCaja = async () => {
     setCerrando(true)
@@ -103,6 +104,10 @@ export default function CajaPage() {
       const cierres = await getCierresCaja()
       setCierresAnteriores(cierres)
       setEfectivoContado('')
+      setCierreApenas(true)
+      setTimeout(() => setCierreApenas(false), 2500)
+      // Scroll después de que el modal cierre y la nueva fila renderee
+      setTimeout(() => historialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)
     } else {
       toast.error('Error al cerrar la caja', { id: 'cerrar-caja' })
     }
@@ -209,7 +214,7 @@ export default function CajaPage() {
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}>
             Movimientos del día
           </div>
-          {ventas.length === 0 && movimientos.length === 0 && cierresHoy.length === 0 ? (
+          {ventas.length === 0 && movimientos.length === 0 ? (
             <div className="empty-state empty-state-sm">
               <div className="empty-icon"><Banknote size={18} color="var(--text2)" strokeWidth={1.8} /></div>
               <div className="empty-sub">No hay movimientos hoy</div>
@@ -256,17 +261,6 @@ export default function CajaPage() {
                     <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--r)' }}>-{formatPeso(m.monto)}</td>
                   </tr>
                 ))}
-                {cierresHoy.map((c: any) => (
-                  <tr key={c.id} className="row-hover" style={{ borderTop: '1px solid var(--border)', background: 'rgba(91,76,255,0.04)' }}>
-                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>Cierre</td>
-                    <td style={{ padding: '8px 12px' }}>
-                      <span style={{ background: 'rgba(91,76,255,0.12)', color: 'var(--ac)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Cierre de caja</span>
-                    </td>
-                    <td style={{ padding: '8px 12px' }}>Cierre del día · {c.cantidad_ventas} {c.cantidad_ventas === 1 ? 'venta' : 'ventas'}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--text2)' }}>—</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--ac)' }}>Saldo: {formatPeso(Number(c.saldo_neto))}</td>
-                  </tr>
-                ))}
               </tbody>
             </table>
             </div>
@@ -276,9 +270,25 @@ export default function CajaPage() {
 
       {/* Historial cierres */}
       {cierresAnteriores.length > 0 && (
-        <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-            Historial de cierres
+        <div ref={historialRef} style={{
+          background: 'var(--card)',
+          borderRadius: 16,
+          border: cierreApenas ? '2px solid var(--ac)' : '1px solid var(--border)',
+          boxShadow: cierreApenas ? 'var(--shadow-md)' : 'none',
+          overflow: 'hidden',
+          transition: 'border-color 0.25s, box-shadow 0.25s',
+        }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle size={14} color="var(--ac)" strokeWidth={2} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Historial de cierres</span>
+              {cerradoHoy && (
+                <span style={{ background: 'rgba(91,76,255,0.12)', color: 'var(--ac)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 600 }}>
+                  Hoy
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--text2)' }}>{cierresAnteriores.length} {cierresAnteriores.length === 1 ? 'cierre' : 'cierres'}</span>
           </div>
           <div className="table-scroll">
           <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', fontSize: 12 }}>
