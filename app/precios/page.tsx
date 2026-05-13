@@ -119,7 +119,7 @@ export default function PreciosPage() {
   )
 
   return (
-    <div style={{ padding: '24px', flex: 1, overflowY: 'auto', paddingBottom: dirtyIds.length > 0 ? 100 : 24 }}>
+    <div style={{ padding: '24px', flex: 1, overflowY: 'auto', paddingBottom: dirtyIds.length > 0 ? 120 : 24 }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Actualización de Precios</h1>
         <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Editá el precio de venta directamente en cada fila. Para subir todo un porcentaje, usá el aumento masivo.</p>
@@ -295,13 +295,13 @@ export default function PreciosPage() {
           zIndex: 50,
           animation: 'slideUp 0.2s ease',
         }}>
-          <span style={{ fontSize: 13, color: 'var(--text)' }}>
+          <span style={{ fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap' }}>
             <b style={{ color: 'var(--ac)' }}>{dirtyIds.length}</b> {dirtyIds.length === 1 ? 'cambio pendiente' : 'cambios pendientes'}
           </span>
-          <Button variant="subtle" size="sm" icon={<X size={12} />} onClick={descartarCambios} disabled={actualizando}>
+          <Button variant="subtle" size="sm" icon={<X size={12} />} onClick={descartarCambios} disabled={actualizando} style={{ whiteSpace: 'nowrap' }}>
             Descartar
           </Button>
-          <Button variant="primary" size="sm" onClick={aplicarCambios} loading={actualizando}>
+          <Button variant="primary" size="sm" onClick={aplicarCambios} loading={actualizando} style={{ whiteSpace: 'nowrap' }}>
             {actualizando ? 'Aplicando...' : `Aplicar ${dirtyIds.length}`}
           </Button>
         </div>

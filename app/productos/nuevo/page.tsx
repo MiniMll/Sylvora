@@ -286,14 +286,14 @@ export default function NuevoProductoPage() {
             Lotes {esKg ? '(hormas / piezas)' : ''}
           </div>
           {lotes.map((lote, idx) => (
-            <div key={lote.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg3)', borderRadius: 8, padding: '8px 10px', marginBottom: 6, border: '1px solid var(--border)' }}>
+            <div key={lote.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, background: 'var(--bg3)', borderRadius: 8, padding: '8px 10px', marginBottom: 6, border: '1px solid var(--border)' }}>
               <span style={{ fontSize: 10, color: 'var(--text2)', width: 50, flexShrink: 0 }}>Lote {idx + 1}</span>
               <input value={lote.numero} onChange={e => updateLote(lote.id, 'numero', e.target.value)}
-                placeholder="Nro. lote" style={{ ...inp, width: 110 }} />
+                placeholder="Nro. lote" style={{ ...inp, width: 110, minWidth: 0, flex: '1 1 110px' }} />
               <input value={lote.cantidad} onChange={e => updateLote(lote.id, 'cantidad', e.target.value)}
-                placeholder={esKg ? 'Kg' : 'Cant.'} type="number" style={{ ...inp, width: 70 }} />
+                placeholder={esKg ? 'Kg' : 'Cant.'} type="number" style={{ ...inp, width: 70, minWidth: 0, flex: '0 0 70px' }} />
               <input value={lote.vencimiento} onChange={e => updateLote(lote.id, 'vencimiento', e.target.value)}
-                type="date" style={{ ...inp, flex: 1 }} />
+                type="date" style={{ ...inp, minWidth: 0, flex: '1 1 130px' }} />
               {lotes.length > 1 && (
                 <button onClick={() => quitarLote(lote.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--r)', fontSize: 16, flexShrink: 0 }}>✕</button>
               )}
