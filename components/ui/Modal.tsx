@@ -32,6 +32,12 @@ const SIZE_WIDTH: Record<ModalSize, number> = { sm: 380, md: 480, lg: 640 }
 
 export function Modal({ open, onClose, title, size = 'md', footer, children }: ModalProps) {
   const cardRef = useRef<HTMLDivElement>(null)
+  // onClose se accede via ref para que el effect de focus/scroll-lock NO
+  // re-corra en cada render del padre cuando el caller pasa una arrow
+  // function inline (lo más común). Sin esto, cualquier setState del
+  // padre causaba que el setTimeout robara foco al primer focusable.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return
@@ -39,7 +45,7 @@ export function Modal({ open, onClose, title, size = 'md', footer, children }: M
     const prev = document.activeElement as HTMLElement | null
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
 
     document.body.style.overflow = 'hidden'
@@ -58,7 +64,7 @@ export function Modal({ open, onClose, title, size = 'md', footer, children }: M
       window.removeEventListener('keydown', onKey)
       prev?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 

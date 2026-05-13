@@ -36,14 +36,19 @@ export default function CajaPage() {
 
   if (cargando) return <Spinner texto="Cargando caja..." />
 
-  const totalVentas = ventas.reduce((s, v) => s + Number(v.total), 0)
+  // Las ventas anuladas no cuentan en totales financieros, pero sí
+  // se muestran en la tabla de movimientos para transparencia.
+  const ventasActivas = ventas.filter(v => v.estado !== 'anulada')
+  const anuladasCount = ventas.length - ventasActivas.length
+
+  const totalVentas = ventasActivas.reduce((s, v) => s + Number(v.total), 0)
   const totalEgresos = movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + Number(m.monto), 0)
   const saldo = totalVentas - totalEgresos
 
   // Flujo por hora
   const flujo = Array.from({ length: 12 }, (_, i) => {
     const hora = i + 8
-    const ingresosHora = ventas
+    const ingresosHora = ventasActivas
       .filter(v => new Date(v.created_at).getHours() === hora)
       .reduce((s, v) => s + Number(v.total), 0)
     const egresosHora = movimientos
@@ -54,12 +59,12 @@ export default function CajaPage() {
 
   // Por método de pago
   const porMetodo: Record<string, number> = {}
-  ventas.forEach(v => { porMetodo[v.metodo_pago] = (porMetodo[v.metodo_pago] || 0) + Number(v.total) })
+  ventasActivas.forEach(v => { porMetodo[v.metodo_pago] = (porMetodo[v.metodo_pago] || 0) + Number(v.total) })
 
   // Efectivo esperado en caja = ventas efectivo - egresos efectivo.
   // Asume caja inicial 0 (Sylvora no maneja saldo de apertura todavía).
   const porMetodoFn = (metodo: string) =>
-    ventas.filter(v => v.metodo_pago === metodo).reduce((s, v) => s + Number(v.total), 0)
+    ventasActivas.filter(v => v.metodo_pago === metodo).reduce((s, v) => s + Number(v.total), 0)
   const efectivoVentas = porMetodoFn('efectivo')
   const egresosEfectivo = movimientos
     .filter(m => m.tipo === 'egreso' && m.metodo_pago === 'efectivo')
@@ -77,7 +82,7 @@ export default function CajaPage() {
       total_ventas: totalVentas,
       total_egresos: totalEgresos,
       saldo_neto: saldo,
-      cantidad_ventas: ventas.length,
+      cantidad_ventas: ventasActivas.length,
       efectivo: efectivoVentas,
       debito: porMetodoFn('debito'),
       credito: porMetodoFn('credito'),
@@ -137,10 +142,10 @@ export default function CajaPage() {
       {/* KPIs */}
       <div className="kpi-grid">
         {[
-          { label: 'Total ventas', value: formatPeso(totalVentas), sub: `${ventas.length} operaciones`, color: 'var(--ac)' },
+          { label: 'Total ventas', value: formatPeso(totalVentas), sub: `${ventasActivas.length} operaciones${anuladasCount > 0 ? ` · ${anuladasCount} anuladas no incluidas` : ''}`, color: 'var(--ac)' },
           { label: 'Egresos', value: formatPeso(totalEgresos), sub: `${movimientos.filter(m => m.tipo === 'egreso').length} movimientos`, color: 'var(--o)' },
           { label: 'Saldo neto', value: formatPeso(saldo), sub: 'Ventas - Egresos', color: 'var(--g)' },
-          { label: 'Ticket promedio', value: ventas.length ? formatPeso(totalVentas / ventas.length) : '$0', sub: 'Por transacción', color: '#ffd23f' },
+          { label: 'Ticket promedio', value: ventasActivas.length ? formatPeso(totalVentas / ventasActivas.length) : '$0', sub: 'Por transacción', color: '#ffd23f' },
         ].map(k => (
           <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
@@ -155,7 +160,7 @@ export default function CajaPage() {
       <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)' }}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Flujo de caja del día</div>
         <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Ingresos y egresos por hora</div>
-        {ventas.length === 0 ? (
+        {ventasActivas.length === 0 && totalEgresos === 0 ? (
           <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', fontSize: 12 }}>
             No hay movimientos hoy todavía
           </div>
@@ -215,19 +220,24 @@ export default function CajaPage() {
                 </tr>
               </thead>
               <tbody>
-                {ventas.map((v: any) => (
-                  <tr key={v.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>
-                      {new Date(v.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td style={{ padding: '8px 12px' }}>
-                      <span style={{ background: 'rgba(0,200,150,0.1)', color: 'var(--g)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Venta</span>
-                    </td>
-                    <td style={{ padding: '8px 12px' }}>Ticket #{String(v.numero_ticket).padStart(4, '0')}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--g)' }}>+{formatPeso(v.total)}</td>
-                  </tr>
-                ))}
+                {ventas.map((v: any) => {
+                  const anulada = v.estado === 'anulada'
+                  return (
+                    <tr key={v.id} className="row-hover" style={{ borderTop: '1px solid var(--border)', opacity: anulada ? 0.6 : 1 }}>
+                      <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>
+                        {new Date(v.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td style={{ padding: '8px 12px' }}>
+                        {anulada
+                          ? <span style={{ background: 'var(--bg3)', color: 'var(--text2)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Anulada</span>
+                          : <span style={{ background: 'rgba(0,200,150,0.1)', color: 'var(--g)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Venta</span>}
+                      </td>
+                      <td style={{ padding: '8px 12px', textDecoration: anulada ? 'line-through' : 'none', color: anulada ? 'var(--text2)' : 'var(--text)' }}>Ticket #{String(v.numero_ticket).padStart(4, '0')}</td>
+                      <td style={{ padding: '8px 12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
+                      <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: anulada ? 'var(--text2)' : 'var(--g)', textDecoration: anulada ? 'line-through' : 'none' }}>{anulada ? formatPeso(v.total) : `+${formatPeso(v.total)}`}</td>
+                    </tr>
+                  )
+                })}
                 {movimientos.filter(m => m.tipo === 'egreso').map((m: any) => (
                   <tr key={m.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>
@@ -388,7 +398,7 @@ export default function CajaPage() {
               ))}
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                 <span style={{ color: 'var(--text2)' }}>Transacciones</span>
-                <span style={{ color: 'var(--text)' }}>{ventas.length} ventas</span>
+                <span style={{ color: 'var(--text)' }}>{ventasActivas.length} ventas{anuladasCount > 0 ? ` · ${anuladasCount} anuladas` : ''}</span>
               </div>
             </div>
 
