@@ -94,10 +94,40 @@ export async function cerrarCaja(resumen: CerrarCajaInput): Promise<boolean> {
   }
 
   // Reintento recursivo eliminando columnas que el schema todavía no tiene.
+  // Usa .select() para confirmar que el row quedó visible post-insert
+  // (detecta el caso de RLS USING que permite INSERT pero bloquea SELECT).
   const tryInsert = async (p: Record<string, any>): Promise<boolean> => {
-    const { error } = await supabase.from('cierres_caja').insert(p)
-    if (!error) return true
-    const msg = error.message
+    const { data, error } = await supabase
+      .from('cierres_caja')
+      .insert(p)
+      .select('id')
+      .single()
+
+    if (!error && data?.id) {
+      console.log('[cerrarCaja] insert OK, id:', data.id)
+      return true
+    }
+
+    const msg = error?.message || ''
+
+    // Caso: insert se ejecutó pero el SELECT post-insert no ve el row.
+    // Indica desalineación de policy RLS (USING permite INSERT pero
+    // USING/SELECT no devuelve el row al mismo usuario). Ej: get_comercio_id()
+    // retornando null en el contexto del SELECT.
+    if (!error && !data) {
+      console.warn('[cerrarCaja] insert sin error pero row no visible post-insert — revisar policy RLS de cierres_caja')
+      return false
+    }
+
+    // PGRST116 = "JSON object requested, multiple (or no) rows returned"
+    // → insert pasó RLS pero el SELECT-after-INSERT fue bloqueado por RLS.
+    if (error && (error.code === 'PGRST116' || /no rows/i.test(msg))) {
+      console.warn('[cerrarCaja] insert pasó pero RLS bloquea releer el row. msg:', msg)
+      return false
+    }
+
+    console.warn('[cerrarCaja] error:', error?.code, msg)
+
     if (/efectivo_contado|diferencia_efectivo/i.test(msg)) {
       const { efectivo_contado: _a, diferencia_efectivo: _b, ...rest } = p
       return tryInsert(rest)
@@ -124,6 +154,7 @@ export async function getCierresCaja(): Promise<CierreCaja[]> {
     .order('fecha', { ascending: false })
     .limit(30)
 
-  if (error) { console.error(error); return [] }
+  if (error) { console.error('[getCierresCaja]', error); return [] }
+  console.log('[getCierresCaja] rows:', data?.length ?? 0)
   return (data ?? []) as CierreCaja[]
 }
