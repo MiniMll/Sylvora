@@ -69,10 +69,16 @@ export function esStockCritico(actual: number, minimo: number): boolean {
 export function formatVencimiento(fecha: string | null | undefined): { texto: string; color: string } {
   if (!fecha) return { texto: '', color: 'var(--text2)' }
 
+  // Parsear la fecha como medianoche LOCAL, no UTC. `new Date('2026-05-13')`
+  // se interpreta como UTC midnight → en UTC-3 (AR) cae al 12/may local → bug
+  // de -1 día. Construyendo con (year, month, day) la Date queda anclada al
+  // huso local correctamente.
+  const [y, m, d] = fecha.split('T')[0].split('-').map(Number)
+  if (!y || !m || !d) return { texto: '', color: 'var(--text2)' }
+  const venc = new Date(y, m - 1, d)
+
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
-  const venc = new Date(fecha)
-  venc.setHours(0, 0, 0, 0)
 
   const msPorDia = 24 * 60 * 60 * 1000
   const diasDif = Math.round((venc.getTime() - hoy.getTime()) / msPorDia)

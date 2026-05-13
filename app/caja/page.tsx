@@ -22,9 +22,11 @@ export default function CajaPage() {
   // Conteo físico de efectivo al cerrar. String para permitir el
   // input vacío (= "no conté"). Se parsea a number al confirmar.
   const [efectivoContado, setEfectivoContado] = useState('')
-  // Highlight breve del historial post-cierre: scroll + acento violeta
-  // ~2.5s para que el cajero vea inmediatamente que el cierre se registró.
-  const [cierreApenas, setCierreApenas] = useState(false)
+  // Tras cerrar caja, identificamos el id del cierre recién insertado
+  // (haciendo diff vs los ids previos) para resaltar SOLO esa fila por
+  // ~2.5s. El scroll lleva el viewport al historial; la fila resaltada
+  // confirma cuál es la nueva sin ambigüedad.
+  const [nuevoCierreId, setNuevoCierreId] = useState<string | null>(null)
   const historialRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -101,11 +103,15 @@ export default function CajaPage() {
 
     if (ok) {
       toast.success('Caja cerrada correctamente', { id: 'cerrar-caja' })
+      const prevIds = new Set(cierresAnteriores.map(c => c.id))
       const cierres = await getCierresCaja()
+      const nuevo = cierres.find(c => !prevIds.has(c.id))
       setCierresAnteriores(cierres)
       setEfectivoContado('')
-      setCierreApenas(true)
-      setTimeout(() => setCierreApenas(false), 2500)
+      if (nuevo) {
+        setNuevoCierreId(nuevo.id)
+        setTimeout(() => setNuevoCierreId(null), 2500)
+      }
       // Scroll después de que el modal cierre y la nueva fila renderee
       setTimeout(() => historialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)
     } else {
@@ -273,10 +279,8 @@ export default function CajaPage() {
         <div ref={historialRef} style={{
           background: 'var(--card)',
           borderRadius: 16,
-          border: cierreApenas ? '2px solid var(--ac)' : '1px solid var(--border)',
-          boxShadow: cierreApenas ? 'var(--shadow-md)' : 'none',
+          border: '1px solid var(--border)',
           overflow: 'hidden',
-          transition: 'border-color 0.25s, box-shadow 0.25s',
         }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -304,22 +308,35 @@ export default function CajaPage() {
                 // Backward-compat: cierres antiguos no tienen diferencia_efectivo.
                 const dif = c.diferencia_efectivo
                 const tieneDiferencia = dif !== null && dif !== undefined
+                const esNuevo = c.id === nuevoCierreId
                 return (
-                  <tr key={c.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '9px 12px', color: 'var(--text)' }}>
+                  <tr key={c.id} className="row-hover" style={{
+                    borderTop: '1px solid var(--border)',
+                    background: esNuevo ? 'rgba(91,76,255,0.07)' : 'transparent',
+                    transition: 'background 0.3s',
+                  }}>
+                    <td style={{
+                      padding: '11px 14px',
+                      color: 'var(--text)',
+                      borderLeft: esNuevo ? '3px solid var(--ac)' : '3px solid transparent',
+                      fontWeight: esNuevo ? 600 : 400,
+                    }}>
                       {new Date(c.fecha).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      {esNuevo && (
+                        <span style={{ marginLeft: 8, background: 'var(--ac)', color: 'white', padding: '1px 7px', borderRadius: 4, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' }}>NUEVO</span>
+                      )}
                     </td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--g)', fontWeight: 600 }}>
+                    <td style={{ padding: '11px 14px', fontFamily: 'DM Mono, monospace', color: 'var(--g)', fontWeight: 600 }}>
                       ${Number(c.total_ventas).toLocaleString('es-AR')}
                     </td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--r)', fontWeight: 600 }}>
+                    <td style={{ padding: '11px 14px', fontFamily: 'DM Mono, monospace', color: 'var(--r)', fontWeight: 600 }}>
                       ${Number(c.total_egresos).toLocaleString('es-AR')}
                     </td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--ac)', fontWeight: 700 }}>
+                    <td style={{ padding: '11px 14px', fontFamily: 'DM Mono, monospace', color: 'var(--ac)', fontWeight: 700 }}>
                       ${Number(c.saldo_neto).toLocaleString('es-AR')}
                     </td>
-                    <td style={{ padding: '9px 12px', color: 'var(--text2)' }}>{c.cantidad_ventas} ventas</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>
+                    <td style={{ padding: '11px 14px', color: 'var(--text2)' }}>{c.cantidad_ventas} ventas</td>
+                    <td style={{ padding: '11px 14px', fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>
                       {!tieneDiferencia ? (
                         <span style={{ color: 'var(--text2)' }}>—</span>
                       ) : Number(dif) === 0 ? (
