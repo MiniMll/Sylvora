@@ -4,10 +4,11 @@ import { toast } from 'sonner'
 import { getVentas, anularVenta } from '@/lib/supabase/ventas'
 import { formatPeso, formatTicketText, shareOrCopy, formatFechaTicket, labelMetodoPago } from '@/lib/utils'
 import { puedeAnularVenta } from '@/lib/permissions'
-import { Search, TrendingUp, Receipt, Hash, X, Loader2, AlertTriangle, Printer, Share2 } from 'lucide-react'
+import { Search, TrendingUp, Receipt, Hash, X, AlertTriangle, Printer, Share2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { TicketReceipt } from '@/components/TicketReceipt'
 import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 import type { Venta } from '@/types/database'
 
 export default function VentasPage() {
@@ -384,32 +385,14 @@ export default function VentasPage() {
 
               {/* Acciones */}
               <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-                <button onClick={handleImprimir}
-                  title="Imprimir ticket"
-                  style={{
-                    flex: '1 1 auto', minWidth: 100,
-                    padding: '10px', borderRadius: 8,
-                    background: 'var(--bg2)', color: 'var(--text)',
-                    border: '1px solid var(--border)',
-                    fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}>
-                  <Printer size={14} /> Imprimir
-                </button>
-                <button onClick={handleCompartir}
-                  title="Compartir ticket"
-                  style={{
-                    flex: '1 1 auto', minWidth: 100,
-                    padding: '10px', borderRadius: 8,
-                    background: 'var(--bg2)', color: 'var(--text)',
-                    border: '1px solid var(--border)',
-                    fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}>
-                  <Share2 size={14} /> Compartir
-                </button>
+                <Button variant="ghost" icon={<Printer size={14} />} onClick={handleImprimir} title="Imprimir ticket"
+                  style={{ flex: '1 1 auto', minWidth: 100 }}>
+                  Imprimir
+                </Button>
+                <Button variant="ghost" icon={<Share2 size={14} />} onClick={handleCompartir} title="Compartir ticket"
+                  style={{ flex: '1 1 auto', minWidth: 100 }}>
+                  Compartir
+                </Button>
                 {permiso.allowed && (
                   <button
                     onClick={() => setConfirmarAnular(true)}
@@ -427,16 +410,9 @@ export default function VentasPage() {
                     Anular venta
                   </button>
                 )}
-                <button onClick={() => setDetalle(null)}
-                  style={{
-                    flex: '1 1 100%',
-                    padding: '10px', borderRadius: 8,
-                    background: 'var(--ac)', color: 'white', border: 'none',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'inherit',
-                  }}>
+                <Button variant="primary" onClick={() => setDetalle(null)} style={{ flex: '1 1 100%' }}>
                   Cerrar
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -460,38 +436,12 @@ export default function VentasPage() {
         size="sm"
         footer={
           <>
-            <button
-              onClick={() => setConfirmarAnular(false)}
-              disabled={anulando}
-              style={{
-                flex: 1, padding: '11px', borderRadius: 9,
-                border: '1px solid var(--border)', background: 'var(--bg2)',
-                fontSize: 13, fontWeight: 500,
-                cursor: anulando ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit', color: 'var(--text)',
-                opacity: anulando ? 0.6 : 1,
-              }}>
+            <Button variant="ghost" onClick={() => setConfirmarAnular(false)} disabled={anulando} style={{ flex: 1 }}>
               Cancelar
-            </button>
-            <button
-              onClick={handleAnular}
-              disabled={anulando}
-              style={{
-                flex: 1, padding: '11px', borderRadius: 9,
-                background: 'var(--r)', color: 'white', border: 'none',
-                fontSize: 13, fontWeight: 600,
-                cursor: anulando ? 'wait' : 'pointer',
-                fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                opacity: anulando ? 0.85 : 1,
-              }}>
-              {anulando ? (
-                <>
-                  <Loader2 size={13} style={{ animation: 'spin 0.75s linear infinite' }} />
-                  Anulando…
-                </>
-              ) : 'Sí, anular'}
-            </button>
+            </Button>
+            <Button variant="danger" onClick={handleAnular} loading={anulando} style={{ flex: 1 }}>
+              {anulando ? 'Anulando…' : 'Sí, anular'}
+            </Button>
           </>
         }>
         {detalle && (

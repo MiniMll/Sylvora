@@ -13,6 +13,7 @@ import { POSProducts } from './components/POSProducts'
 import { POSCart } from './components/POSCart'
 import { POSPayment } from './components/POSPayment'
 import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 
 const necesitaModal = (p: Producto) => ['kg', 'litro', 'metro'].includes(p.unidad_venta)
 
@@ -171,14 +172,12 @@ export default function POSPage() {
         size="sm"
         footer={
           <>
-            <button onClick={cerrarModalCantidad}
-              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+            <Button variant="ghost" onClick={cerrarModalCantidad} style={{ flex: 1 }}>
               Cancelar
-            </button>
-            <button onClick={agregarConCantidad}
-              style={{ flex: 2, padding: '11px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            </Button>
+            <Button variant="primary" onClick={agregarConCantidad} style={{ flex: 2 }}>
               Agregar al ticket
-            </button>
+            </Button>
           </>
         }>
         {modalCantidad && (

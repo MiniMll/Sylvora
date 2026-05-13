@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react'
 import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja } from '@/lib/supabase/caja'
 import { formatPeso } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingDown, CheckCircle, Loader2, AlertCircle, Banknote, Smartphone, CreditCard } from 'lucide-react'
+import { TrendingDown, CheckCircle, AlertCircle, Banknote, Smartphone, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 
 export default function CajaPage() {
   const [ventas, setVentas] = useState<any[]>([])
@@ -128,14 +129,12 @@ export default function CajaPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setModalEgreso(true)}
-            style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--r)', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <TrendingDown size={14} /> Registrar egreso
-          </button>
-          <button onClick={() => setModalCierre(true)}
-            style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <CheckCircle size={14} /> Cerrar caja
-          </button>
+          <Button variant="danger" size="sm" icon={<TrendingDown size={14} />} onClick={() => setModalEgreso(true)}>
+            Registrar egreso
+          </Button>
+          <Button variant="primary" size="sm" icon={<CheckCircle size={14} />} onClick={() => setModalCierre(true)}>
+            Cerrar caja
+          </Button>
         </div>
       </div>
 
@@ -320,14 +319,12 @@ export default function CajaPage() {
         size="sm"
         footer={
           <>
-            <button onClick={() => setModalEgreso(false)}
-              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.1)', background: 'var(--card)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <Button variant="ghost" onClick={() => setModalEgreso(false)} style={{ flex: 1 }}>
               Cancelar
-            </button>
-            <button onClick={guardarEgreso} disabled={guardando}
-              style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--r)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              {guardando ? <><Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> Guardando...</> : 'Registrar'}
-            </button>
+            </Button>
+            <Button variant="danger" onClick={guardarEgreso} loading={guardando} style={{ flex: 1 }}>
+              {guardando ? 'Guardando...' : 'Registrar'}
+            </Button>
           </>
         }>
         <div style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -365,17 +362,12 @@ export default function CajaPage() {
         size="md"
         footer={
           <>
-            <button onClick={() => setModalCierre(false)}
-              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+            <Button variant="ghost" onClick={() => setModalCierre(false)} style={{ flex: 1 }}>
               Cancelar
-            </button>
-            <button onClick={handleCerrarCaja} disabled={cerrando}
-              style={{ flex: 2, padding: '11px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              {cerrando
-                ? <><Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> Cerrando...</>
-                : <><CheckCircle size={14} /> Confirmar cierre</>
-              }
-            </button>
+            </Button>
+            <Button variant="primary" onClick={handleCerrarCaja} loading={cerrando} icon={!cerrando ? <CheckCircle size={14} /> : undefined} style={{ flex: 2 }}>
+              {cerrando ? 'Cerrando...' : 'Confirmar cierre'}
+            </Button>
           </>
         }>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>

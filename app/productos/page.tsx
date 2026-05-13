@@ -11,6 +11,7 @@ import { ProductGrid } from './components/ProductGrid'
 import { ProductDetail } from './components/ProductDetail'
 import { EditProductModal, type EditFormValues } from './components/EditProductModal'
 import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 
 const inpStyle: React.CSSProperties = {
   border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px',
@@ -266,14 +267,12 @@ export default function ProductosPage() {
         size="sm"
         footer={
           <>
-            <button onClick={() => setModalLote(null)}
-              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+            <Button variant="ghost" onClick={() => setModalLote(null)} style={{ flex: 1 }}>
               Cancelar
-            </button>
-            <button onClick={guardarNuevoLote} disabled={guardandoLote}
-              style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--g)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+            </Button>
+            <Button variant="success" onClick={guardarNuevoLote} loading={guardandoLote} style={{ flex: 1 }}>
               {guardandoLote ? 'Guardando...' : 'Agregar lote'}
-            </button>
+            </Button>
           </>
         }>
         {modalLote && (
@@ -315,14 +314,12 @@ export default function ProductosPage() {
         size="sm"
         footer={
           <>
-            <button onClick={() => setConfirmarBorrar(null)}
-              style={{ flex: 1, padding: '11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+            <Button variant="ghost" onClick={() => setConfirmarBorrar(null)} style={{ flex: 1 }}>
               Cancelar
-            </button>
-            <button onClick={borrarProducto}
-              style={{ flex: 1, padding: '11px', borderRadius: 9, background: 'var(--r)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+            </Button>
+            <Button variant="danger" onClick={borrarProducto} style={{ flex: 1 }}>
               Sí, borrar
-            </button>
+            </Button>
           </>
         }>
         {confirmarBorrar && (

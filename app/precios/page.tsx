@@ -4,6 +4,7 @@ import { getProductos, actualizarProducto } from '@/lib/supabase/productos'
 import { toast } from 'sonner'
 import { TrendingUp, ChevronDown, AlertTriangle, X } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
+import { Button } from '@/components/ui/Button'
 import type { Producto } from '@/types/database'
 
 // Página de actualización de precios.
@@ -165,10 +166,9 @@ export default function PreciosPage() {
                 placeholder={batchTipo === 'porcentaje' ? 'Ej: 15' : 'Ej: 500'}
                 style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)' }}
               />
-              <button onClick={previsualizarBatch}
-                style={{ padding: '0 14px', borderRadius: 8, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <Button variant="primary" size="sm" onClick={previsualizarBatch}>
                 Precargar
-              </button>
+              </Button>
             </div>
             <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text2)' }}>
               {seleccionados.size === 0
@@ -298,40 +298,12 @@ export default function PreciosPage() {
           <span style={{ fontSize: 13, color: 'var(--text)' }}>
             <b style={{ color: 'var(--ac)' }}>{dirtyIds.length}</b> {dirtyIds.length === 1 ? 'cambio pendiente' : 'cambios pendientes'}
           </span>
-          <button
-            onClick={descartarCambios}
-            disabled={actualizando}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              padding: '7px 10px',
-              borderRadius: 8,
-              background: 'transparent',
-              color: 'var(--text2)',
-              border: '1px solid var(--border)',
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}>
-            <X size={12} /> Descartar
-          </button>
-          <button
-            onClick={aplicarCambios}
-            disabled={actualizando}
-            style={{
-              padding: '7px 16px',
-              borderRadius: 8,
-              background: 'var(--ac)',
-              color: 'white',
-              border: 'none',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: actualizando ? 'wait' : 'pointer',
-              fontFamily: 'inherit',
-              opacity: actualizando ? 0.7 : 1,
-            }}>
+          <Button variant="subtle" size="sm" icon={<X size={12} />} onClick={descartarCambios} disabled={actualizando}>
+            Descartar
+          </Button>
+          <Button variant="primary" size="sm" onClick={aplicarCambios} loading={actualizando}>
             {actualizando ? 'Aplicando...' : `Aplicar ${dirtyIds.length}`}
-          </button>
+          </Button>
         </div>
       )}
     </div>

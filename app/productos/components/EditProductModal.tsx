@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import type { Producto } from '@/types/database'
 import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 
 const inp: React.CSSProperties = {
   border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px',
@@ -77,14 +78,12 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
       size="md"
       footer={
         <>
-          <button onClick={onClose}
-            style={{ padding: '10px 16px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+          <Button variant="ghost" onClick={onClose}>
             Cancelar
-          </button>
-          <button onClick={() => onGuardar(form, imgFile)} disabled={guardando}
-            style={{ flex: 1, padding: '10px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+          </Button>
+          <Button variant="primary" onClick={() => onGuardar(form, imgFile)} loading={guardando} style={{ flex: 1 }}>
             {guardando ? 'Guardando...' : 'Guardar cambios'}
-          </button>
+          </Button>
         </>
       }>
         <div style={{ marginBottom: 14 }}>

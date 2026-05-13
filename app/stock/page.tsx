@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 import { stockColor, stockLabel } from '@/lib/utils'
 
 export default function StockPage() {
@@ -337,10 +338,9 @@ export default function StockPage() {
                       type="date" style={inp} />
                   </div>
                 </div>
-                <button onClick={guardarNuevoLote} disabled={guardandoLote}
-                  style={{ padding: '10px', borderRadius: 9, background: 'var(--g)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
+                <Button variant="success" onClick={guardarNuevoLote} loading={guardandoLote} style={{ marginTop: 4 }}>
                   {guardandoLote ? 'Agregando...' : 'Agregar lote al stock'}
-                </button>
+                </Button>
               </div>
             </div>
           </>

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Building2, Save, User, Phone, Mail, MapPin } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 export default function PerfilPage() {
   const [loading, setCargando] = useState(true)
@@ -159,11 +160,9 @@ export default function PerfilPage() {
           </div>
         </div>
 
-        <button onClick={guardar} disabled={guardando}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 24px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-          <Save size={14} />
+        <Button variant="primary" onClick={guardar} loading={guardando} icon={!guardando ? <Save size={14} /> : undefined}>
           {guardando ? 'Guardando...' : 'Guardar cambios'}
-        </button>
+        </Button>
       </div>
     </div>
   )

@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation'
 import { guardarProducto } from '@/lib/supabase/productos'
 import { agregarLote } from '@/lib/supabase/stock'
 import { toast } from 'sonner'
-import { DollarSign, Layers, Info, Loader2 } from 'lucide-react'
+import { DollarSign, Layers, Info } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 interface Lote { id: string; numero: string; cantidad: string; vencimiento: string }
 
@@ -298,43 +299,19 @@ export default function NuevoProductoPage() {
               )}
             </div>
           ))}
-          <button onClick={agregarLoteLocal}
-            style={{ marginTop: 6, padding: '6px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+          <Button variant="ghost" size="sm" onClick={agregarLoteLocal} style={{ marginTop: 6 }}>
             + Agregar otro lote
-          </button>
+          </Button>
         </div>
 
         <div style={{ display: 'flex', gap: 8, paddingBottom: 24 }}>
-          <button onClick={guardar} disabled={guardando}
-            aria-busy={guardando}
-            style={{
-              padding: '11px 22px', borderRadius: 9,
-              background: 'var(--ac)', color: 'white', border: 'none',
-              fontSize: 13, fontWeight: 600,
-              cursor: guardando ? 'wait' : 'pointer',
-              fontFamily: 'inherit',
-              display: 'flex', alignItems: 'center', gap: 8,
-              boxShadow: guardando ? 'none' : '0 2px 8px rgba(91,76,255,0.25)',
-              opacity: guardando ? 0.85 : 1,
-              transition: 'all 0.15s var(--ease-out)',
-            }}>
-            {guardando ? (
-              <>
-                <Loader2 size={14} style={{ animation: 'spin 0.75s linear infinite' }} />
-                Guardando…
-              </>
-            ) : 'Guardar producto'}
-          </button>
-          <button onClick={() => router.back()} disabled={guardando}
-            style={{
-              padding: '11px 18px', borderRadius: 9,
-              border: '1px solid var(--border)', background: 'var(--bg2)',
-              fontSize: 13, cursor: guardando ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit', color: 'var(--text)',
-              opacity: guardando ? 0.6 : 1,
-            }}>
+          <Button variant="primary" onClick={guardar} loading={guardando}
+            style={{ boxShadow: guardando ? 'none' : '0 2px 8px rgba(91,76,255,0.25)' }}>
+            {guardando ? 'Guardando…' : 'Guardar producto'}
+          </Button>
+          <Button variant="ghost" onClick={() => router.back()} disabled={guardando}>
             Cancelar
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { Package, X, Layers } from 'lucide-react'
 import { formatPeso, calcularMargen, stockColor, stockLabel, formatStock } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
 import type { Producto, Lote } from '@/types/database'
 
 function CodigoBarras({ codigo }: { codigo: string }) {
@@ -105,10 +106,9 @@ export function ProductDetail({
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 5 }}><Layers size={12} /> Lotes</div>
-              <button onClick={onAgregarLote}
-                style={{ padding: '4px 10px', borderRadius: 7, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <Button variant="primary" size="sm" onClick={onAgregarLote}>
                 + Agregar lote
-              </button>
+              </Button>
             </div>
             {cargandoLotes ? (
               <div style={{ fontSize: 12, color: 'var(--text2)', textAlign: 'center', padding: 12 }}>Cargando lotes...</div>
@@ -154,10 +154,9 @@ export function ProductDetail({
           )}
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onEditar}
-              style={{ flex: 1, padding: '10px', borderRadius: 9, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <Button variant="primary" onClick={onEditar} style={{ flex: 1 }}>
               ✏️ Editar
-            </button>
+            </Button>
             <button onClick={onBorrar}
               style={{ padding: '10px 14px', borderRadius: 9, background: 'var(--bg2)', color: 'var(--r)', border: '1px solid rgba(255,71,87,0.3)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
               🗑️
