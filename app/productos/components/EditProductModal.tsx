@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { Camera } from 'lucide-react'
 import type { Producto } from '@/types/database'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -38,6 +39,7 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
   })
   const [imgPreview, setImgPreview] = useState<string | null>(producto.imagen_url || null)
   const [imgFile, setImgFile] = useState<File | null>(null)
+  const [imgHover, setImgHover] = useState(false)
 
   // Si cambia el producto editado (rara vez), resetea el form.
   useEffect(() => {
@@ -81,12 +83,46 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
           </Button>
         </>
       }>
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Imagen</label>
-          <label style={{ width: 80, height: 70, borderRadius: 10, overflow: 'hidden', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--bg3)', fontSize: 28 }}>
-            {imgPreview ? <img src={imgPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5' style={{ color: 'var(--text2)' }}><path d='M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z'/><circle cx='12' cy='13' r='4'/></svg>}
+        <div style={{ marginBottom: 14, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          <label
+            onMouseEnter={() => setImgHover(true)}
+            onMouseLeave={() => setImgHover(false)}
+            style={{
+              width: 110, height: 110,
+              borderRadius: 12,
+              overflow: 'hidden',
+              border: imgPreview ? '1px solid var(--border)' : '2px dashed var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+              background: 'var(--bg3)',
+              position: 'relative',
+              flexShrink: 0,
+              transition: 'border-color 0.15s',
+            }}>
+            {imgPreview && <img src={imgPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            {(!imgPreview || imgHover) && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: imgPreview ? 'rgba(0,0,0,0.55)' : 'transparent',
+                color: imgPreview ? 'white' : 'var(--text2)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+                transition: 'background 0.15s',
+              }}>
+                <Camera size={22} strokeWidth={1.8} />
+                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '-0.01em' }}>
+                  {imgPreview ? 'Cambiar imagen' : 'Subir imagen'}
+                </span>
+              </div>
+            )}
             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImg} />
           </label>
+          <div style={{ flex: 1, paddingTop: 2 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Foto del producto</div>
+            <div style={{ fontSize: 11, color: 'var(--text2)', lineHeight: 1.5 }}>
+              Click en la imagen para {imgPreview ? 'cambiarla' : 'subirla'}.<br />
+              Recomendado: cuadrada, JPG o PNG.
+            </div>
+          </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {([

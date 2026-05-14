@@ -216,7 +216,7 @@ function POSPaymentImpl() {
     <>
       {/* Método pago */}
       <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6 }}>
           {METODOS.map(m => {
             const active = store.metodoPago === m.id
             return (
