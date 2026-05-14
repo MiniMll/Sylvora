@@ -150,10 +150,14 @@ export default function CajaPage() {
   }
 
   return (
+    // overflowY:auto + flex column: los hijos llevan flexShrink:0 para que
+    // el contenedor scrollee en vez de aplastarlos. Sin esto, el flex shrink
+    // colapsa secciones (sobre todo las que tienen overflow:hidden, que
+    // pierden su min-height de contenido) cuando la página se hace larga.
     <div style={{ padding: 20, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Caja Diaria</h1>
           <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>
@@ -171,7 +175,7 @@ export default function CajaPage() {
       </div>
 
       {/* KPIs */}
-      <div className="kpi-grid">
+      <div className="kpi-grid" style={{ flexShrink: 0 }}>
         {[
           { label: 'Total ventas', value: formatPeso(totalVentas), sub: `${ventasActivas.length} operaciones${anuladasCount > 0 ? ` · ${anuladasCount} anuladas no incluidas` : ''}`, color: 'var(--ac)' },
           { label: 'Egresos', value: formatPeso(totalEgresos), sub: `${movimientos.filter(m => m.tipo === 'egreso').length} movimientos`, color: 'var(--o)' },
@@ -188,7 +192,7 @@ export default function CajaPage() {
       </div>
 
       {/* Gráfico flujo */}
-      <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)' }}>
+      <div style={{ flexShrink: 0, background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)' }}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Flujo de caja del día</div>
         <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Ingresos y egresos por hora</div>
         {ventasActivas.length === 0 && totalEgresos === 0 ? (
@@ -210,7 +214,7 @@ export default function CajaPage() {
       </div>
 
       {/* Por método + movimientos */}
-      <div className="split-2 reverse">
+      <div className="split-2 reverse" style={{ flexShrink: 0 }}>
         <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>Por método de pago</div>
           {Object.entries(porMetodo).length === 0 ? (
@@ -293,6 +297,7 @@ export default function CajaPage() {
       {/* Historial cierres */}
       {cierresAnteriores.length > 0 && (
         <div ref={historialRef} style={{
+          flexShrink: 0,
           background: 'var(--card)',
           borderRadius: 16,
           border: '1px solid var(--border)',

@@ -158,6 +158,5 @@ export async function getCierresCaja(): Promise<CierreCaja[]> {
     console.error('[getCierresCaja] error:', error.code, '-', error.message)
     return []
   }
-  console.log('[getCierresCaja] comercioId:', comercioId, '· rows:', data?.length ?? 0)
   return (data ?? []) as CierreCaja[]
 }
