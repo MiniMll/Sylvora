@@ -142,7 +142,10 @@ export async function cerrarCaja(resumen: CerrarCajaInput): Promise<boolean> {
 export async function getCierresCaja(): Promise<CierreCaja[]> {
   const supabase = getBrowserClient()
   const comercioId = await getComercioId()
-  if (!comercioId) return []
+  if (!comercioId) {
+    console.warn('[getCierresCaja] sin comercioId — usuario/perfil no resuelto')
+    return []
+  }
 
   const { data, error } = await supabase
     .from('cierres_caja')
@@ -151,6 +154,10 @@ export async function getCierresCaja(): Promise<CierreCaja[]> {
     .order('fecha', { ascending: false })
     .limit(30)
 
-  if (error) { console.error('[getCierresCaja]', error); return [] }
+  if (error) {
+    console.error('[getCierresCaja] error:', error.code, '-', error.message)
+    return []
+  }
+  console.log('[getCierresCaja] comercioId:', comercioId, '· rows:', data?.length ?? 0)
   return (data ?? []) as CierreCaja[]
 }
