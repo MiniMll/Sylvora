@@ -12,12 +12,7 @@ import { ProductDetail } from './components/ProductDetail'
 import { EditProductModal, type EditFormValues } from './components/EditProductModal'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
-
-const inpStyle: React.CSSProperties = {
-  border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px',
-  fontSize: 12, outline: 'none', fontFamily: 'inherit',
-  background: 'var(--bg2)', color: 'var(--text)', width: '100%',
-}
+import { Input } from '@/components/ui/Input'
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -287,20 +282,20 @@ export default function ProductosPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div>
                 <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Número de lote *</label>
-                <input value={nuevoLote.numero_lote} onChange={e => setNuevoLote(p => ({ ...p, numero_lote: e.target.value }))}
-                  placeholder="Ej: L-2025-05-001" style={inpStyle} />
+                <Input value={nuevoLote.numero_lote} onChange={e => setNuevoLote(p => ({ ...p, numero_lote: e.target.value }))}
+                  placeholder="Ej: L-2025-05-001" />
               </div>
               <div>
                 <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                   {modalLote.unidad_venta === 'kg' ? 'Peso (kg) *' : 'Cantidad *'}
                 </label>
-                <input value={nuevoLote.cantidad} onChange={e => setNuevoLote(p => ({ ...p, cantidad: e.target.value }))}
-                  type="number" placeholder={modalLote.unidad_venta === 'kg' ? 'Ej: 4.5' : 'Ej: 24'} style={inpStyle} />
+                <Input value={nuevoLote.cantidad} onChange={e => setNuevoLote(p => ({ ...p, cantidad: e.target.value }))}
+                  type="number" placeholder={modalLote.unidad_venta === 'kg' ? 'Ej: 4.5' : 'Ej: 24'} />
               </div>
               <div>
                 <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Fecha de vencimiento</label>
-                <input value={nuevoLote.fecha_vencimiento} onChange={e => setNuevoLote(p => ({ ...p, fecha_vencimiento: e.target.value }))}
-                  type="date" style={inpStyle} />
+                <Input value={nuevoLote.fecha_vencimiento} onChange={e => setNuevoLote(p => ({ ...p, fecha_vencimiento: e.target.value }))}
+                  type="date" />
               </div>
             </div>
           </>

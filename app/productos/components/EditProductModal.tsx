@@ -3,12 +3,7 @@ import { useState, useEffect } from 'react'
 import type { Producto } from '@/types/database'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
-
-const inp: React.CSSProperties = {
-  border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px',
-  fontSize: 12, outline: 'none', fontFamily: 'inherit',
-  background: 'var(--bg2)', color: 'var(--text)', width: '100%',
-}
+import { Input, Select } from '@/components/ui/Input'
 
 export interface EditFormValues {
   nombre: string
@@ -106,21 +101,21 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
           ] as { label: string; key: keyof EditFormValues; type?: string; full?: boolean }[]).map(f => (
             <div key={f.key} style={{ gridColumn: f.full ? '1 / -1' : 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
               <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500 }}>{f.label}</label>
-              <input type={f.type || 'text'} value={form[f.key] || ''}
+              <Input type={f.type || 'text'} value={form[f.key] || ''}
                 onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                style={inp} />
+                style={{ padding: '8px 10px' }} />
             </div>
           ))}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500 }}>Unidad de venta</label>
-            <select value={form.unidad_venta || 'unidad'}
+            <Select value={form.unidad_venta || 'unidad'}
               onChange={e => setForm(prev => ({ ...prev, unidad_venta: e.target.value }))}
-              style={inp}>
+              style={{ padding: '8px 10px' }}>
               <option value="unidad">Unidad</option>
               <option value="kg">Kilogramo (kg)</option>
               <option value="litro">Litro</option>
               <option value="metro">Metro</option>
-            </select>
+            </Select>
           </div>
         </div>
     </Modal>

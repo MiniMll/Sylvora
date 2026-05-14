@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { TicketReceipt } from '@/components/TicketReceipt'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { Select } from '@/components/ui/Input'
 import type { Venta } from '@/types/database'
 
 export default function VentasPage() {
@@ -128,7 +129,9 @@ export default function VentasPage() {
     </div>
   )
 
-  const inp: React.CSSProperties = {
+  // Estilo del search con icono inline — wrapping con <Search> requiere
+  // estructura propia, se mantiene fuera de la primitiva <Input>.
+  const inpSearch: React.CSSProperties = {
     border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px',
     fontSize: 12, outline: 'none', fontFamily: 'inherit',
     background: 'var(--bg2)', color: 'var(--text)'
@@ -172,21 +175,21 @@ export default function VentasPage() {
           <Search size={13} color="var(--text2)" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)' }} />
           <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
             placeholder="Buscar por ticket, monto..."
-            style={{ ...inp, width: '100%', paddingLeft: 28 }} />
+            style={{ ...inpSearch, width: '100%', paddingLeft: 28 }} />
         </div>
-        <select value={filtroMetodo} onChange={e => setFiltroMetodo(e.target.value)} style={inp}>
+        <Select value={filtroMetodo} onChange={e => setFiltroMetodo(e.target.value)} style={{ width: 'auto' }}>
           <option value="todos">Todos los métodos</option>
           <option value="efectivo">Efectivo</option>
           <option value="debito">Débito</option>
           <option value="credito">Crédito</option>
           <option value="mercadopago">Mercado Pago</option>
-        </select>
-        <select value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} style={inp}>
+        </Select>
+        <Select value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} style={{ width: 'auto' }}>
           <option value="todo">Todo el historial</option>
           <option value="hoy">Hoy</option>
           <option value="semana">Esta semana</option>
           <option value="mes">Este mes</option>
-        </select>
+        </Select>
         {(busqueda || filtroMetodo !== 'todos' || filtroFecha !== 'todo') && (
           <button onClick={() => { setBusqueda(''); setFiltroMetodo('todos'); setFiltroFecha('todo') }}
             style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', fontSize: 11, color: 'var(--text2)', fontFamily: 'inherit' }}>

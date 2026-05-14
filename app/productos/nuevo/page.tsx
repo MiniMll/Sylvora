@@ -6,6 +6,7 @@ import { agregarLote } from '@/lib/supabase/stock'
 import { toast } from 'sonner'
 import { DollarSign, Layers, Info } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Input, Select } from '@/components/ui/Input'
 
 interface Lote { id: string; numero: string; cantidad: string; vencimiento: string }
 
@@ -109,9 +110,12 @@ export default function NuevoProductoPage() {
     router.push('/productos')
   }
 
-  const inp: React.CSSProperties = {
+  // Estilo del "fake input" usado en el display de margen calculado
+  // (no es un input real, es un div mostrando el valor con la misma
+  // apariencia visual que un <Input size='md'>).
+  const inpDisplay: React.CSSProperties = {
     border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px',
-    fontSize: 12.5, outline: 'none', fontFamily: 'inherit',
+    fontSize: 13, outline: 'none', fontFamily: 'inherit',
     background: 'var(--bg2)', color: 'var(--text)', width: '100%',
   }
   const lbl: React.CSSProperties = { fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 5, letterSpacing: '0.01em' }
@@ -141,32 +145,32 @@ export default function NuevoProductoPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={lbl}>Nombre del producto *</label>
-              <input style={inp} placeholder="Ej: Coca-Cola 2.25 litros" value={form.nombre} onChange={e => set('nombre', e.target.value)} />
+              <Input size="md" placeholder="Ej: Coca-Cola 2.25 litros" value={form.nombre} onChange={e => set('nombre', e.target.value)} />
             </div>
             <div>
               <label style={lbl}>Tipo de venta *</label>
-              <select style={inp} value={form.unidad_venta} onChange={e => set('unidad_venta', e.target.value)}>
+              <Select size="md" value={form.unidad_venta} onChange={e => set('unidad_venta', e.target.value)}>
                 <option value="unidad">Por unidad</option>
                 <option value="kg">Por kilogramo (peso)</option>
                 <option value="litro">Por litro</option>
                 <option value="metro">Por metro</option>
                 <option value="caja">Caja / Docena</option>
-              </select>
+              </Select>
             </div>
             <div>
               <label style={lbl}>Categoría</label>
-              <select style={inp} value={form.categoria} onChange={e => set('categoria', e.target.value)}>
+              <Select size="md" value={form.categoria} onChange={e => set('categoria', e.target.value)}>
                 <option value="">Seleccionar...</option>
                 {['Bebidas', 'Almacén', 'Ferretería', 'Lácteos', 'Limpieza', 'Panadería', 'Fiambrería', 'Otro'].map(c => <option key={c}>{c}</option>)}
-              </select>
+              </Select>
             </div>
             <div>
               <label style={lbl}>Código de barras (EAN)</label>
-              <input style={{ ...inp, fontFamily: 'DM Mono, monospace' }} placeholder="7790001001234" value={form.codigo_barras} onChange={e => set('codigo_barras', e.target.value)} />
+              <Input size="md" style={{ fontFamily: 'DM Mono, monospace' }} placeholder="7790001001234" value={form.codigo_barras} onChange={e => set('codigo_barras', e.target.value)} />
             </div>
             <div>
               <label style={lbl}>SKU interno</label>
-              <input style={{ ...inp, fontFamily: 'DM Mono, monospace' }} placeholder="SKU-001" value={form.sku} onChange={e => set('sku', e.target.value)} />
+              <Input size="md" style={{ fontFamily: 'DM Mono, monospace' }} placeholder="SKU-001" value={form.sku} onChange={e => set('sku', e.target.value)} />
             </div>
 
             {/* Imagen */}
@@ -197,7 +201,7 @@ export default function NuevoProductoPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={lbl}>Precio de compra (costo)</label>
-              <input style={inp} type="number" placeholder="0.00" value={form.precio_costo} onChange={e => set('precio_costo', e.target.value)} />
+              <Input size="md" type="number" placeholder="0.00" value={form.precio_costo} onChange={e => set('precio_costo', e.target.value)} />
             </div>
 
             {/* Solo si NO es kg */}
@@ -205,11 +209,11 @@ export default function NuevoProductoPage() {
               <>
                 <div>
                   <label style={lbl}>Precio de venta *</label>
-                  <input style={inp} type="number" placeholder="0.00" value={form.precio_venta} onChange={e => set('precio_venta', e.target.value)} />
+                  <Input size="md" type="number" placeholder="0.00" value={form.precio_venta} onChange={e => set('precio_venta', e.target.value)} />
                 </div>
                 <div>
                   <label style={lbl}>Precio mayorista</label>
-                  <input style={inp} type="number" placeholder="0.00" value={form.precio_mayorista} onChange={e => set('precio_mayorista', e.target.value)} />
+                  <Input size="md" type="number" placeholder="0.00" value={form.precio_mayorista} onChange={e => set('precio_mayorista', e.target.value)} />
                 </div>
               </>
             )}
@@ -218,24 +222,24 @@ export default function NuevoProductoPage() {
             {esKg && (
               <div>
                 <label style={lbl}>Precio por kilogramo *</label>
-                <input style={inp} type="number" placeholder="$ por kg" value={form.precio_por_kg} onChange={e => set('precio_por_kg', e.target.value)} />
+                <Input size="md" type="number" placeholder="$ por kg" value={form.precio_por_kg} onChange={e => set('precio_por_kg', e.target.value)} />
               </div>
             )}
 
             <div>
               <label style={lbl}>IVA</label>
-              <select style={inp}>
+              <Select size="md">
                 <option>21% (General)</option>
                 <option>10.5% (Reducido)</option>
                 <option>0% (Exento)</option>
-              </select>
+              </Select>
             </div>
 
             {/* Margen solo si no es kg */}
             {!esKg && margenCalc !== null && (
               <div>
                 <label style={lbl}>Margen calculado</label>
-                <div style={{ ...inp, color: margenCalc < 20 ? 'var(--r)' : margenCalc < 35 ? 'var(--w)' : 'var(--g)', fontWeight: 600 }}>
+                <div style={{ ...inpDisplay, color: margenCalc < 20 ? 'var(--r)' : margenCalc < 35 ? 'var(--w)' : 'var(--g)', fontWeight: 600 }}>
                   {margenCalc}% de margen
                 </div>
               </div>
@@ -259,17 +263,17 @@ export default function NuevoProductoPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
             <div>
               <label style={lbl}>Stock mínimo (alerta)</label>
-              <input style={inp} type="number" placeholder="10" value={form.stock_minimo} onChange={e => set('stock_minimo', e.target.value)} />
+              <Input size="md" type="number" placeholder="10" value={form.stock_minimo} onChange={e => set('stock_minimo', e.target.value)} />
               {esKg && <span style={{ fontSize: 10, color: 'var(--text2)', marginTop: 2, display: 'block' }}>En kg</span>}
             </div>
             <div>
               <label style={lbl}>Stock ideal</label>
-              <input style={inp} type="number" placeholder="50" value={form.stock_ideal} onChange={e => set('stock_ideal', e.target.value)} />
+              <Input size="md" type="number" placeholder="50" value={form.stock_ideal} onChange={e => set('stock_ideal', e.target.value)} />
               {esKg && <span style={{ fontSize: 10, color: 'var(--text2)', marginTop: 2, display: 'block' }}>En kg</span>}
             </div>
             <div>
               <label style={lbl}>Ubicación en el local</label>
-              <input style={inp} placeholder="Ej: Góndola A3" value={form.ubicacion} onChange={e => set('ubicacion', e.target.value)} />
+              <Input size="md" placeholder="Ej: Góndola A3" value={form.ubicacion} onChange={e => set('ubicacion', e.target.value)} />
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
               <div style={{ background: 'rgba(0,200,150,0.08)', borderRadius: 8, padding: '8px 12px', fontSize: 11, border: '1px solid rgba(0,200,150,0.2)', width: '100%' }}>
@@ -288,12 +292,12 @@ export default function NuevoProductoPage() {
           {lotes.map((lote, idx) => (
             <div key={lote.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, background: 'var(--bg3)', borderRadius: 8, padding: '8px 10px', marginBottom: 6, border: '1px solid var(--border)' }}>
               <span style={{ fontSize: 10, color: 'var(--text2)', width: 50, flexShrink: 0 }}>Lote {idx + 1}</span>
-              <input value={lote.numero} onChange={e => updateLote(lote.id, 'numero', e.target.value)}
-                placeholder="Nro. lote" style={{ ...inp, width: 110, minWidth: 0, flex: '1 1 110px' }} />
-              <input value={lote.cantidad} onChange={e => updateLote(lote.id, 'cantidad', e.target.value)}
-                placeholder={esKg ? 'Kg' : 'Cant.'} type="number" style={{ ...inp, width: 70, minWidth: 0, flex: '0 0 70px' }} />
-              <input value={lote.vencimiento} onChange={e => updateLote(lote.id, 'vencimiento', e.target.value)}
-                type="date" style={{ ...inp, minWidth: 0, flex: '1 1 130px' }} />
+              <Input size="md" value={lote.numero} onChange={e => updateLote(lote.id, 'numero', e.target.value)}
+                placeholder="Nro. lote" style={{ width: 110, minWidth: 0, flex: '1 1 110px' }} />
+              <Input size="md" value={lote.cantidad} onChange={e => updateLote(lote.id, 'cantidad', e.target.value)}
+                placeholder={esKg ? 'Kg' : 'Cant.'} type="number" style={{ width: 70, minWidth: 0, flex: '0 0 70px' }} />
+              <Input size="md" value={lote.vencimiento} onChange={e => updateLote(lote.id, 'vencimiento', e.target.value)}
+                type="date" style={{ minWidth: 0, flex: '1 1 130px' }} />
               {lotes.length > 1 && (
                 <button onClick={() => quitarLote(lote.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--r)', fontSize: 16, flexShrink: 0 }}>✕</button>
               )}

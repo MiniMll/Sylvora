@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { TrendingUp, ChevronDown, AlertTriangle, X } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import type { Producto } from '@/types/database'
 
 // Página de actualización de precios.
@@ -159,12 +160,13 @@ export default function PreciosPage() {
                   </button>
                 ))}
               </div>
-              <input
+              <Input
+                size="md"
                 type="number"
                 value={batchValor}
                 onChange={e => setBatchValor(e.target.value)}
                 placeholder={batchTipo === 'porcentaje' ? 'Ej: 15' : 'Ej: 500'}
-                style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)' }}
+                style={{ padding: '8px 10px' }}
               />
               <Button variant="primary" size="sm" onClick={previsualizarBatch}>
                 Precargar

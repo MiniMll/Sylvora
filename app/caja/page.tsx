@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { Input, Select } from '@/components/ui/Input'
 
 export default function CajaPage() {
   const [ventas, setVentas] = useState<any[]>([])
@@ -377,24 +378,22 @@ export default function CajaPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Descripción *</label>
-            <input value={egreso.descripcion} onChange={e => setEgreso(p => ({ ...p, descripcion: e.target.value }))}
-              placeholder="Ej: Compra de mercadería"
-              style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }} />
+            <Input size="md" value={egreso.descripcion} onChange={e => setEgreso(p => ({ ...p, descripcion: e.target.value }))}
+              placeholder="Ej: Compra de mercadería" />
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Monto *</label>
-            <input value={egreso.monto} onChange={e => setEgreso(p => ({ ...p, monto: e.target.value }))}
+            <Input size="md" value={egreso.monto} onChange={e => setEgreso(p => ({ ...p, monto: e.target.value }))}
               type="number" placeholder="$ 0.00"
-              style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'DM Mono, monospace' }} />
+              style={{ fontFamily: 'DM Mono, monospace' }} />
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Método de pago</label>
-            <select value={egreso.metodo} onChange={e => setEgreso(p => ({ ...p, metodo: e.target.value }))}
-              style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 12px', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}>
+            <Select size="md" value={egreso.metodo} onChange={e => setEgreso(p => ({ ...p, metodo: e.target.value }))}>
               <option value="efectivo">Efectivo</option>
               <option value="debito">Débito</option>
               <option value="credito">Crédito</option>
-            </select>
+            </Select>
           </div>
         </div>
       </Modal>

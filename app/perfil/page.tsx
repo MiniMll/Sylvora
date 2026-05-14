@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Building2, Save, User, Phone, Mail, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Input, Select } from '@/components/ui/Input'
 
 export default function PerfilPage() {
   const [loading, setCargando] = useState(true)
@@ -72,11 +73,6 @@ export default function PerfilPage() {
     setGuardando(false)
   }
 
-  const inp: React.CSSProperties = {
-    width: '100%', border: '1px solid var(--border)', borderRadius: 8,
-    padding: '9px 12px', fontSize: 13, outline: 'none',
-    fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)'
-  }
   const lbl: React.CSSProperties = { fontSize: 12, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 5 }
   const sec: React.CSSProperties = { background: 'var(--card)', borderRadius: 16, padding: 20, border: '1px solid var(--border)', marginBottom: 14 }
 
@@ -102,29 +98,29 @@ export default function PerfilPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={lbl}>Nombre del comercio</label>
-              <input style={inp} value={form.nombre_comercio} onChange={e => setForm(f => ({ ...f, nombre_comercio: e.target.value }))} placeholder="Almacén Don Juan" />
+              <Input size="md" value={form.nombre_comercio} onChange={e => setForm(f => ({ ...f, nombre_comercio: e.target.value }))} placeholder="Almacén Don Juan" />
             </div>
             <div>
               <label style={lbl}>Tipo de comercio</label>
-              <select style={inp} value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
+              <Select size="md" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
                 <option value="kiosco">Kiosco</option>
                 <option value="almacen">Almacén</option>
                 <option value="ferreteria">Ferretería</option>
                 <option value="supermercado">Supermercado</option>
                 <option value="otro">Otro</option>
-              </select>
+              </Select>
             </div>
             <div>
               <label style={lbl}>Teléfono</label>
-              <input style={inp} value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="+54 11 1234-5678" />
+              <Input size="md" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="+54 11 1234-5678" />
             </div>
             <div>
               <label style={lbl}>Email del comercio</label>
-              <input style={inp} type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              <Input size="md" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={lbl}>Dirección</label>
-              <input style={inp} value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))} placeholder="Av. Corrientes 1234, CABA" />
+              <Input size="md" value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))} placeholder="Av. Corrientes 1234, CABA" />
             </div>
           </div>
         </div>
@@ -137,11 +133,11 @@ export default function PerfilPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Tu nombre</label>
-              <input style={inp} value={form.nombre_admin} onChange={e => setForm(f => ({ ...f, nombre_admin: e.target.value }))} placeholder="Juan García" />
+              <Input size="md" value={form.nombre_admin} onChange={e => setForm(f => ({ ...f, nombre_admin: e.target.value }))} placeholder="Juan García" />
             </div>
             <div>
               <label style={lbl}>Email de acceso</label>
-              <input style={{ ...inp, opacity: 0.6 }} value={form.email} disabled />
+              <Input size="md" style={{ opacity: 0.6 }} value={form.email} disabled />
             </div>
           </div>
         </div>

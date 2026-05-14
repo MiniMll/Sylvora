@@ -8,6 +8,7 @@ import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2 } from
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { stockColor, stockLabel, formatVencimiento } from '@/lib/utils'
 
 export default function StockPage() {
@@ -127,12 +128,6 @@ export default function StockPage() {
   const criticos = productos.filter(p => p.stock_actual > 0 && p.stock_actual <= p.stock_minimo * 0.3)
   const bajos = productos.filter(p => p.stock_actual > p.stock_minimo * 0.3 && p.stock_actual <= p.stock_minimo)
   const ok = productos.filter(p => p.stock_actual > p.stock_minimo)
-
-  const inp: React.CSSProperties = {
-    width: '100%', border: '1px solid var(--border)', borderRadius: 8,
-    padding: '8px 10px', fontSize: 12, outline: 'none',
-    fontFamily: 'inherit', background: 'var(--bg2)', color: 'var(--text)'
-  }
 
   if (cargando) return <Spinner texto="Cargando stock..." />
 
@@ -296,8 +291,8 @@ export default function StockPage() {
                         </div>
                         {editando && (
                           <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <input type="number" value={nuevoStockLote} onChange={e => setNuevoStockLote(e.target.value)}
-                              style={{ ...inp, flex: 1 }} placeholder="Nueva cantidad" autoFocus />
+                            <Input type="number" value={nuevoStockLote} onChange={e => setNuevoStockLote(e.target.value)}
+                              style={{ flex: 1, padding: '8px 10px' }} placeholder="Nueva cantidad" autoFocus />
                             <button onClick={guardarEdicionLote}
                               style={{ padding: '7px 12px', borderRadius: 7, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                               ✓
@@ -321,19 +316,19 @@ export default function StockPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div>
                   <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>Número de lote *</label>
-                  <input value={nuevoLote.numero_lote} onChange={e => setNuevoLote(p => ({ ...p, numero_lote: e.target.value }))}
-                    placeholder="Ej: L-2025-05-001" style={inp} />
+                  <Input value={nuevoLote.numero_lote} onChange={e => setNuevoLote(p => ({ ...p, numero_lote: e.target.value }))}
+                    placeholder="Ej: L-2025-05-001" style={{ padding: '8px 10px' }} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <div>
                     <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>Cantidad *</label>
-                    <input value={nuevoLote.cantidad} onChange={e => setNuevoLote(p => ({ ...p, cantidad: e.target.value }))}
-                      type="number" placeholder="0" style={inp} />
+                    <Input value={nuevoLote.cantidad} onChange={e => setNuevoLote(p => ({ ...p, cantidad: e.target.value }))}
+                      type="number" placeholder="0" style={{ padding: '8px 10px' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>Fecha vencimiento</label>
-                    <input value={nuevoLote.fecha_vencimiento} onChange={e => setNuevoLote(p => ({ ...p, fecha_vencimiento: e.target.value }))}
-                      type="date" style={inp} />
+                    <Input value={nuevoLote.fecha_vencimiento} onChange={e => setNuevoLote(p => ({ ...p, fecha_vencimiento: e.target.value }))}
+                      type="date" style={{ padding: '8px 10px' }} />
                   </div>
                 </div>
                 <Button variant="success" onClick={guardarNuevoLote} loading={guardandoLote} style={{ marginTop: 4 }}>

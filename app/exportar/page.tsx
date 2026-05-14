@@ -5,6 +5,7 @@ import { getVentas } from '@/lib/supabase/ventas'
 import { toast } from 'sonner'
 import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
+import { Select } from '@/components/ui/Input'
 
 
 
@@ -245,19 +246,18 @@ export default function ExportarPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
             <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>Período</label>
-            <select value={periodo} onChange={e => setPeriodo(e.target.value)}
-              style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}>
+            <Select value={periodo} onChange={e => setPeriodo(e.target.value)} style={{ padding: '8px 10px' }}>
               <option value="hoy">Hoy</option>
               <option value="semana">Esta semana</option>
               <option value="mes">Este mes</option>
               <option value="todo">Todo el historial</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>Logo en encabezado</label>
-            <select style={{ width: '100%', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}>
+            <Select style={{ padding: '8px 10px' }}>
               <option>Sí</option><option>No</option>
-            </select>
+            </Select>
           </div>
         </div>
       </div>
