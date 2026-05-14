@@ -87,6 +87,20 @@ export default function CajaPage() {
   const hoyStr = new Date().toISOString().split('T')[0]
   const cerradoHoy = cierresAnteriores.some(c => c.fecha === hoyStr)
 
+  // Movimientos del día = ventas + egresos mezclados en orden cronológico
+  // descendente (lo más reciente arriba). Antes la tabla mostraba primero
+  // todas las ventas y después todos los egresos, lo cual era confuso
+  // porque un egreso reciente quedaba abajo de ventas viejas.
+  type MovRow =
+    | { kind: 'venta'; id: string; created_at: string; data: any }
+    | { kind: 'egreso'; id: string; created_at: string; data: any }
+  const movimientosDia: MovRow[] = [
+    ...ventas.map((v: any) => ({ kind: 'venta' as const, id: v.id, created_at: v.created_at, data: v })),
+    ...movimientos
+      .filter(m => m.tipo === 'egreso')
+      .map((m: any) => ({ kind: 'egreso' as const, id: m.id, created_at: m.created_at, data: m })),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
   const handleCerrarCaja = async () => {
     setCerrando(true)
     const ok = await cerrarCaja({
@@ -237,37 +251,38 @@ export default function CajaPage() {
                 </tr>
               </thead>
               <tbody>
-                {ventas.map((v: any) => {
-                  const anulada = v.estado === 'anulada'
+                {movimientosDia.map(row => {
+                  const hora = new Date(row.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+                  if (row.kind === 'venta') {
+                    const v = row.data
+                    const anulada = v.estado === 'anulada'
+                    return (
+                      <tr key={`v-${v.id}`} className="row-hover" style={{ borderTop: '1px solid var(--border)', opacity: anulada ? 0.6 : 1 }}>
+                        <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>{hora}</td>
+                        <td style={{ padding: '8px 12px' }}>
+                          {anulada
+                            ? <span style={{ background: 'var(--bg3)', color: 'var(--text2)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Anulada</span>
+                            : <span style={{ background: 'rgba(0,200,150,0.1)', color: 'var(--g)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Venta</span>}
+                        </td>
+                        <td style={{ padding: '8px 12px', textDecoration: anulada ? 'line-through' : 'none', color: anulada ? 'var(--text2)' : 'var(--text)' }}>Ticket #{String(v.numero_ticket).padStart(4, '0')}</td>
+                        <td style={{ padding: '8px 12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
+                        <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: anulada ? 'var(--text2)' : 'var(--g)', textDecoration: anulada ? 'line-through' : 'none' }}>{anulada ? formatPeso(v.total) : `+${formatPeso(v.total)}`}</td>
+                      </tr>
+                    )
+                  }
+                  const m = row.data
                   return (
-                    <tr key={v.id} className="row-hover" style={{ borderTop: '1px solid var(--border)', opacity: anulada ? 0.6 : 1 }}>
-                      <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>
-                        {new Date(v.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                      </td>
+                    <tr key={`e-${m.id}`} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
+                      <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>{hora}</td>
                       <td style={{ padding: '8px 12px' }}>
-                        {anulada
-                          ? <span style={{ background: 'var(--bg3)', color: 'var(--text2)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Anulada</span>
-                          : <span style={{ background: 'rgba(0,200,150,0.1)', color: 'var(--g)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Venta</span>}
+                        <span style={{ background: 'rgba(255,71,87,0.1)', color: 'var(--r)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Egreso</span>
                       </td>
-                      <td style={{ padding: '8px 12px', textDecoration: anulada ? 'line-through' : 'none', color: anulada ? 'var(--text2)' : 'var(--text)' }}>Ticket #{String(v.numero_ticket).padStart(4, '0')}</td>
-                      <td style={{ padding: '8px 12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{v.metodo_pago}</td>
-                      <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: anulada ? 'var(--text2)' : 'var(--g)', textDecoration: anulada ? 'line-through' : 'none' }}>{anulada ? formatPeso(v.total) : `+${formatPeso(v.total)}`}</td>
+                      <td style={{ padding: '8px 12px' }}>{m.descripcion}</td>
+                      <td style={{ padding: '8px 12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{m.metodo_pago}</td>
+                      <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--r)' }}>-{formatPeso(m.monto)}</td>
                     </tr>
                   )
                 })}
-                {movimientos.filter(m => m.tipo === 'egreso').map((m: any) => (
-                  <tr key={m.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--text2)' }}>
-                      {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td style={{ padding: '8px 12px' }}>
-                      <span style={{ background: 'rgba(255,71,87,0.1)', color: 'var(--r)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>Egreso</span>
-                    </td>
-                    <td style={{ padding: '8px 12px' }}>{m.descripcion}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--text2)', textTransform: 'capitalize' }}>{m.metodo_pago}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--r)' }}>-{formatPeso(m.monto)}</td>
-                  </tr>
-                ))}
               </tbody>
             </table>
             </div>

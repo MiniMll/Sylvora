@@ -10,12 +10,22 @@ import { Input, Select } from '@/components/ui/Input'
 
 interface Lote { id: string; numero: string; cantidad: string; vencimiento: string }
 
+// Genera un numero_lote default con el mismo formato que el helper
+// server-side getSiguienteNumeroLote() para que el patrón sea
+// consistente: L-YYYY-MM-NNN. En "Nuevo producto" no podemos consultar
+// la DB todavía (el producto no existe), así que se computa client-side.
+function generarNumeroLoteLocal(idx: number): string {
+  const f = new Date()
+  const mes = String(f.getMonth() + 1).padStart(2, '0')
+  return `L-${f.getFullYear()}-${mes}-${String(idx + 1).padStart(3, '0')}`
+}
+
 export default function NuevoProductoPage() {
   const router = useRouter()
   const [guardando, setGuardando] = useState(false)
   const [imgPreview, setImgPreview] = useState<string | null>(null)
   const [imgFile, setImgFile] = useState<File | null>(null)
-  const [lotes, setLotes] = useState<Lote[]>([{ id: '1', numero: '', cantidad: '', vencimiento: '' }])
+  const [lotes, setLotes] = useState<Lote[]>([{ id: '1', numero: generarNumeroLoteLocal(0), cantidad: '', vencimiento: '' }])
   const [form, setForm] = useState({
     nombre: '', codigo_barras: '', sku: '', categoria: '',
     unidad_venta: 'unidad', precio_costo: '', precio_venta: '',
@@ -32,7 +42,7 @@ export default function NuevoProductoPage() {
 
   const stockInicialTotal = lotes.reduce((s, l) => s + (Number(l.cantidad) || 0), 0)
 
-  const agregarLoteLocal = () => setLotes(l => [...l, { id: Date.now().toString(), numero: '', cantidad: '', vencimiento: '' }])
+  const agregarLoteLocal = () => setLotes(l => [...l, { id: Date.now().toString(), numero: generarNumeroLoteLocal(l.length), cantidad: '', vencimiento: '' }])
   const quitarLote = (id: string) => setLotes(l => l.filter(x => x.id !== id))
   const updateLote = (id: string, field: keyof Lote, val: string) =>
     setLotes(l => l.map(x => x.id === id ? { ...x, [field]: val } : x))
