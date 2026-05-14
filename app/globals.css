@@ -156,12 +156,17 @@ button:active { transform: scale(0.97); }
   .pos-search-panel {
     flex: 1 1 0 !important;
     margin: 8px 8px 4px !important;
-    min-height: 0 !important;
+    min-height: 120px !important;
   }
+  /* Cart panel: max-height 80dvh para que payment+items entren cómodos
+     incluso en pantallas chicas (~600px alto). El contenido total ronda
+     480px (header + items min + dto/recargo + totales + método + Cobrar);
+     a 60dvh = 360px en celulares chicos quedaba el botón Cobrar tapado.
+     Search-panel reserva min 120px para que siga usable. */
   .pos-cart-panel {
     flex: 0 1 auto !important;
     width: auto !important;
-    max-height: 60dvh !important;
+    max-height: 80dvh !important;
     margin: 4px 8px !important;
     margin-bottom: max(8px, env(safe-area-inset-bottom)) !important;
     min-height: 0 !important;
@@ -183,7 +188,7 @@ button:active { transform: scale(0.97); }
       max-height: 100vh !important;
     }
     .pos-cart-panel {
-      max-height: 60vh !important;
+      max-height: 80vh !important;
     }
   }
 }
