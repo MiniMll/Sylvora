@@ -59,24 +59,36 @@ interface CerrarCajaInput {
   efectivo_contado?: number | null
   /** efectivo_contado - efectivo_esperado. Calculado en el caller. */
   diferencia_efectivo?: number | null
+  /** Monto retirado al cerrar (opcional, solo informativo en V1). */
+  retiro_efectivo?: number | null
 }
 
+/** Resultado discriminado de cerrarCaja para que la UI pueda diferenciar
+ *  entre éxito, duplicado (ya hay un cierre hoy) y error genérico. */
+export type CerrarCajaResult = 'ok' | 'duplicate' | 'error'
+
 /**
- * Persiste un cierre de caja del día. Backward-compat con schemas que
- * todavía no corrieron las migraciones de `credito` y/o
- * `efectivo_contado/diferencia_efectivo`: si el insert falla por
- * columna inexistente, reintenta sin esos campos.
+ * Persiste un cierre de caja del día. La regla 1-cierre-por-día está
+ * garantizada por UNIQUE(comercio_id, fecha); si ya hay un cierre hoy,
+ * el insert falla con código 23505 y se devuelve 'duplicate' para que
+ * la UI muestre el mensaje correcto.
  *
- * Mantiene `transferencia: 0` por compatibilidad con schema antiguo
- * que tiene la columna pero ya no aplica al producto actual.
+ * Backward-compat con schemas que todavía no corrieron las migraciones
+ * de `credito` y/o `efectivo_contado/diferencia_efectivo`: reintenta
+ * sin esos campos si el error lo menciona. Los campos nuevos
+ * (`usuario_id`, `retiro_efectivo`) requieren la migration del rework
+ * — no se reintenta sin ellos.
  */
-export async function cerrarCaja(resumen: CerrarCajaInput): Promise<boolean> {
+export async function cerrarCaja(resumen: CerrarCajaInput): Promise<CerrarCajaResult> {
   const supabase = getBrowserClient()
   const comercioId = await getComercioId()
-  if (!comercioId) return false
+  if (!comercioId) return 'error'
+
+  const { data: { user } } = await supabase.auth.getUser()
 
   const payload: Record<string, any> = {
     comercio_id: comercioId,
+    usuario_id: user?.id ?? null,
     fecha: new Date().toISOString().split('T')[0],
     total_ventas: resumen.total_ventas,
     total_egresos: resumen.total_egresos,
@@ -92,35 +104,34 @@ export async function cerrarCaja(resumen: CerrarCajaInput): Promise<boolean> {
     payload.efectivo_contado = resumen.efectivo_contado
     payload.diferencia_efectivo = resumen.diferencia_efectivo ?? null
   }
+  if (resumen.retiro_efectivo !== undefined && resumen.retiro_efectivo !== null) {
+    payload.retiro_efectivo = resumen.retiro_efectivo
+  }
 
-  // Reintento recursivo eliminando columnas que el schema todavía no tiene.
-  // Usa .select() para confirmar que el row quedó visible post-insert
-  // (detecta el caso de RLS USING que permite INSERT pero bloquea SELECT).
-  const tryInsert = async (p: Record<string, any>): Promise<boolean> => {
+  const tryInsert = async (p: Record<string, any>): Promise<CerrarCajaResult> => {
     const { data, error } = await supabase
       .from('cierres_caja')
       .insert(p)
       .select('id')
       .single()
 
-    if (!error && data?.id) return true
+    if (!error && data?.id) return 'ok'
 
     const msg = error?.message || ''
 
-    // Caso: insert se ejecutó pero el SELECT post-insert no ve el row.
-    // Indica desalineación de policy RLS (USING permite INSERT pero
-    // USING/SELECT no devuelve el row al mismo usuario). Ej: get_comercio_id()
-    // retornando null en el contexto del SELECT.
-    if (!error && !data) {
-      console.warn('[cerrarCaja] insert sin error pero row no visible post-insert — revisar policy RLS de cierres_caja')
-      return false
-    }
+    // 23505 = unique_violation. El UNIQUE(comercio_id, fecha) rechaza
+    // un segundo cierre para el mismo día — la UI lo trata como "ya
+    // cerraste caja hoy" sin mostrar error técnico.
+    if (error?.code === '23505') return 'duplicate'
 
-    // PGRST116 = "JSON object requested, multiple (or no) rows returned"
-    // → insert pasó RLS pero el SELECT-after-INSERT fue bloqueado por RLS.
+    // Insert sin error pero sin data: RLS USING desalineada con SELECT.
+    if (!error && !data) {
+      console.warn('[cerrarCaja] insert sin error pero row no visible post-insert — revisar RLS')
+      return 'error'
+    }
     if (error && (error.code === 'PGRST116' || /no rows/i.test(msg))) {
-      console.warn('[cerrarCaja] insert pasó pero RLS bloquea releer el row. msg:', msg)
-      return false
+      console.warn('[cerrarCaja] RLS bloquea releer el row insertado. msg:', msg)
+      return 'error'
     }
 
     console.warn('[cerrarCaja] error:', error?.code, msg)
@@ -133,10 +144,45 @@ export async function cerrarCaja(resumen: CerrarCajaInput): Promise<boolean> {
       const { credito: _c, ...rest } = p
       return tryInsert(rest)
     }
-    return false
+    return 'error'
   }
 
   return tryInsert(payload)
+}
+
+/**
+ * Borra el cierre de hoy para volver el estado de caja a "abierta".
+ * Coherente con la decisión A del spec: reabrir = borrar, sin estado
+ * "anulado" ni múltiples cierres activos por día.
+ */
+export async function reabrirCaja(cierreId: string): Promise<boolean> {
+  const supabase = getBrowserClient()
+  const comercioId = await getComercioId()
+  if (!comercioId) return false
+  const { error } = await supabase
+    .from('cierres_caja')
+    .delete()
+    .eq('id', cierreId)
+    .eq('comercio_id', comercioId)
+  if (error) console.error('[reabrirCaja]', error.code, error.message)
+  return !error
+}
+
+/**
+ * Resuelve el nombre del responsable de un cierre a partir del
+ * usuario_id. Devuelve null si no hay id o el perfil no se encuentra.
+ * V1 single-user: en la práctica siempre es el usuario actual, pero
+ * la función queda lista para multi-user/roles.
+ */
+export async function getResponsableNombre(usuarioId: string | null | undefined): Promise<string | null> {
+  if (!usuarioId) return null
+  const supabase = getBrowserClient()
+  const { data } = await supabase
+    .from('perfiles')
+    .select('nombre')
+    .eq('id', usuarioId)
+    .single()
+  return (data?.nombre as string | null) ?? null
 }
 
 export async function getCierresCaja(): Promise<CierreCaja[]> {

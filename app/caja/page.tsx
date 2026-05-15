@@ -103,7 +103,7 @@ export default function CajaPage() {
 
   const handleCerrarCaja = async () => {
     setCerrando(true)
-    const ok = await cerrarCaja({
+    const result = await cerrarCaja({
       total_ventas: totalVentas,
       total_egresos: totalEgresos,
       saldo_neto: saldo,
@@ -116,7 +116,7 @@ export default function CajaPage() {
       diferencia_efectivo: diferencia,
     })
 
-    if (ok) {
+    if (result === 'ok') {
       toast.success('Caja cerrada correctamente', { id: 'cerrar-caja' })
       const prevIds = new Set(cierresAnteriores.map(c => c.id))
       const cierres = await getCierresCaja()
@@ -129,6 +129,11 @@ export default function CajaPage() {
       }
       // Scroll después de que el modal cierre y la nueva fila renderee
       setTimeout(() => historialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)
+    } else if (result === 'duplicate') {
+      toast.error('La caja de hoy ya fue cerrada', { id: 'cerrar-caja' })
+      // Reload para que la UI refleje el cierre existente.
+      const cierres = await getCierresCaja()
+      setCierresAnteriores(cierres)
     } else {
       toast.error('Error al cerrar la caja', { id: 'cerrar-caja' })
     }
