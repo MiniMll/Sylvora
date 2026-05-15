@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja, reabrirCaja, getResponsableNombre } from '@/lib/supabase/caja'
 import { formatPeso } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingDown, CheckCircle, AlertCircle, Banknote, Smartphone, CreditCard } from 'lucide-react'
+import { TrendingDown, CheckCircle, AlertCircle, Banknote, Smartphone, CreditCard, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
@@ -205,7 +205,7 @@ export default function CajaPage() {
       {/* Bloque de estado: el cierre de hoy ES estado, no historial.
           Reemplaza el header genérico + dos botones sueltos. Cambia
           completamente según estadoCaja. */}
-      <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
             {estadoCaja === 'abierta' ? (
@@ -281,7 +281,7 @@ export default function CajaPage() {
               </Button>
             </>
           ) : (
-            <Button variant="subtle" size="sm" onClick={() => setModalReabrir(true)}>
+            <Button variant="ghost" size="sm" icon={<RotateCcw size={13} />} onClick={() => setModalReabrir(true)}>
               Reabrir caja
             </Button>
           )}
