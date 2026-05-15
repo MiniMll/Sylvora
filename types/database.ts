@@ -99,6 +99,12 @@ export interface CierreCaja {
    *  Persistida para conservar el valor histórico aunque cambien
    *  ventas o egresos posteriormente. */
   diferencia_efectivo?: number | null
+  /** Usuario que ejecutó el cierre. Nullable para backward-compat con
+   *  cierres anteriores a la migración. = auth.uid() al cerrar. */
+  usuario_id?: string | null
+  /** Monto retirado al cerrar (opcional). Solo informativo en V1 —
+   *  no se arrastra como fondo del día siguiente. */
+  retiro_efectivo?: number | null
   created_at: string
 }
 
