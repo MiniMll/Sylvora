@@ -1,6 +1,6 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
-import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja } from '@/lib/supabase/caja'
+import { useEffect, useState } from 'react'
+import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja, reabrirCaja, getResponsableNombre } from '@/lib/supabase/caja'
 import { formatPeso } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingDown, CheckCircle, AlertCircle, Banknote, Smartphone, CreditCard } from 'lucide-react'
@@ -23,12 +23,15 @@ export default function CajaPage() {
   // Conteo físico de efectivo al cerrar. String para permitir el
   // input vacío (= "no conté"). Se parsea a number al confirmar.
   const [efectivoContado, setEfectivoContado] = useState('')
-  // Tras cerrar caja, identificamos el id del cierre recién insertado
-  // (haciendo diff vs los ids previos) para resaltar SOLO esa fila por
-  // ~2.5s. El scroll lleva el viewport al historial; la fila resaltada
-  // confirma cuál es la nueva sin ambigüedad.
-  const [nuevoCierreId, setNuevoCierreId] = useState<string | null>(null)
-  const historialRef = useRef<HTMLDivElement>(null)
+  // Retiro de efectivo opcional al cerrar (decisión D del spec —
+  // informativo, no se arrastra al día siguiente).
+  const [retiroEfectivo, setRetiroEfectivo] = useState('')
+  // Reabrir caja flow.
+  const [modalReabrir, setModalReabrir] = useState(false)
+  const [reabriendo, setReabriendo] = useState(false)
+  // Nombre del responsable del cierre actual (si hay). Se resuelve en
+  // un effect aparte porque no viene en el JOIN del SELECT.
+  const [responsable, setResponsable] = useState<string | null>(null)
 
   useEffect(() => {
     getCajaHoy().then(({ ventas, movimientos }) => {
@@ -41,6 +44,18 @@ export default function CajaPage() {
   useEffect(() => {
     getCierresCaja().then(data => setCierresAnteriores(data))
   }, [])
+
+  // Resolver el nombre del responsable del cierre de hoy.
+  // V1 single-user: en la práctica es el mismo usuario actual, pero
+  // esto queda listo para multi-user/roles sin más cambios en la page.
+  // Derivamos cierreHoy inline acá (no usamos el const de más abajo)
+  // porque las declaraciones derivadas viven después del early return.
+  useEffect(() => {
+    const hoyStr = new Date().toISOString().split('T')[0]
+    const usuarioId = cierresAnteriores.find(c => c.fecha === hoyStr)?.usuario_id
+    if (!usuarioId) { setResponsable(null); return }
+    getResponsableNombre(usuarioId).then(setResponsable)
+  }, [cierresAnteriores])
 
   if (cargando) return <Spinner texto="Cargando caja..." />
 
@@ -84,8 +99,22 @@ export default function CajaPage() {
     ? null
     : contadoNum - efectivoEsperado
 
+  // Estado de caja derivado (spec): el cierre de hoy ES el estado actual.
+  // Si existe un cierre con fecha hoy → caja cerrada. Si no → abierta.
+  // No hay columna de estado en DB ni acto explícito de "abrir caja".
   const hoyStr = new Date().toISOString().split('T')[0]
-  const cerradoHoy = cierresAnteriores.some(c => c.fecha === hoyStr)
+  const cierreHoy = cierresAnteriores.find(c => c.fecha === hoyStr) ?? null
+  const estadoCaja: 'abierta' | 'cerrada' = cierreHoy ? 'cerrada' : 'abierta'
+  // El historial muestra SOLO cierres anteriores. El de hoy va arriba
+  // en el bloque de estado.
+  const cierresPasados = cierresAnteriores.filter(c => c.fecha !== hoyStr)
+
+  // Preview del retiro mientras el cajero llena el modal de cierre.
+  const retiroNum = retiroEfectivo.trim() === '' ? null : Number(retiroEfectivo)
+  const quedaEnCajaPreview = contadoNum !== null && retiroNum !== null && !Number.isNaN(retiroNum)
+    ? contadoNum - retiroNum
+    : null
+  const retiroBajoCero = retiroNum !== null && !Number.isNaN(retiroNum) && contadoNum !== null && retiroNum > contadoNum
 
   // Movimientos del día = ventas + egresos mezclados en orden cronológico
   // descendente (lo más reciente arriba). Antes la tabla mostraba primero
@@ -114,21 +143,17 @@ export default function CajaPage() {
       mercadopago: porMetodoFn('mercadopago'),
       efectivo_contado: contadoNum,
       diferencia_efectivo: diferencia,
+      retiro_efectivo: retiroNum !== null && !Number.isNaN(retiroNum) ? retiroNum : null,
     })
 
     if (result === 'ok') {
       toast.success('Caja cerrada correctamente', { id: 'cerrar-caja' })
-      const prevIds = new Set(cierresAnteriores.map(c => c.id))
       const cierres = await getCierresCaja()
-      const nuevo = cierres.find(c => !prevIds.has(c.id))
       setCierresAnteriores(cierres)
       setEfectivoContado('')
-      if (nuevo) {
-        setNuevoCierreId(nuevo.id)
-        setTimeout(() => setNuevoCierreId(null), 2500)
-      }
-      // Scroll después de que el modal cierre y la nueva fila renderee
-      setTimeout(() => historialRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)
+      setRetiroEfectivo('')
+      // Ya no hay highlight de fila nueva en el historial: el cierre de
+      // hoy se muestra en el bloque de estado arriba, no en la lista.
     } else if (result === 'duplicate') {
       toast.error('La caja de hoy ya fue cerrada', { id: 'cerrar-caja' })
       // Reload para que la UI refleje el cierre existente.
@@ -139,6 +164,22 @@ export default function CajaPage() {
     }
     setCerrando(false)
     setModalCierre(false)
+  }
+
+  const handleReabrirCaja = async () => {
+    if (!cierreHoy) return
+    setReabriendo(true)
+    const ok = await reabrirCaja(cierreHoy.id)
+    if (ok) {
+      toast.success('Caja reabierta', { id: 'reabrir-caja' })
+      setCierresAnteriores(await getCierresCaja())
+      setEfectivoContado('')
+      setRetiroEfectivo('')
+    } else {
+      toast.error('Error al reabrir la caja', { id: 'reabrir-caja' })
+    }
+    setReabriendo(false)
+    setModalReabrir(false)
   }
 
   const guardarEgreso = async () => {
@@ -161,21 +202,89 @@ export default function CajaPage() {
     // pierden su min-height de contenido) cuando la página se hace larga.
     <div style={{ padding: 20, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* Header */}
-      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Caja Diaria</h1>
-          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>
-            {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
+      {/* Bloque de estado: el cierre de hoy ES estado, no historial.
+          Reemplaza el header genérico + dos botones sueltos. Cambia
+          completamente según estadoCaja. */}
+      <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+            {estadoCaja === 'abierta' ? (
+              <>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--g)', flexShrink: 0 }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>Caja abierta</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle size={15} color="var(--ac)" strokeWidth={2.2} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>Caja cerrada</span>
+              </>
+            )}
+            <span style={{ fontSize: 12, color: 'var(--text2)' }}>
+              · {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </span>
+          </div>
+
+          {estadoCaja === 'abierta' ? (
+            <div style={{ fontSize: 12, color: 'var(--text2)' }}>
+              Saldo esperado en efectivo:{' '}
+              <b style={{ color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>{formatPeso(efectivoEsperado)}</b>
+            </div>
+          ) : cierreHoy && (
+            <div style={{ fontSize: 12, color: 'var(--text2)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <div>
+                Cerrada a las{' '}
+                <b style={{ color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>
+                  {new Date(cierreHoy.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                </b>
+                {responsable && <> · por <b style={{ color: 'var(--text)' }}>{responsable}</b></>}
+              </div>
+              <div>
+                Saldo neto:{' '}
+                <b style={{ color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>{formatPeso(Number(cierreHoy.saldo_neto))}</b>
+                {cierreHoy.diferencia_efectivo !== null && cierreHoy.diferencia_efectivo !== undefined && (
+                  Number(cierreHoy.diferencia_efectivo) === 0 ? (
+                    <> · Diferencia: <span style={{ color: 'var(--g)', fontWeight: 600 }}>OK</span></>
+                  ) : (
+                    <> · Diferencia:{' '}
+                      <span style={{ color: Number(cierreHoy.diferencia_efectivo) > 0 ? 'var(--w)' : 'var(--r)', fontWeight: 600, fontFamily: 'DM Mono, monospace' }}>
+                        {Number(cierreHoy.diferencia_efectivo) >= 0 ? '+' : '−'}{formatPeso(Math.abs(Number(cierreHoy.diferencia_efectivo)))}
+                      </span>
+                    </>
+                  )
+                )}
+              </div>
+              {cierreHoy.retiro_efectivo !== null && cierreHoy.retiro_efectivo !== undefined && Number(cierreHoy.retiro_efectivo) > 0 && (
+                <div>
+                  Retiro:{' '}
+                  <b style={{ color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>{formatPeso(Number(cierreHoy.retiro_efectivo))}</b>
+                  {cierreHoy.efectivo_contado !== null && cierreHoy.efectivo_contado !== undefined && (
+                    <> · Queda en caja:{' '}
+                      <b style={{ color: 'var(--text)', fontFamily: 'DM Mono, monospace' }}>
+                        {formatPeso(Number(cierreHoy.efectivo_contado) - Number(cierreHoy.retiro_efectivo))}
+                      </b>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button variant="danger" size="sm" icon={<TrendingDown size={14} />} onClick={() => setModalEgreso(true)}>
-            Registrar egreso
-          </Button>
-          <Button variant="primary" size="sm" icon={<CheckCircle size={14} />} onClick={() => setModalCierre(true)}>
-            Cerrar caja
-          </Button>
+
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
+          {estadoCaja === 'abierta' ? (
+            <>
+              <Button variant="danger" size="sm" icon={<TrendingDown size={14} />} onClick={() => setModalEgreso(true)}>
+                Registrar egreso
+              </Button>
+              <Button variant="primary" size="sm" icon={<CheckCircle size={14} />} onClick={() => setModalCierre(true)}>
+                Cerrar caja
+              </Button>
+            </>
+          ) : (
+            <Button variant="subtle" size="sm" onClick={() => setModalReabrir(true)}>
+              Reabrir caja
+            </Button>
+          )}
         </div>
       </div>
 
@@ -299,9 +408,10 @@ export default function CajaPage() {
         </div>
       </div>
 
-      {/* Historial cierres */}
-      {cierresAnteriores.length > 0 && (
-        <div ref={historialRef} style={{
+      {/* Historial de cierres anteriores. El de hoy NO aparece acá — está
+          en el bloque de estado arriba. La lista muestra solo fechas pasadas. */}
+      {cierresPasados.length > 0 && (
+        <div style={{
           flexShrink: 0,
           background: 'var(--card)',
           borderRadius: 16,
@@ -310,15 +420,10 @@ export default function CajaPage() {
         }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <CheckCircle size={14} color="var(--ac)" strokeWidth={2} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Historial de cierres</span>
-              {cerradoHoy && (
-                <span style={{ background: 'rgba(91,76,255,0.12)', color: 'var(--ac)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 600 }}>
-                  Hoy
-                </span>
-              )}
+              <CheckCircle size={14} color="var(--text2)" strokeWidth={2} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Cierres anteriores</span>
             </div>
-            <span style={{ fontSize: 11, color: 'var(--text2)' }}>{cierresAnteriores.length} {cierresAnteriores.length === 1 ? 'cierre' : 'cierres'}</span>
+            <span style={{ fontSize: 11, color: 'var(--text2)' }}>{cierresPasados.length} {cierresPasados.length === 1 ? 'cierre' : 'cierres'}</span>
           </div>
           <div className="table-scroll">
           <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', fontSize: 12 }}>
@@ -330,27 +435,14 @@ export default function CajaPage() {
               </tr>
             </thead>
             <tbody>
-              {cierresAnteriores.map((c: any) => {
+              {cierresPasados.map((c: any) => {
                 // Backward-compat: cierres antiguos no tienen diferencia_efectivo.
                 const dif = c.diferencia_efectivo
                 const tieneDiferencia = dif !== null && dif !== undefined
-                const esNuevo = c.id === nuevoCierreId
                 return (
-                  <tr key={c.id} className="row-hover" style={{
-                    borderTop: '1px solid var(--border)',
-                    background: esNuevo ? 'rgba(91,76,255,0.07)' : 'transparent',
-                    transition: 'background 0.3s',
-                  }}>
-                    <td style={{
-                      padding: '11px 14px',
-                      color: 'var(--text)',
-                      borderLeft: esNuevo ? '3px solid var(--ac)' : '3px solid transparent',
-                      fontWeight: esNuevo ? 600 : 400,
-                    }}>
+                  <tr key={c.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
+                    <td style={{ padding: '11px 14px', color: 'var(--text)' }}>
                       {new Date(c.fecha).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                      {esNuevo && (
-                        <span style={{ marginLeft: 8, background: 'var(--ac)', color: 'white', padding: '1px 7px', borderRadius: 4, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' }}>NUEVO</span>
-                      )}
                     </td>
                     <td style={{ padding: '11px 14px', fontFamily: 'DM Mono, monospace', color: 'var(--g)', fontWeight: 600 }}>
                       ${Number(c.total_ventas).toLocaleString('es-AR')}
@@ -545,6 +637,67 @@ export default function CajaPage() {
               )}
             </div>
 
+            {/* Retiro de efectivo opcional. Solo informativo: queda
+                registrado en el cierre y se muestra "queda en caja",
+                pero no se arrastra como fondo del día siguiente. */}
+            <div style={{ background: 'var(--bg3)', borderRadius: 12, padding: 16, marginBottom: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+                Retiro de efectivo <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>(opcional)</span>
+              </div>
+              <input
+                type="number"
+                inputMode="decimal"
+                placeholder="$ Dejar vacío si no retirás"
+                value={retiroEfectivo}
+                onChange={e => setRetiroEfectivo(e.target.value)}
+                style={{
+                  width: '100%',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  fontFamily: 'DM Mono, monospace',
+                  border: '1px solid var(--border)',
+                  borderRadius: 9,
+                  padding: '9px 12px',
+                  background: 'var(--bg2)',
+                  color: 'var(--text)',
+                  outline: 'none',
+                  textAlign: 'right',
+                }}
+              />
+              {quedaEnCajaPreview !== null && (
+                <div style={{ marginTop: 8, fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: retiroBajoCero ? 'var(--w)' : 'var(--text2)' }}>
+                  <span>{retiroBajoCero ? 'El retiro supera al efectivo contado' : 'Queda en caja'}</span>
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 700, color: retiroBajoCero ? 'var(--w)' : 'var(--text)' }}>
+                    {formatPeso(quedaEnCajaPreview)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+      </Modal>
+
+      {/* Modal confirmar reabrir caja */}
+      <Modal
+        open={modalReabrir}
+        onClose={() => { if (!reabriendo) setModalReabrir(false) }}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setModalReabrir(false)} disabled={reabriendo} style={{ flex: 1 }}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleReabrirCaja} loading={reabriendo} style={{ flex: 1 }}>
+              {reabriendo ? 'Reabriendo...' : 'Sí, reabrir'}
+            </Button>
+          </>
+        }>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>
+          ¿Reabrir la caja de hoy?
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5 }}>
+          El cierre de hoy se va a eliminar y vas a poder volver a registrar
+          movimientos y cerrar caja de nuevo. Esta acción no se puede deshacer.
+        </div>
       </Modal>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
