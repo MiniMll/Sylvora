@@ -42,11 +42,29 @@ const PERMISSIONS_BY_ROL: Record<Rol, ReadonlySet<Permission>> = {
   ]),
 }
 
+// DIAG: log de cada par (rol, perm) la primera vez que se chequea.
+// rolPuede se llama en cada render de la sidebar y muchos componentes,
+// así que sin el dedup el log sería ilegible.
+const _diagSeen = new Set<string>()
+
 /** ¿El rol indicado tiene el permiso pedido?
  *  Rol null/inválido siempre devuelve false. */
 export function rolPuede(rol: Rol | string | null | undefined, perm: Permission): boolean {
-  if (rol !== 'admin' && rol !== 'empleado') return false
-  return PERMISSIONS_BY_ROL[rol].has(perm)
+  if (rol !== 'admin' && rol !== 'empleado') {
+    const key = `null:${perm}`
+    if (!_diagSeen.has(key)) {
+      _diagSeen.add(key)
+      console.log('[rolPuede]', { rol: rol === undefined ? 'undefined' : rol, perm, resultado: false, motivo: 'rol invalido o null' })
+    }
+    return false
+  }
+  const resultado = PERMISSIONS_BY_ROL[rol].has(perm)
+  const key = `${rol}:${perm}`
+  if (!_diagSeen.has(key)) {
+    _diagSeen.add(key)
+    console.log('[rolPuede]', { rol, perm, resultado })
+  }
+  return resultado
 }
 
 /** Type guard para chequear si un string es un rol válido del sistema. */

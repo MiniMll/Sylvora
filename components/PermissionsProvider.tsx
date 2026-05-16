@@ -37,6 +37,9 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     getPerfilActual().then(p => {
       if (cancelled) return
+      // DIAG: trazar qué llega al provider y qué se setea en context.
+      console.log('[PermissionsProvider] perfil recibido:', p)
+      console.log('[PermissionsProvider] rol que se va a setear:', p?.rol ?? null)
       setRol(p?.rol ?? null)
       setNombre(p?.nombre ?? null)
       setLoading(false)
