@@ -9,8 +9,10 @@ import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
+import { usePermissions } from '@/components/PermissionsProvider'
 
 export default function CajaPage() {
+  const { has } = usePermissions()
   const [ventas, setVentas] = useState<any[]>([])
   const [movimientos, setMovimientos] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
@@ -280,11 +282,11 @@ export default function CajaPage() {
                 Cerrar caja
               </Button>
             </>
-          ) : (
+          ) : has('caja.reabrir') ? (
             <Button variant="ghost" size="sm" icon={<RotateCcw size={13} />} onClick={() => setModalReabrir(true)}>
               Reabrir caja
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
 

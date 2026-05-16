@@ -1,6 +1,7 @@
 'use client'
 import { Plus, LayoutGrid, List } from 'lucide-react'
 import { Input, Select } from '@/components/ui/Input'
+import { usePermissions } from '@/components/PermissionsProvider'
 
 export type Vista = 'cards' | 'lista'
 
@@ -19,6 +20,7 @@ export function ProductFilters({
   categoria, onCategoriaChange, categorias,
   vista, onVistaChange,
 }: Props) {
+  const { has } = usePermissions()
   return (
     <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
       <Input value={busqueda} onChange={e => onBusquedaChange(e.target.value)}
@@ -37,10 +39,12 @@ export function ProductFilters({
           </button>
         ))}
       </div>
-      <a href="/productos/nuevo"
-        style={{ padding: '8px 14px', borderRadius: 8, background: 'var(--ac)', color: 'white', fontSize: 12, fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Plus size={13} /> Nuevo Producto
-      </a>
+      {has('producto.crear') && (
+        <a href="/productos/nuevo"
+          style={{ padding: '8px 14px', borderRadius: 8, background: 'var(--ac)', color: 'white', fontSize: 12, fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Plus size={13} /> Nuevo Producto
+        </a>
+      )}
     </div>
   )
 }

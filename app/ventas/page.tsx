@@ -6,6 +6,7 @@ import { formatPeso, formatTicketText, shareOrCopy, formatFechaTicket, labelMeto
 import { puedeAnularVenta } from '@/lib/permissions'
 import { Search, TrendingUp, Receipt, Hash, X, AlertTriangle, Printer, Share2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { usePermissions } from '@/components/PermissionsProvider'
 import { TicketReceipt } from '@/components/TicketReceipt'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -13,6 +14,7 @@ import { Select } from '@/components/ui/Input'
 import type { Venta } from '@/types/database'
 
 export default function VentasPage() {
+  const { rol } = usePermissions()
   const [ventas, setVentas] = useState<Venta[]>([])
   const [cargando, setCargando] = useState(true)
   const [detalle, setDetalle] = useState<Venta | null>(null)
@@ -291,7 +293,7 @@ export default function VentasPage() {
       {/* Modal detalle */}
       {detalle && (() => {
         const isAnulada = detalle.estado === 'anulada'
-        const permiso = puedeAnularVenta(detalle)
+        const permiso = puedeAnularVenta(detalle, { rol })
         return (
         <Modal open onClose={() => setDetalle(null)} size="md">
           <div style={{ margin: -18 }}>

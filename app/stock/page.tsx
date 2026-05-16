@@ -9,9 +9,13 @@ import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { usePermissions } from '@/components/PermissionsProvider'
 import { stockColor, stockLabel, formatVencimiento } from '@/lib/utils'
 
 export default function StockPage() {
+  const { has } = usePermissions()
+  const puedeEditar = has('producto.editar')
+  const puedeGestionarLotes = has('lote.gestionar')
   const [productos, setProductos] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
   const [modalProducto, setModalProducto] = useState<any | null>(null)
@@ -225,10 +229,12 @@ export default function StockPage() {
                     <span style={{ background: sc + '22', color: sc, padding: '2px 8px', borderRadius: 5, fontSize: 10, fontWeight: 600 }}>{sl}</span>
                   </td>
                   <td style={{ padding: '9px 12px' }}>
-                    <button onClick={() => abrirModal(p)}
-                      style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
-                      <Pencil size={11} /> Editar
-                    </button>
+                    {puedeEditar && (
+                      <button onClick={() => abrirModal(p)}
+                        style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
+                        <Pencil size={11} /> Editar
+                      </button>
+                    )}
                   </td>
                 </tr>
               )
@@ -280,16 +286,20 @@ export default function StockPage() {
                           <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: 'var(--text)', minWidth: 40, textAlign: 'right' }}>
                             {lote.cantidad}
                           </div>
-                          <button onClick={() => { setEditandoLote(lote); setNuevoStockLote(lote.cantidad.toString()) }}
-                            style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
-                            Editar
-                          </button>
-                          <button onClick={() => borrarLote(lote)} disabled={borrandoLote === lote.id}
-                            style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--r)' }}>
-                            {borrandoLote === lote.id ? '...' : '🗑️'}
-                          </button>
+                          {puedeGestionarLotes && (
+                            <>
+                              <button onClick={() => { setEditandoLote(lote); setNuevoStockLote(lote.cantidad.toString()) }}
+                                style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
+                                Editar
+                              </button>
+                              <button onClick={() => borrarLote(lote)} disabled={borrandoLote === lote.id}
+                                style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--r)' }}>
+                                {borrandoLote === lote.id ? '...' : '🗑️'}
+                              </button>
+                            </>
+                          )}
                         </div>
-                        {editando && (
+                        {puedeGestionarLotes && editando && (
                           <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
                             <Input type="number" value={nuevoStockLote} onChange={e => setNuevoStockLote(e.target.value)}
                               style={{ flex: 1, padding: '8px 10px' }} placeholder="Nueva cantidad" autoFocus />
@@ -310,7 +320,8 @@ export default function StockPage() {
               )}
             </div>
 
-            {/* Agregar nuevo lote */}
+            {/* Agregar nuevo lote — solo si tiene permiso */}
+            {puedeGestionarLotes && (
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>+ Agregar nuevo lote</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -336,6 +347,7 @@ export default function StockPage() {
                 </Button>
               </div>
             </div>
+            )}
           </>
         )}
       </Modal>

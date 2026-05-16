@@ -4,6 +4,7 @@ import { Pencil, Trash2, Package } from 'lucide-react'
 import { formatPeso, stockColor, stockLabel, formatStock } from '@/lib/utils'
 import type { Producto } from '@/types/database'
 import type { Vista } from './ProductFilters'
+import { usePermissions } from '@/components/PermissionsProvider'
 
 interface Props {
   productos: Producto[]
@@ -24,6 +25,7 @@ function ProductGridImpl({ productos, vista, onAbrirDetalle, onEditar, onConfirm
 export const ProductGrid = memo(ProductGridImpl)
 
 function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: Omit<Props, 'vista'>) {
+  const { has } = usePermissions()
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 14 }}>
       {productos.map(p => {
@@ -136,18 +138,24 @@ function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
                 <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 700 }}>{formatStock(p.stock_actual, p.unidad_venta)}</span>
                 <span style={{ opacity: 0.85 }}>· {sl}</span>
               </span>
-              <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
-                <button onClick={() => onEditar(p)}
-                  aria-label="Editar producto"
-                  style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Pencil size={12} color="var(--text2)" />
-                </button>
-                <button onClick={() => onConfirmarBorrar(p)}
-                  aria-label="Eliminar producto"
-                  style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(255,71,87,0.22)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Trash2 size={12} color="#ff4757" />
-                </button>
-              </div>
+              {(has('producto.editar') || has('producto.eliminar')) && (
+                <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                  {has('producto.editar') && (
+                    <button onClick={() => onEditar(p)}
+                      aria-label="Editar producto"
+                      style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Pencil size={12} color="var(--text2)" />
+                    </button>
+                  )}
+                  {has('producto.eliminar') && (
+                    <button onClick={() => onConfirmarBorrar(p)}
+                      aria-label="Eliminar producto"
+                      style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(255,71,87,0.22)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Trash2 size={12} color="#ff4757" />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )
@@ -157,6 +165,7 @@ function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
 }
 
 function ListaView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: Omit<Props, 'vista'>) {
+  const { has } = usePermissions()
   return (
     <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -211,14 +220,18 @@ function ListaView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
                 </td>
                 <td style={{ padding: '10px 14px' }} onClick={e => e.stopPropagation()}>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => onEditar(p)}
-                      style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Pencil size={11} color="var(--text2)" />
-                    </button>
-                    <button onClick={() => onConfirmarBorrar(p)}
-                      style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.25)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Trash2 size={11} color="#ff4757" />
-                    </button>
+                    {has('producto.editar') && (
+                      <button onClick={() => onEditar(p)}
+                        style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Pencil size={11} color="var(--text2)" />
+                      </button>
+                    )}
+                    {has('producto.eliminar') && (
+                      <button onClick={() => onConfirmarBorrar(p)}
+                        style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.25)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Trash2 size={11} color="#ff4757" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

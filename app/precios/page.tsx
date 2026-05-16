@@ -6,6 +6,7 @@ import { TrendingUp, ChevronDown, AlertTriangle, X } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { usePermissions } from '@/components/PermissionsProvider'
 import type { Producto } from '@/types/database'
 
 // Página de actualización de precios.
@@ -16,6 +17,7 @@ import type { Producto } from '@/types/database'
 // de persistencia para todo, sea edición manual o batch.
 
 export default function PreciosPage() {
+  const { has, loading: permsLoading } = usePermissions()
   const [productos, setProductos] = useState<Producto[]>([])
   const [overrides, setOverrides] = useState<Record<string, number>>({})
   const [cargando, setCargando] = useState(true)
@@ -113,9 +115,27 @@ export default function PreciosPage() {
     toast.success(`${ok} precios actualizados`)
   }
 
-  if (cargando) return (
+  if (cargando || permsLoading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}>
       Cargando...
+    </div>
+  )
+
+  // Gating de página completa: empleado no accede a precios.
+  // El middleware (P2.2) lo va a interceptar antes; mientras tanto este
+  // guard cliente + la RLS en producto.update son suficientes.
+  if (!has('precio.actualizar_masivo')) return (
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ maxWidth: 360, textAlign: 'center' }}>
+        <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,184,0,0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+          <AlertTriangle size={22} color="var(--w)" strokeWidth={1.8} />
+        </div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, marginBottom: 6, color: 'var(--text)' }}>Acceso restringido</h2>
+        <p style={{ fontSize: 13, color: 'var(--text2)', margin: 0, lineHeight: 1.5 }}>
+          Solo administradores pueden actualizar precios. Si necesitás
+          hacer cambios, pedile al dueño del comercio.
+        </p>
+      </div>
     </div>
   )
 

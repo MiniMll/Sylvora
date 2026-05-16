@@ -4,6 +4,7 @@ import { Package, X, Layers } from 'lucide-react'
 import { formatPeso, calcularMargen, stockColor, stockLabel, formatStock, formatVencimiento } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { usePermissions } from '@/components/PermissionsProvider'
 import type { Producto, Lote } from '@/types/database'
 
 function CodigoBarras({ codigo }: { codigo: string }) {
@@ -39,6 +40,8 @@ export function ProductDetail({
   onClose, onEditar, onBorrar, onAgregarLote, onBorrarLote,
 }: Props) {
   const mg = calcularMargen(producto.precio_costo, producto.precio_venta)
+  const { has } = usePermissions()
+  const puedeGestionarLotes = has('lote.gestionar')
 
   return (
     <Modal open onClose={onClose} size="md">
@@ -106,9 +109,11 @@ export function ProductDetail({
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 5 }}><Layers size={12} /> Lotes</div>
-              <Button variant="primary" size="sm" onClick={onAgregarLote}>
-                + Agregar lote
-              </Button>
+              {puedeGestionarLotes && (
+                <Button variant="primary" size="sm" onClick={onAgregarLote}>
+                  + Agregar lote
+                </Button>
+              )}
             </div>
             {cargandoLotes ? (
               <div style={{ fontSize: 12, color: 'var(--text2)', textAlign: 'center', padding: 12 }}>Cargando lotes...</div>
@@ -132,10 +137,12 @@ export function ProductDetail({
                       <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: 'var(--text)' }}>
                         {formatStock(lote.cantidad, producto.unidad_venta)}
                       </div>
-                      <button onClick={() => onBorrarLote(lote)} disabled={borrandoLote === lote.id}
-                        style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.2)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', color: 'var(--r)' }}>
-                        {borrandoLote === lote.id ? '...' : '🗑️'}
-                      </button>
+                      {puedeGestionarLotes && (
+                        <button onClick={() => onBorrarLote(lote)} disabled={borrandoLote === lote.id}
+                          style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.2)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', color: 'var(--r)' }}>
+                          {borrandoLote === lote.id ? '...' : '🗑️'}
+                        </button>
+                      )}
                     </div>
                   )
                 })}
@@ -150,15 +157,21 @@ export function ProductDetail({
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="primary" onClick={onEditar} style={{ flex: 1 }}>
-              ✏️ Editar
-            </Button>
-            <button onClick={onBorrar}
-              style={{ padding: '10px 14px', borderRadius: 9, background: 'var(--bg2)', color: 'var(--r)', border: '1px solid rgba(255,71,87,0.3)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-              🗑️
-            </button>
-          </div>
+          {(has('producto.editar') || has('producto.eliminar')) && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {has('producto.editar') && (
+                <Button variant="primary" onClick={onEditar} style={{ flex: 1 }}>
+                  ✏️ Editar
+                </Button>
+              )}
+              {has('producto.eliminar') && (
+                <button onClick={onBorrar}
+                  style={{ padding: '10px 14px', borderRadius: 9, background: 'var(--bg2)', color: 'var(--r)', border: '1px solid rgba(255,71,87,0.3)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  🗑️
+                </button>
+              )}
+            </div>
+          )}
       </div>
     </Modal>
   )
