@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
+import { PermissionsProvider } from '@/components/PermissionsProvider'
 import './globals.css'
 
 // URL pública del deploy. Sirve para resolver URLs absolutas en OG
@@ -64,7 +65,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
       </head>
       <body>
-        {children}
+        <PermissionsProvider>
+          {children}
+        </PermissionsProvider>
         <Toaster
           position="bottom-right"
           toastOptions={{
