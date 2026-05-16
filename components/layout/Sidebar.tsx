@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { invalidarCacheComercio } from '@/lib/supabase/_base'
 import { useAuthListener } from '@/lib/hooks/useAuthListener'
 import { usePermissions } from '@/components/PermissionsProvider'
+import { labelRol } from '@/lib/permissions'
 import { SidebarInner, type NavItem } from './SidebarInner'
 
 const nav: NavItem[] = [
@@ -33,7 +34,7 @@ export function Sidebar() {
   useAuthListener()
   const pathname = usePathname()
   const router = useRouter()
-  const { has } = usePermissions()
+  const { has, rol } = usePermissions()
   const [dark, setDark] = useState(false)
   const [open, setOpen] = useState(false)
   const [nombreUsuario, setNombreUsuario] = useState('Usuario')
@@ -88,6 +89,7 @@ export function Sidebar() {
     pathname, sections, nav: navFiltrado,
     dark, onToggleTheme: toggleTheme,
     nombreUsuario, iniciales,
+    rolLabel: rol ? labelRol(rol) : '',
     onCerrarSesion: cerrarSesion,
   }
 

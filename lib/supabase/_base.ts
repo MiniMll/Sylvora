@@ -93,32 +93,27 @@ export async function getPerfilActual(): Promise<PerfilActual | null> {
   if (!_perfilActualPromise) {
     _perfilActualPromise = (async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('perfiles')
           .select('id, comercio_id, nombre, rol')
           .eq('id', user.id)
           .single()
-        // DIAG: trace completo del fetch para investigar mismatches de rol.
-        console.log('[getPerfilActual] auth.uid:', user.id, '| email:', user.email)
-        console.log('[getPerfilActual] perfiles SELECT raw:', { data, errorCode: error?.code, errorMsg: error?.message })
         if (!data) return null
-        // El fallback a 'admin' acá era defensa contra rol raro, pero
-        // si data.rol viene null/undefined nos comemos al empleado.
-        // Lo dejamos visible para detectarlo en logs.
+        // Defensa contra rol con valor invalido (debería ser imposible
+        // post-migration con CHECK + NOT NULL, pero por las dudas no
+        // bloqueamos al user con un rol roto).
         const rolValido = data.rol === 'admin' || data.rol === 'empleado'
         if (!rolValido) {
-          console.warn('[getPerfilActual] rol invalido en DB:', JSON.stringify(data.rol), '— elevando a admin como fallback')
+          console.warn('[getPerfilActual] rol invalido en DB:', JSON.stringify(data.rol))
         }
         const rol = rolValido ? data.rol : 'admin'
-        console.log('[getPerfilActual] resuelto:', { id: data.id, rol, nombre: data.nombre })
         return {
           id: data.id,
           comercio_id: data.comercio_id,
           nombre: data.nombre,
           rol,
         }
-      } catch (e) {
-        console.error('[getPerfilActual] exception:', e)
+      } catch {
         return null
       }
     })()

@@ -24,6 +24,9 @@ interface Props {
   onToggleTheme: () => void
   nombreUsuario: string
   iniciales: string
+  /** Label legible del rol actual (ej. "Administrador" / "Empleado").
+   *  Vacío durante la carga inicial del PermissionsProvider. */
+  rolLabel: string
   onCerrarSesion: () => void
   onNavigate?: () => void
 }
@@ -31,7 +34,7 @@ interface Props {
 function SidebarInnerImpl({
   pathname, sections, nav,
   dark, onToggleTheme,
-  nombreUsuario, iniciales, onCerrarSesion,
+  nombreUsuario, iniciales, rolLabel, onCerrarSesion,
   onNavigate,
 }: Props) {
   return (
@@ -155,7 +158,7 @@ function SidebarInnerImpl({
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: 'white', fontSize: 11.5, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nombreUsuario}</div>
-            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, marginTop: 1 }}>Administrador</div>
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, marginTop: 1 }}>{rolLabel || ' '}</div>
           </div>
         </div>
         <button
