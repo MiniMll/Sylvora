@@ -1,6 +1,6 @@
 # Spec — P2.1 Roles y permisos (admin / empleado)
 
-Estado: **propuesta, pendiente de confirmar decisiones abiertas antes de implementar.**
+Estado: **aprobada, pendiente de correr migration e implementar.**
 
 ## Contexto / objetivo
 
@@ -33,15 +33,22 @@ Acción columna ✓ = permitida.
 |---|---|---|
 | Ver productos, stock, ventas, caja, dashboard, reportes | ✓ | ✓ |
 | Crear venta (POS) | ✓ | ✓ |
-| Registrar egreso (con caja abierta) | ✓ | ✓ *(decisión 1)* |
+| Registrar egreso (con caja abierta) | ✓ | ✓ |
+| **Cerrar caja** | ✓ | ✓ |
+| Reabrir caja | ✓ | ✗ |
 | Anular venta | ✓ | ✗ |
-| Cerrar / reabrir caja | ✓ | ✗ |
 | Crear producto | ✓ | ✗ |
-| Editar producto (datos, precio, stock manual) | ✓ | ✗ |
+| Editar producto (datos básicos, precio, stock manual) | ✓ | ✗ |
 | Eliminar producto | ✓ | ✗ |
-| Gestionar lotes (agregar / borrar) | ✓ | ✗ *(decisión 2)* |
+| Gestionar lotes (agregar / borrar) | ✓ | ✗ |
 | Actualizar precios masivamente (`/precios`) | ✓ | ✗ |
 | Gestionar usuarios y roles | ✓ | ✗ |
+
+**Nota sobre stock**: el stock_actual se modifica indirectamente por
+ventas (POS), lotes (admin) o edición del producto (admin). No hay
+"edición manual de stock" como acción separada — está cubierta por
+`producto.editar`, que es admin-only. Empleado nunca puede tocar el
+campo stock_actual directamente.
 
 ## Modelo de datos
 
@@ -146,16 +153,22 @@ CREATE POLICY "movimientos_caja_insert" ON movimientos_caja
 
 ### `cierres_caja`
 
-Admin-only para INSERT y DELETE. Empleado no cierra ni reabre.
+Empleado puede cerrar (INSERT) pero no reabrir (DELETE). Admin todo.
 
 ```sql
 DROP POLICY IF EXISTS "cierres_caja_comercio" ON cierres_caja;
+
 CREATE POLICY "cierres_caja_read" ON cierres_caja
   FOR SELECT USING (comercio_id = get_comercio_id());
-CREATE POLICY "cierres_caja_write_admin" ON cierres_caja
-  FOR ALL
-  USING (comercio_id = get_comercio_id() AND get_rol() = 'admin')
-  WITH CHECK (comercio_id = get_comercio_id() AND get_rol() = 'admin');
+
+CREATE POLICY "cierres_caja_insert" ON cierres_caja
+  FOR INSERT WITH CHECK (comercio_id = get_comercio_id());
+
+CREATE POLICY "cierres_caja_delete_admin" ON cierres_caja
+  FOR DELETE USING (comercio_id = get_comercio_id() AND get_rol() = 'admin');
+
+-- Sin UPDATE policy: el cierre es inmutable. Para corregir, se reabre
+-- (admin) y se cierra de nuevo.
 ```
 
 ### `perfiles`
@@ -205,20 +218,21 @@ action / API route que cambia roles.
 export type Rol = 'admin' | 'empleado'
 
 export type Permission =
-  | 'caja.cerrar'              // cerrar + reabrir
-  | 'caja.egreso'              // registrar egreso
-  | 'producto.crear'
-  | 'producto.editar'
-  | 'producto.eliminar'
-  | 'lote.gestionar'
-  | 'precio.actualizar_masivo'
-  | 'venta.crear'
-  | 'venta.anular'
-  | 'usuario.gestionar'
+  | 'caja.cerrar'              // ambos roles
+  | 'caja.reabrir'             // admin only
+  | 'caja.egreso'              // ambos
+  | 'producto.crear'           // admin
+  | 'producto.editar'          // admin — incluye precio individual y stock manual
+  | 'producto.eliminar'        // admin
+  | 'lote.gestionar'           // admin
+  | 'precio.actualizar_masivo' // admin — /precios page
+  | 'venta.crear'              // ambos
+  | 'venta.anular'             // admin
+  | 'usuario.gestionar'        // admin
 
 const PERMISSIONS_BY_ROL: Record<Rol, Set<Permission>> = {
   admin: new Set<Permission>([
-    'caja.cerrar', 'caja.egreso',
+    'caja.cerrar', 'caja.reabrir', 'caja.egreso',
     'producto.crear', 'producto.editar', 'producto.eliminar',
     'lote.gestionar',
     'precio.actualizar_masivo',
@@ -227,7 +241,8 @@ const PERMISSIONS_BY_ROL: Record<Rol, Set<Permission>> = {
   ]),
   empleado: new Set<Permission>([
     'venta.crear',
-    'caja.egreso',      // si decisión 1 = sí
+    'caja.egreso',
+    'caja.cerrar',     // no reabrir
   ]),
 }
 
@@ -360,41 +375,21 @@ Por commits:
 
 Aprox. 5-7 commits después de la migration.
 
-## Decisiones abiertas
+## Decisiones confirmadas
 
-Necesito que confirmes antes de implementar:
+1. **Empleado registra egresos**: sí.
+2. **Empleado gestiona lotes**: no (admin-only).
+3. **Empleado ve dashboard/reportes**: sí, read-only.
+4. **Default rol al signup**: `admin`.
+5. **`/usuarios` page en P2.1**: sí, versión básica (listar + cambiar
+   rol). Sin invite flow.
+6. **"Al menos 1 admin" como invariante**: sí, validación app-level
+   en el server action que cambia roles.
+7. **Middleware route-level**: deferido a P2.2.
 
-1. **¿Empleado puede registrar egresos?** Mi voto: **sí**. Es operativo
-   diario (pago a proveedor, vuelto extraordinario). Si querés mayor
-   control, se cierra a admin-only. Default sí.
-
-2. **¿Empleado puede gestionar lotes (agregar/borrar)?** Mi voto: **no**.
-   Los lotes afectan stock y costos; admin debería ser el único que los
-   toca. Empleado solo VE.
-
-3. **¿Empleado ve dashboard / reportes (totales, ranking, etc.)?** Mi
-   voto: **sí, read-only**. Es info operativa útil para el cajero. Si
-   preferís que el dueño vea solo, se gatea fácil. Default sí.
-
-4. **¿Default rol al hacer signup?** Mi voto: **`admin`** siempre. El
-   que crea el comercio es el dueño. Empleados se invitan después
-   (P2.2) y ahí se marcan como `empleado` explícitamente.
-
-5. **¿Incluir `/usuarios` page básica en P2.1 o defer a P2.2?** Mi voto:
-   **incluir versión básica** (listar + cambiar rol entre admin/empleado
-   + eliminar). Sin invite flow (eso requiere server-side con service
-   role key, P2.2). Mientras tanto, agregar empleados de prueba desde
-   el dashboard de Supabase.
-
-6. **¿"Al menos 1 admin" como invariante?** Validación app-level: no
-   permitir bajar a empleado al último admin del comercio. Mi voto: sí,
-   validación en el server action que cambia roles. No vale DB-level
-   (constraint subquery son costosas).
-
-7. **¿Middleware route-level en P2.1 o P2.2?** Mi voto: **P2.2**. UI
-   gating + RLS ya cubren lo importante. El middleware es ergonomía
-   (evita carga de page que el usuario no va a poder usar), no
-   seguridad. Bajable después sin urgencia.
+**Ajuste explícito del user**: empleado **SÍ puede cerrar caja**
+(no reabrir). El stock manual se bloquea como efecto secundario de
+`producto.editar` siendo admin-only.
 
 ## Out of scope V1
 
