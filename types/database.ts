@@ -108,9 +108,13 @@ export interface CierreCaja {
   created_at: string
 }
 
+/** Roles soportados por el sistema. Ver docs/roles-permissions-spec.md.
+ *  Tras la migration P2.1, `rol` en DB es NOT NULL con CHECK ('admin'|'empleado'). */
+export type Rol = 'admin' | 'empleado'
+
 export interface Perfil {
   id: string
   comercio_id: string
   nombre: string | null
-  rol: string | null
+  rol: Rol
 }
