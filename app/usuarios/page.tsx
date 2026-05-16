@@ -1,0 +1,156 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { Users, AlertTriangle, ShieldCheck, User } from 'lucide-react'
+import { Spinner } from '@/components/ui/Spinner'
+import { Select } from '@/components/ui/Input'
+import { usePermissions } from '@/components/PermissionsProvider'
+import { listUsuariosComercio, cambiarRolUsuario } from '@/lib/supabase/usuarios'
+import { labelRol } from '@/lib/permissions'
+import type { Perfil, Rol } from '@/types/database'
+
+// Página V1 de gestión de usuarios. Listar + cambiar rol con guard
+// de "último admin". Invite flow por email queda para P2.2 (requiere
+// service role key, server-side).
+//
+// El acceso a la página está gateado por:
+// - sidebar oculta el link si !has('usuario.gestionar')
+// - este guard cliente como defensa adicional
+// - middleware (P2.2)
+// - RLS sobre perfiles.update (admin-only)
+
+export default function UsuariosPage() {
+  const { has, loading: permsLoading } = usePermissions()
+  const [usuarios, setUsuarios] = useState<Perfil[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [actualizando, setActualizando] = useState<string | null>(null)
+
+  useEffect(() => {
+    listUsuariosComercio().then(data => {
+      setUsuarios(data)
+      setCargando(false)
+    })
+  }, [])
+
+  if (permsLoading || cargando) return <Spinner texto="Cargando usuarios..." />
+
+  if (!has('usuario.gestionar')) return (
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ maxWidth: 360, textAlign: 'center' }}>
+        <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,184,0,0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+          <AlertTriangle size={22} color="var(--w)" strokeWidth={1.8} />
+        </div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, marginBottom: 6, color: 'var(--text)' }}>Acceso restringido</h2>
+        <p style={{ fontSize: 13, color: 'var(--text2)', margin: 0, lineHeight: 1.5 }}>
+          Solo administradores pueden gestionar usuarios y roles.
+        </p>
+      </div>
+    </div>
+  )
+
+  const cambiarRol = async (perfil: Perfil, nuevoRol: Rol) => {
+    if (perfil.rol === nuevoRol) return
+    setActualizando(perfil.id)
+    const result = await cambiarRolUsuario(perfil.id, nuevoRol)
+    if (result.ok) {
+      setUsuarios(prev => prev.map(p => p.id === perfil.id ? { ...p, rol: nuevoRol } : p))
+      toast.success(`${perfil.nombre || 'Usuario'} ahora es ${labelRol(nuevoRol)}`)
+    } else if (result.reason === 'last_admin') {
+      toast.error('No se puede dejar el comercio sin administradores')
+    } else if (result.reason === 'rls') {
+      toast.error('Permiso denegado')
+    } else {
+      toast.error(result.message || 'Error al cambiar el rol')
+    }
+    setActualizando(null)
+  }
+
+  const cantAdmins = usuarios.filter(u => u.rol === 'admin').length
+
+  return (
+    <div style={{ padding: 24, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Users size={22} /> Usuarios
+          </h1>
+          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>
+            {usuarios.length} {usuarios.length === 1 ? 'usuario' : 'usuarios'} · {cantAdmins} {cantAdmins === 1 ? 'admin' : 'admins'}
+          </p>
+        </div>
+      </div>
+
+      {/* Nota: invite flow viene en P2.2. Por ahora se agregan empleados
+          desde el dashboard de Supabase. */}
+      <div style={{ flexShrink: 0, background: 'rgba(91,76,255,0.06)', border: '1px solid rgba(91,76,255,0.2)', borderRadius: 12, padding: '12px 16px', fontSize: 12, color: 'var(--text2)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <Users size={14} color="var(--ac)" style={{ flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <b style={{ color: 'var(--text)' }}>Invitación por email: próximamente.</b><br />
+          Mientras tanto, los empleados se pueden agregar desde el panel de
+          Supabase. Una vez creado el perfil, podés cambiar su rol desde acá.
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+        <div className="table-scroll">
+          <table style={{ width: '100%', minWidth: 520, borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: 'var(--bg3)' }}>
+                {['Nombre', 'Rol', 'Acciones'].map(h => (
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.length === 0 ? (
+                <tr><td colSpan={3} style={{ padding: 32, textAlign: 'center', color: 'var(--text2)' }}>No hay usuarios cargados</td></tr>
+              ) : usuarios.map(u => {
+                const esAdminUltimo = u.rol === 'admin' && cantAdmins === 1
+                const editandoEste = actualizando === u.id
+                return (
+                  <tr key={u.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
+                    <td style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', flexShrink: 0 }}>
+                        <User size={14} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 500, color: 'var(--text)' }}>{u.nombre || '—'}</span>
+                        <span style={{ fontSize: 10, color: 'var(--text2)', fontFamily: 'DM Mono, monospace' }}>{u.id.slice(0, 8)}…</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        background: u.rol === 'admin' ? 'rgba(91,76,255,0.12)' : 'rgba(0,200,150,0.10)',
+                        color: u.rol === 'admin' ? 'var(--ac)' : 'var(--g)',
+                        padding: '3px 9px', borderRadius: 5, fontSize: 10, fontWeight: 600,
+                      }}>
+                        {u.rol === 'admin' && <ShieldCheck size={11} />}
+                        {labelRol(u.rol)}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <Select
+                        value={u.rol}
+                        disabled={editandoEste || esAdminUltimo}
+                        onChange={e => cambiarRol(u, e.target.value as Rol)}
+                        style={{ width: 'auto', minWidth: 130, padding: '6px 10px' }}>
+                        <option value="admin">Administrador</option>
+                        <option value="empleado">Empleado</option>
+                      </Select>
+                      {esAdminUltimo && (
+                        <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 4 }}>
+                          Último admin — no se puede degradar
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}

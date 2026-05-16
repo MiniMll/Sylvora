@@ -10,6 +10,10 @@ export interface NavItem {
   label: string
   icon: LucideIcon
   section: string
+  /** Permiso requerido para ver este ítem en el sidebar. Si está,
+   *  se oculta para roles que no lo tengan. Si está ausente, visible
+   *  para todos. La gating real vive en RLS + page-level guards. */
+  requierePermiso?: import('@/lib/permissions').Permission
 }
 
 interface Props {

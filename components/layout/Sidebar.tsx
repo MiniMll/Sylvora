@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   LayoutDashboard, ShoppingCart, History, Package, ArchiveX,
   PlusCircle, Wallet, BarChart2, Download,
-  TrendingUp, Settings,
+  TrendingUp, Settings, Users,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { invalidarCacheComercio } from '@/lib/supabase/_base'
 import { useAuthListener } from '@/lib/hooks/useAuthListener'
+import { usePermissions } from '@/components/PermissionsProvider'
 import { SidebarInner, type NavItem } from './SidebarInner'
 
 const nav: NavItem[] = [
@@ -17,11 +18,12 @@ const nav: NavItem[] = [
   { href: '/ventas',          label: 'Historial',          icon: History,         section: 'Ventas' },
   { href: '/productos',       label: 'Productos',          icon: Package,         section: 'Inventario' },
   { href: '/stock',           label: 'Control de Stock',   icon: ArchiveX,        section: 'Inventario' },
-  { href: '/productos/nuevo', label: 'Nuevo Producto',     icon: PlusCircle,      section: 'Inventario' },
-  { href: '/precios',         label: 'Actualizar Precios', icon: TrendingUp,      section: 'Inventario' },
+  { href: '/productos/nuevo', label: 'Nuevo Producto',     icon: PlusCircle,      section: 'Inventario', requierePermiso: 'producto.crear' },
+  { href: '/precios',         label: 'Actualizar Precios', icon: TrendingUp,      section: 'Inventario', requierePermiso: 'precio.actualizar_masivo' },
   { href: '/caja',            label: 'Caja Diaria',        icon: Wallet,          section: 'Finanzas' },
   { href: '/reportes',        label: 'Reportes',           icon: BarChart2,       section: 'Finanzas' },
   { href: '/exportar',        label: 'Exportar',           icon: Download,        section: 'Finanzas' },
+  { href: '/usuarios',        label: 'Usuarios',           icon: Users,           section: 'Cuenta',     requierePermiso: 'usuario.gestionar' },
   { href: '/perfil',          label: 'Configuración',      icon: Settings,        section: 'Cuenta' },
 ]
 
@@ -31,6 +33,7 @@ export function Sidebar() {
   useAuthListener()
   const pathname = usePathname()
   const router = useRouter()
+  const { has } = usePermissions()
   const [dark, setDark] = useState(false)
   const [open, setOpen] = useState(false)
   const [nombreUsuario, setNombreUsuario] = useState('Usuario')
@@ -77,8 +80,12 @@ export function Sidebar() {
 
   const cerrarMobile = useCallback(() => setOpen(false), [])
 
+  // Filtrar nav según permisos del rol actual. Items sin requierePermiso
+  // visibles para todos. La gating real vive en page-level guards + RLS.
+  const navFiltrado = nav.filter(item => !item.requierePermiso || has(item.requierePermiso))
+
   const innerProps = {
-    pathname, sections, nav,
+    pathname, sections, nav: navFiltrado,
     dark, onToggleTheme: toggleTheme,
     nombreUsuario, iniciales,
     onCerrarSesion: cerrarSesion,
