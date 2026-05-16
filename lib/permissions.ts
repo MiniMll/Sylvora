@@ -1,11 +1,67 @@
-// Single source of truth para chequeos de permisos.
+// Sistema de permisos del producto. Ver docs/roles-permissions-spec.md.
 //
-// Hoy: cualquier usuario autenticado puede anular ventas (no hay
-// sistema de roles formal). Mañana, cuando agreguemos roles
-// (cajero/encargado/dueño), sólo hay que tocar acá — la UI ya
-// consulta esta función.
+// Modelo RBAC simple: cada rol tiene un set fijo de permisos definido
+// en PERMISSIONS_BY_ROL. No hay capabilities per-usuario ni overrides.
+// Cambiar permisos de un rol = editar la constante y hacer deploy.
+//
+// La fuente de verdad de seguridad es RLS — esto es para gatear UI.
 
-import type { Venta } from '@/types/database'
+import type { Rol, Venta } from '@/types/database'
+
+export type Permission =
+  // Caja
+  | 'caja.cerrar'                // ambos roles
+  | 'caja.reabrir'               // admin only — borra el cierre del día
+  | 'caja.egreso'                // ambos — registrar egreso (con caja abierta)
+  // Productos
+  | 'producto.crear'             // admin
+  | 'producto.editar'            // admin — datos básicos, precio individual, stock manual
+  | 'producto.eliminar'          // admin
+  | 'lote.gestionar'             // admin — agregar/borrar/editar lotes
+  // Precios
+  | 'precio.actualizar_masivo'   // admin — /precios page
+  // Ventas
+  | 'venta.crear'                // ambos — POS
+  | 'venta.anular'               // admin
+  // Usuarios
+  | 'usuario.gestionar'          // admin — listar/cambiar rol/eliminar otros perfiles
+
+const PERMISSIONS_BY_ROL: Record<Rol, ReadonlySet<Permission>> = {
+  admin: new Set<Permission>([
+    'caja.cerrar', 'caja.reabrir', 'caja.egreso',
+    'producto.crear', 'producto.editar', 'producto.eliminar',
+    'lote.gestionar',
+    'precio.actualizar_masivo',
+    'venta.crear', 'venta.anular',
+    'usuario.gestionar',
+  ]),
+  empleado: new Set<Permission>([
+    'venta.crear',
+    'caja.egreso',
+    'caja.cerrar',   // empleado cierra pero no reabre
+  ]),
+}
+
+/** ¿El rol indicado tiene el permiso pedido?
+ *  Rol null/inválido siempre devuelve false. */
+export function rolPuede(rol: Rol | string | null | undefined, perm: Permission): boolean {
+  if (rol !== 'admin' && rol !== 'empleado') return false
+  return PERMISSIONS_BY_ROL[rol].has(perm)
+}
+
+/** Type guard para chequear si un string es un rol válido del sistema. */
+export function esRolValido(rol: string | null | undefined): rol is Rol {
+  return rol === 'admin' || rol === 'empleado'
+}
+
+/** Etiqueta legible para mostrar en UI (capitalizada, en español). */
+export function labelRol(rol: Rol): string {
+  return rol === 'admin' ? 'Administrador' : 'Empleado'
+}
+
+// ============================================================
+// Validadores de dominio — combinan reglas de negocio con rol.
+// ============================================================
 
 export interface PermissionCheck {
   allowed: boolean
@@ -16,17 +72,15 @@ export interface PermissionCheck {
 /**
  * Determina si la venta dada puede anularse.
  *
- * Reglas actuales:
- *  - No se puede anular una venta ya anulada (doble anulación).
- *  - No se puede anular sin items (caso teórico, defensa).
- *
- * Reglas futuras (preparadas):
- *  - Si pasamos un `user`, validar rol cuando exista.
- *  - Posiblemente: anular solo ventas del mismo día / mismo cajero / etc.
+ * Combina reglas de negocio (no doble anulación, debe tener items) con
+ * el chequeo de rol (admin requerido). El rol es opcional para
+ * compat con call sites legacy — si no se pasa, se omite el chequeo
+ * de rol (la RLS igual va a bloquear el UPDATE si el caller no tiene
+ * permiso).
  */
 export function puedeAnularVenta(
   venta: Venta,
-  _user?: { id: string; rol?: string },
+  user?: { rol?: Rol | string | null },
 ): PermissionCheck {
   if (venta.estado === 'anulada') {
     return { allowed: false, reason: 'Esta venta ya está anulada' }
@@ -34,9 +88,8 @@ export function puedeAnularVenta(
   if (!venta.items_venta || venta.items_venta.length === 0) {
     return { allowed: false, reason: 'No se puede anular una venta sin items' }
   }
-  // Hook para chequeo de rol futuro:
-  //   if (_user?.rol && !['encargado', 'dueño'].includes(_user.rol)) {
-  //     return { allowed: false, reason: 'Permiso insuficiente' }
-  //   }
+  if (user && !rolPuede(user.rol, 'venta.anular')) {
+    return { allowed: false, reason: 'Solo administradores pueden anular ventas' }
+  }
   return { allowed: true }
 }
