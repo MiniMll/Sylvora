@@ -1,7 +1,15 @@
 # Spec — Landing de Sylvora
 
-Estado: **propuesta, primera versión.** Pendiente de feedback antes de
-empezar a diseñar/codear.
+Estado: **spec cerrada y aprobada. Assets en curso, código pendiente.**
+
+Pasos en orden:
+
+1. ✅ Spec completa de todas las secciones (este doc).
+2. ✅ Brief de screenshots: `docs/landing-screenshots-brief.md`.
+3. ✅ Seed runnable: `scripts/seed-landing.ts` + `npm run seed:landing`.
+4. 🟡 **EN CURSO** — generar capturas en staging y dejarlas en
+   `public/landing/`.
+5. ⏳ Codear la landing usando los assets reales (no placeholders).
 
 ---
 

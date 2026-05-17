@@ -1,0 +1,6 @@
+# Carpeta de assets de landing.
+# Acá van las capturas optimizadas a WebP siguiendo
+# docs/landing-screenshots-brief.md §4 (nomenclatura) y §8 (proceso).
+#
+# Originales sin optimizar van en _raw/ (que se gitignorea — los
+# binarios pesados no deben vivir en el repo).

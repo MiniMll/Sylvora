@@ -41,3 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/worktrees/
+
+# landing — originales pesados de capturas (los WebP optimizados sí van al repo)
+public/landing/_raw/
