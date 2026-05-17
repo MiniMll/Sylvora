@@ -58,6 +58,7 @@ export async function POST(req: Request) {
     }
   )
   const { data: { user: caller } } = await userClient.auth.getUser()
+  console.log('[invite] caller resuelto:', { id: caller?.id, email: caller?.email })
   if (!caller) {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
   }
@@ -73,10 +74,24 @@ export async function POST(req: Request) {
     .select('comercio_id, rol')
     .eq('id', caller.id)
     .single()
+  console.log('[invite] SELECT perfiles by caller.id:', {
+    data: callerPerfil,
+    errorCode: callerPerfilError?.code,
+    errorMsg: callerPerfilError?.message,
+  })
   if (callerPerfilError || !callerPerfil) {
+    // Diag extra: contar cuántos perfiles existen en total y listar
+    // los primeros 3 ids para que el user pueda comparar con el
+    // caller.id loggeado arriba.
+    const { data: sample } = await admin
+      .from('perfiles')
+      .select('id, nombre, rol, comercio_id')
+      .limit(5)
+    console.log('[invite] muestra de perfiles existentes (max 5):', sample)
     return NextResponse.json({ error: 'Perfil del caller no encontrado' }, { status: 403 })
   }
   if (callerPerfil.rol !== 'admin') {
+    console.log('[invite] caller no es admin, rol actual:', callerPerfil.rol)
     return NextResponse.json({ error: 'Solo admin puede invitar usuarios' }, { status: 403 })
   }
 
