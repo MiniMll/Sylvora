@@ -669,22 +669,56 @@ Lista explícita de errores comunes a evitar:
 
 ## 8. Próximos pasos operativos
 
-1. **Crear el seed SQL** `scripts/seed-landing.sql` con datos del
-   Kiosco El Faro (~30 minutos).
-2. **Setear una DB de staging Supabase** (proyecto separado, gratis
-   tier alcanza) dedicada a capturas. Aplicar las migrations + el
-   seed.
-3. **Loguearse como Sofía Méndez (admin)** en esa DB de staging.
-4. **Capturar las 8 capturas core** en una sola sesión (~1-2
-   horas).
-5. **Opcional**: intentar las 2 fotos editoriales (ticket impreso,
-   mano + celular). Si no salen bien, se omiten sin drama.
-6. **Optimizar a WebP** las 8 capturas.
-7. **Guardar en `public/landing/`** con la nomenclatura definida.
-8. **Validación final**: abrir las 8 capturas seguidas, mirar
-   coherencia (fechas, precios, productos). Si algo desentona,
-   re-tomar.
-9. **Listo para codear** la landing.
+El seed ya está implementado como TypeScript en
+`scripts/seed-landing.ts` (no SQL — auth.users desde SQL es frágil
+con bcrypt y columnas de Supabase Auth que pueden cambiar; el
+script TS usa la admin API que es estable y bulletproof).
 
-Estimado total: **medio día** entre seed + setup + capturas +
-optimización.
+Pasos:
+
+1. **Crear un proyecto Supabase NUEVO** dedicado a staging de
+   landing. Free tier alcanza (no se mezcla con producción ni
+   testing diario).
+2. **Aplicar todas las migrations del repo** en ese proyecto
+   (las del rework de roles, cierre de caja, etc.).
+3. **Exportar las env vars del staging** en la terminal donde vas
+   a correr el seed:
+   ```
+   export NEXT_PUBLIC_SUPABASE_URL='https://<staging-ref>.supabase.co'
+   export SUPABASE_SERVICE_ROLE_KEY='eyJ...'
+   ```
+   (En PowerShell: `$env:NEXT_PUBLIC_SUPABASE_URL='...'`)
+4. **Correr el seed**:
+   ```
+   npm run seed:landing
+   ```
+   En ~5 segundos crea el comercio, los 3 usuarios con sus
+   passwords, productos, lotes, ventas del día, egresos, cierre
+   de hoy y 7 cierres anteriores.
+5. **Loguearse en el staging** como Sofía:
+   `sofia@kioscoelfaro.com.ar / sylvora123`.
+6. **Capturar las 8 capturas core** siguiendo §2-§5 de este brief
+   (~1-2 horas en una sola sesión).
+7. **Opcional**: intentar las 2 fotos editoriales (ticket impreso,
+   mano + celular). Si no salen bien, se omiten sin drama.
+8. **Optimizar a WebP** las 8 capturas.
+9. **Guardar en `public/landing/`** con la nomenclatura definida.
+10. **Validación final**: abrir las 8 capturas seguidas, mirar
+    coherencia (fechas, precios, productos). Si algo desentona,
+    re-tomar.
+11. **Listo para codear** la landing.
+
+Estimado total: **medio día** entre staging setup + capturas +
+optimización. El seed corre en segundos, lo lento son las capturas.
+
+### Re-seed (si necesitás empezar de cero)
+
+El seed es **idempotente** — corriéndolo de nuevo NO duplica datos.
+Si querés un wipe limpio:
+
+1. Supabase Dashboard → Table Editor → borrar el row de `comercios`
+   con `nombre = 'Kiosco El Faro'`. El cascade borra perfiles,
+   productos, ventas, cierres, todo.
+2. Supabase Dashboard → Authentication → borrar los 3 auth users
+   (sofia, martin, laura).
+3. Volver a correr `npm run seed:landing`.
