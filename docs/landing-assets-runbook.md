@@ -44,71 +44,48 @@ acceso a Settings → API → donde está la URL y las keys.
 
 ---
 
-## Paso 2 — Aplicar todas las migrations
+## Paso 2 — Aplicar el bootstrap SQL
 
-**Objetivo**: que el schema del staging matchee exactamente el de
-producción para que el seed corra sin errores y el producto se
-comporte igual.
+**Objetivo**: crear el schema completo (tablas + funciones + RLS +
+policies) en el staging vacío en una sola operación, sin pasos
+manuales ni backups de producción.
 
-Las migrations no están como archivos `.sql` versionados en el repo
-(no usamos Supabase CLI). Están dispersas en los specs que fueron
-acumulando schema changes. Hay que correrlas en orden.
+Hay un único archivo consolidado en el repo:
+`scripts/landing-staging-bootstrap.sql`.
 
-**Cómo correrlas**:
+**Cómo correrlo**:
 
 1. En el dashboard del staging: **SQL Editor** (icono lateral
    izquierdo).
 2. Click **"+ New query"**.
-3. Pegar cada bloque SQL, ejecutar, y pasar al siguiente.
-
-### Bloque 2.1 — Schema base
-
-Si no tenés el schema base como dump exportable de producción, te
-recomiendo este atajo: **Supabase Dashboard → Database → Backups
-del proyecto de producción → Download** un backup reciente. Lo
-restaurás en el staging via SQL Editor (es una operación de pegar
-el SQL completo).
-
-Si no podés acceder a un dump, vas a tener que recrear el schema
-manualmente leyendo `types/database.ts` y las funciones de
-`lib/supabase/*`. Estimado: ~1 hora extra. **Mi recomendación
-fuerte: usar el dump.**
-
-### Bloque 2.2 — Migration de roles (P2.1)
-
-Pegar y ejecutar en SQL Editor (está en
-`docs/roles-permissions-spec.md` sección "Migration SQL"):
-
-- Agrega CHECK constraint en `perfiles.rol`.
-- Crea función `get_rol()`.
-- Reescribe las policies RLS de todas las tablas para gatear admin
-  vs empleado.
-- Setup completo del split insert/delete en `cierres_caja`.
-
-### Bloque 2.3 — Migration de cierre de caja (rework)
-
-Pegar y ejecutar (está en `docs/cierre-caja-spec.md` sección
-"Cambios de schema"):
-
-- ALTER TABLE `cierres_caja` ADD COLUMN `usuario_id UUID`.
-- ALTER TABLE `cierres_caja` ADD COLUMN `retiro_efectivo NUMERIC`.
-- Dedupe (en staging vacío no hace nada, no falla).
-- UNIQUE constraint `(comercio_id, fecha)`.
+3. Abrir `scripts/landing-staging-bootstrap.sql` en tu editor local,
+   copiar **todo el contenido**, pegarlo en el SQL Editor del
+   staging.
+4. Click **"Run"**.
+5. Esperar ~5 segundos.
 
 **Validación del paso**:
 
-Correr esta query en SQL Editor:
+El archivo termina con un bloque `DO $$ ... $$;` que verifica
+automáticamente que estén las 12 tablas, las 2 funciones y al menos
+20 policies. Si todo está OK vas a ver en el panel de "Messages":
 
-```sql
-SELECT column_name, data_type
-FROM information_schema.columns
-WHERE table_name = 'cierres_caja'
-ORDER BY ordinal_position;
+```
+✅ Bootstrap completo:
+   • 12 tablas
+   • 2 funciones RLS
+   • 20+ policies
+
+Siguiente paso: correr `npm run seed:landing` desde tu terminal.
 ```
 
-Verificá que aparezcan `usuario_id`, `retiro_efectivo`,
-`efectivo_contado`, `diferencia_efectivo` entre las columnas.
-Si alguna falta, no aplicaste todas las migrations.
+Si en cambio aparece un `RAISE EXCEPTION 'Faltan ...'`, alguna
+parte del SQL no se ejecutó. Posibles causas:
+
+- Pegaste solo una parte → re-pegar el archivo completo.
+- Te falta corregir el plan free tier (raro, pero verificar).
+- La extensión `pgcrypto` no se pudo crear → correr `CREATE EXTENSION pgcrypto;`
+  manualmente y volver a pegar el bootstrap completo.
 
 ---
 
