@@ -1010,6 +1010,1214 @@ translate.
 
 ---
 
+## 14c. Sección "El problema" — spec detallado
+
+Esta es la sección de mayor riesgo emocional de toda la landing. Si
+suena a "10 razones por las que tu negocio necesita un POS", se
+convierte en marketing genérico y perdemos al dueño en segundos.
+Si suena a "estoy describiendo exactamente lo que te pasa el sábado
+a las 9 de la noche", queda enganchado.
+
+### Principios
+
+- **Empatía, no diagnóstico.** No le decimos "tu problema es X".
+  Mostramos la escena que él ya vivió. Él reconoce.
+- **Palabras que él usa**, no traducciones tech. "Sumo mal el vuelto",
+  no "ineficiencias operativas en la conciliación".
+- **Tres viñetas, no diez.** Disciplina "menos pero mejor". Los 3
+  problemas dominantes del comerciante chico LATAM.
+- **Sin solución todavía.** Esta sección NO menciona Sylvora ni
+  features. Solo el dolor. La solución aparece en la siguiente
+  sección ("Cómo funciona"). Separar dolor y solución crea ritmo —
+  el usuario lee el dolor, asiente mentalmente, y cuando le aparece
+  la solución, el contraste pega.
+
+### Copy final
+
+**Título** (H2):
+
+> "Lo más difícil no es vender.
+> Es saber qué pasó al final del día."
+
+Dos líneas. Primera es contraintuitiva (sorprende, retiene). Segunda
+explica el dolor real. Tono casi resignado, no acusatorio.
+
+**Lead opcional** (sub-título, gris, debajo del H2):
+
+> Si tenés un comercio, ya conocés esto.
+
+Una sola línea. Establece complicidad — "vos sabés de lo que hablo".
+
+**3 viñetas** (cards con icon + frase + descripción corta):
+
+| Icon (lucide) | Headline (negrita) | Descripción (1-2 frases, tono coloquial) |
+|---|---|---|
+| `Wallet` | **No sabés cuánto te quedó.** | Vendiste todo el día, pero cerrar caja te lleva una hora — y los números nunca cuadran. |
+| `Package` | **Te enterás del stock cuando ya no hay.** | El cliente pide el producto que vendía como pan caliente. Mirás el depósito y no queda. Otra venta perdida. |
+| `UserCheck` | **No sabés qué hizo tu empleado.** | Anuló una venta, retiró efectivo, cobró por fuera. Lo descubrís dos semanas después, si lo descubrís. |
+
+Cada headline arranca con un verbo en negativo ("no sabés", "te
+enterás cuando ya...", "no sabés"). Triple punch que martilla la
+misma sensación: **te falta visibilidad**. Esa es la palabra clave
+implícita que el dueño después va a reemplazar mentalmente con
+"Sylvora me da visibilidad".
+
+### Layout
+
+**Mobile** (vertical stack):
+
+```
+        Lo más difícil
+        no es vender.
+        Es saber qué pasó
+        al final del día.
+
+   Si tenés un comercio, ya conocés esto.
+
+  ┌──────────────────────────────────┐
+  │ [Wallet icon, var(--r) 40%]       │
+  │                                    │
+  │ No sabés cuánto te quedó.         │
+  │                                    │
+  │ Vendiste todo el día, pero cerrar│
+  │ caja te lleva una hora — y los   │
+  │ números nunca cuadran.            │
+  └──────────────────────────────────┘
+
+  [siguiente card abajo, mismo tratamiento]
+  [tercera card abajo]
+```
+
+3 cards stack vertical, gap 16px entre ellas.
+
+**Desktop** (≥1024px): 3 columnas lado a lado, gap 24px.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                            │
+│             Lo más difícil no es vender.                  │
+│         Es saber qué pasó al final del día.               │
+│                                                            │
+│           Si tenés un comercio, ya conocés esto.          │
+│                                                            │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐               │
+│   │ [Wallet] │  │ [Package]│  │ [UserCh] │               │
+│   │          │  │          │  │          │               │
+│   │ No sabés │  │ Te enterás│  │ No sabés │               │
+│   │ cuánto te│  │ del stock│  │ qué hizo │               │
+│   │ quedó.   │  │ cuando ya│  │ tu empl. │               │
+│   │          │  │ no hay.  │  │          │               │
+│   │ Vendiste │  │ El client│  │ Anuló una│               │
+│   │ todo el  │  │ pide el  │  │ venta,   │               │
+│   │ día...   │  │ que...   │  │ retiró...│               │
+│   └──────────┘  └──────────┘  └──────────┘               │
+│                                                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Specs visuales
+
+**Sección container**:
+- Background: continúa `var(--bg)` = `#f5f4f0` (no break visual con el hero — la landing es un solo flujo).
+- Padding vertical: 96px desktop / 64px mobile.
+- Padding lateral: igual que el hero (20px mobile, max-width 1200px desktop).
+- Separación con el hero arriba: ya está dada por el padding del screenshot del hero + esta sección. Sin divider line ni cambio de fondo.
+
+**Título H2**:
+- `font-size`: 48px desktop / 32px mobile.
+- `font-weight`: 700 (un toque menos que el H1 del hero, que era 800 — jerarquía clara).
+- `letter-spacing`: -0.025em desktop / -0.02em mobile.
+- `line-height`: 1.15.
+- `color`: `var(--text)`.
+- `text-align`: center.
+- `max-width`: 720px desktop centered.
+
+**Lead (sub-título)**:
+- `font-size`: 17px desktop / 15px mobile.
+- `font-weight`: 500.
+- `color`: `var(--text2)`.
+- `text-align`: center.
+- Margin top desde H2: 16px.
+
+**Gap H2/lead → cards**: 56px desktop / 40px mobile.
+
+**Cards**:
+- Background: **white** (`#ffffff`) o **`var(--card)`**. Esto las despega del fondo cálido off-white de la sección y le da el tratamiento editorial "papel sobre mesa".
+- Padding: 28px desktop / 24px mobile.
+- `border-radius`: 16px.
+- `border`: 1px solid `rgba(0,0,0,0.06)` (sutil, igual que los screenshots).
+- `box-shadow`: `0 1px 2px rgba(0,0,0,0.04)` (apenas un assentamiento, no protagonismo).
+- Sin hover state — no son clickeables, no deben prometer interacción.
+
+**Icon**:
+- Lucide-react, tamaño 28px.
+- Color: `var(--text2)` (gris, NO rojo). Razón: si pintamos los iconos de rojo "alerta", se siente exagerado, melodramático. Gris neutro deja que las palabras carguen la emoción.
+- Container del icon opcional: cuadrado 48×48, `border-radius` 12, `background: var(--bg3)` (gris muy claro). Más limpio que solo el icon flotando.
+
+**Headline de card**:
+- `font-size`: 18px desktop / 17px mobile.
+- `font-weight`: 700.
+- `color`: `var(--text)`.
+- `letter-spacing`: -0.015em.
+- Margin top desde icon: 16px.
+
+**Descripción de card**:
+- `font-size`: 15px desktop / 14px mobile.
+- `font-weight`: 400 (regular — contraste claro con el headline 700).
+- `color`: `var(--text2)`.
+- `line-height`: 1.55.
+- Margin top desde headline: 10px.
+
+### Por qué estos 3 problemas y no otros
+
+Descarté:
+- "Sumás mal el vuelto" — sí pasa, pero es chico y específico. No es el dolor estructural.
+- "Tus reportes son un Excel" — el dueño LATAM probablemente no piensa en reportes, no es su mental model.
+- "Tu sistema actual es caro" — es un argumento competitivo, no un dolor real del dueño.
+- "Perdés tiempo entre 3 herramientas" — abstracto, no resuena.
+
+Los 3 elegidos son **dolores con consecuencias económicas claras**:
+1. **No sabés cuánto te quedó** → plata invisible.
+2. **Te enterás del stock cuando ya no hay** → ventas perdidas.
+3. **No sabés qué hizo tu empleado** → fugas y desconfianza.
+
+Cada uno es un eje de control que Sylvora resuelve. Pero esta
+sección NO menciona la solución todavía — solo refleja el espejo.
+
+### Qué NO va en esta sección
+
+- **Cero menciones de "Sylvora"** o features del producto.
+- **Cero CTAs** ("Probá ahora"). Esta sección es para que el lector
+  asiente, no para que actúe. La acción viene después.
+- **Cero estadísticas** ("el 73% de los comercios pierden $X al año").
+  Datos fake o atribuidos genéricamente suenan a venta. Si tenemos
+  estadísticas REALES futuras, las podemos sumar — no en V1.
+- **Cero comparaciones con la competencia**. "Otros sistemas son
+  complicados" — no es nuestro tono, es bajón.
+- **Sin animaciones de números subiendo / contadores**. Marketing
+  agresivo.
+- **Sin imágenes de personas frustradas** o stock photos. Texto y un
+  ícono. Mínimo.
+
+### Tono — la disciplina más importante
+
+Esta sección es donde más fácil se cae en el tono startup-tech. Dos
+versiones del mismo concepto, para calibrar:
+
+**Tono incorrecto** ("startup-tech", lo que NO queremos):
+
+> "Optimizá tu gestión operativa con visibilidad en tiempo real.
+> Reducí pérdidas, aumentá márgenes y tomá decisiones basadas en
+> datos."
+
+Suena a consultora. El dueño de kiosco no se reconoce.
+
+**Tono correcto** (lo que SÍ queremos):
+
+> "Vendiste todo el día, pero cerrar caja te lleva una hora — y los
+> números nunca cuadran."
+
+Suena a alguien que ya vivió esto. El dueño asiente.
+
+**Regla**: si la frase la podría haber dicho un dueño de almacén en
+voz alta, está bien. Si suena a powerpoint corporativo, está mal.
+
+### Espaciado vertical de la sección
+
+| Elemento | Alto aprox | Gap inferior |
+|---|---|---|
+| Padding superior sección | 96 (desktop) / 64 (mobile) | — |
+| H2 (2 líneas × ~56 lh desktop) | 112 / 76 | 16 |
+| Lead (1 línea × 26 lh) | 26 / 22 | 56 / 40 |
+| Cards (3 col desktop / stack mobile) | ~220 / ~3 × 180 + 32 gaps | — |
+| Padding inferior sección | 96 / 64 | — |
+
+Total sección: ~620px desktop / ~840px mobile. Bien aireada.
+
+### Transición con la sección siguiente
+
+El siguiente bloque es "Cómo funciona" (la solución a estos 3
+problemas). Para que el contraste pegue, la sección "El problema"
+NO debe terminar con una flecha visual ni "↓ leé cómo lo
+solucionamos". El silencio entre las dos secciones es el ritmo —
+el lector llega solo al insight.
+
+Solo el padding genera el respiro. No agregamos chevrons, líneas
+divisorias, ni separadores visuales entre secciones. Es una sola
+página continua, el contenido marca el ritmo.
+
+---
+
+## 14d. Sección "Cómo funciona" — spec detallado
+
+Esta sección es donde el dueño pasa de "sí, ése es mi problema" a
+"ah, esto es lo que hace". Tiene que ser **simple, visual, y rápida
+de leer**. Si no entiende cómo funciona en 15 segundos, perdimos.
+
+### Principio rector
+
+**3 pasos. Una imagen por paso. Una frase por paso.**
+
+No "10 features", no "explicación detallada del producto". Tres
+acciones secuenciales que el dueño hace una vez, y después el
+sistema "vive solo".
+
+### Copy final
+
+**Título** (H2):
+
+> "Tres pasos. Y ya está."
+
+(Voluntariamente bajo en pretensión. Inversa del SaaS típico
+"Discover the power of...". El dueño LATAM responde mejor a "esto
+es simple" que a "esto es poderoso".)
+
+**Lead opcional**:
+
+> Si sabés usar WhatsApp, sabés usar Sylvora.
+
+Esta línea hace mucho. Establece una referencia mental concreta
+(WhatsApp = lo más fácil que el dueño conoce) y promete simpleza
+sin tecnicismos.
+
+**Los 3 pasos**:
+
+| # | Headline | Sub | Visual |
+|---|---|---|---|
+| 1 | **Cargás tus productos.** | Una vez. Foto, precio, stock. Listo. | Screenshot de `/productos` con un grid de productos cargados (Coca, Galletitas, Pan, etc.) |
+| 2 | **Cobrás desde el celular.** | Tu empleado solo necesita su teléfono. El sistema calcula el vuelto. | Screenshot del POS con un ticket en curso, botón "Cobrar" verde grande |
+| 3 | **Cerrás caja al final del día.** | Ves qué vendiste, cuánto te quedó y qué falta reponer. | Screenshot del bloque de estado "Caja cerrada" del rework reciente |
+
+### Layout
+
+**Mobile**: stack vertical, cada paso ocupa toda la pantalla en su
+turno. Cada paso es:
+
+```
+┌──────────────────────────────────┐
+│                                    │
+│  01                                │  ← número 01 grande, sutil,
+│                                    │     color var(--text2) opacity 50%
+│  Cargás tus productos.            │  ← headline
+│                                    │
+│  Una vez. Foto, precio, stock.    │  ← sub
+│  Listo.                            │
+│                                    │
+│  ┌────────────────────────────┐  │
+│  │                              │  │  ← screenshot, mismo
+│  │   [screenshot del grid      │  │     tratamiento editorial
+│  │    de productos]            │  │     que el hero
+│  │                              │  │
+│  └────────────────────────────┘  │
+│                                    │
+└──────────────────────────────────┘
+```
+
+Gap entre pasos: 80px mobile.
+
+**Desktop**: cada paso se alterna izquierda/derecha (zig-zag). Esto
+crea ritmo visual y aprovecha el ancho:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                            │
+│   01    Cargás tus productos.        ┌──────────────┐    │
+│         Una vez. Foto, precio,       │              │    │
+│         stock. Listo.                │  screenshot  │    │
+│                                       │              │    │
+│                                       └──────────────┘    │
+│                                                            │
+│   ┌──────────────┐    02    Cobrás desde el celular.     │
+│   │              │           Tu empleado solo necesita   │
+│   │  screenshot  │           su teléfono. El sistema     │
+│   │              │           calcula el vuelto.          │
+│   └──────────────┘                                        │
+│                                                            │
+│   03    Cerrás caja al final del día. ┌──────────────┐   │
+│         Ves qué vendiste, cuánto te    │              │   │
+│         quedó y qué falta reponer.    │  screenshot  │   │
+│                                        │              │   │
+│                                        └──────────────┘   │
+│                                                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+Cada paso: ~360px alto desktop. Gap entre pasos: 96px.
+
+### Specs visuales
+
+**Sección container**:
+- Background: cambio sutil — `var(--bg2)` = `white` puro. Genera un
+  break visual respecto a la sección "El problema" (que estaba sobre
+  `#f5f4f0` warm off-white). Apenas perceptible pero crea ritmo
+  visual.
+- Padding vertical: 96px desktop / 80px mobile.
+
+**Título H2**: igual que sección "El problema" — 48/32 desktop/mobile.
+
+**Lead**: igual que sección "El problema" — 17/15.
+
+**Gap título → pasos**: 80px desktop / 56px mobile.
+
+**Número de paso (01, 02, 03)**:
+- `font-family`: DM Mono (mono, refuerza el feel "técnico-limpio"
+  consistente con la app).
+- `font-size`: 14px en todos los viewports.
+- `font-weight`: 500.
+- `color`: `var(--text2)` con `opacity: 0.6` (sutil).
+- `letter-spacing`: 0.05em.
+
+**Headline del paso**:
+- `font-size`: 32px desktop / 24px mobile.
+- `font-weight`: 700.
+- `letter-spacing`: -0.02em.
+- `color`: `var(--text)`.
+- Margin top desde número: 12px.
+
+**Sub del paso**:
+- `font-size`: 16px desktop / 14px mobile.
+- `font-weight`: 400.
+- `color`: `var(--text2)`.
+- `line-height`: 1.55.
+- `max-width`: 380px (no se estira).
+- Margin top desde headline: 12px.
+
+**Screenshot del paso**:
+- Tratamiento idéntico al hero: radius 18px, border 1px
+  `rgba(0,0,0,0.06)`, shadow de 2 capas.
+- Tamaño: ~500-560px ancho desktop / full width menos 16px mobile.
+- Aspect ratio natural del screenshot.
+
+### Qué NO va en esta sección
+
+- **Más de 3 pasos.** Si necesitás 4, sacaste mal el problema.
+- **CTAs dentro de los pasos** ("Probá este paso"). La acción es al
+  final.
+- **Iconos de paso** (engranaje, flecha, etc.) — el número 01 ya
+  sirve.
+- **Animaciones step-by-step** que se "iluminan" cuando scrollea.
+  Llamativo pero distrae.
+- **Lista numerada CSS estándar** — el número 01 sutil con DM Mono
+  es parte del feel editorial. No usamos `<ol>` con marker default.
+- **"Setup wizard" / "Instalación en 5 minutos"** — son frases tech
+  que erran de tono.
+
+### Transición a la siguiente sección
+
+Después de "Cómo funciona" viene "Para quién es" (los 3 perfiles:
+kiosco, minimarket, almacén). El usuario terminó de entender el
+producto a nivel acción — ahora se identifica a nivel categoría
+de negocio.
+
+---
+
+## 14e. Sección "Para quién es" — spec detallado
+
+Sección de auto-identificación. El dueño se ve en uno de los 3
+perfiles y piensa "esto es para mí". Si no se identifica, asume que
+es para otro y se va.
+
+### Principio
+
+**3 perfiles concretos, no abstracciones.** No "comercios pequeños"
+ni "PyMEs" — kiosco, minimarket, almacén. Palabras que el dueño usa
+para describirse.
+
+### Copy final
+
+**Título** (H2):
+
+> "Hecho para tu negocio.
+> No para el de una multinacional."
+
+Dos líneas. La segunda es el contraste necesario — establece
+"no somos SAP, no somos enterprise, somos para vos".
+
+**Lead opcional**:
+
+> Si tu comercio entra acá abajo, Sylvora está hecho para vos.
+
+**Los 3 perfiles**:
+
+| Negocio | Headline | Punto de dolor específico | Ejemplo de uso |
+|---|---|---|---|
+| **Kiosco / maxikiosco** | Cobrá rápido, no perdás vueltos. | Decenas de operaciones chicas por día, sumar a mano cansa. | Galletitas, gaseosas, cigarrillos. Cobrás con efectivo y MP por igual. |
+| **Minimarket / autoservicio** | Controlá 200+ productos sin volverte loco. | Stock que se mueve rápido, vencimientos que pasás por alto. | Lácteos, fiambres, panadería. Lotes con fecha. Precios por kg. |
+| **Almacén de barrio** | Cerrá tu caja en serio, todos los días. | Cuentas mezcladas con la familia, no sabés qué te queda neto. | Almacén con caja chica, varios empleados, retiros parciales. |
+
+### Layout
+
+**Mobile**: 3 cards verticales, una abajo de la otra. Mismo
+tratamiento que las cards de "El problema" pero con composición
+diferente (más generosa).
+
+**Desktop**: 3 columnas lado a lado, gap 24px.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                            │
+│              Hecho para tu negocio.                       │
+│       No para el de una multinacional.                    │
+│                                                            │
+│     Si tu comercio entra acá abajo, Sylvora está hecho   │
+│                       para vos.                            │
+│                                                            │
+│   ┌────────────┐  ┌────────────┐  ┌────────────┐         │
+│   │            │  │            │  │            │         │
+│   │  KIOSCO    │  │ MINIMARKET │  │  ALMACÉN   │         │
+│   │            │  │            │  │            │         │
+│   │  Cobrá     │  │ Controlá   │  │ Cerrá tu   │         │
+│   │  rápido,   │  │ 200+ prod. │  │ caja en    │         │
+│   │  no perdás │  │ sin vol-   │  │ serio,     │         │
+│   │  vueltos.  │  │ verte loco.│  │ todos los  │         │
+│   │            │  │            │  │ días.      │         │
+│   │  [dolor]   │  │  [dolor]   │  │  [dolor]   │         │
+│   │            │  │            │  │            │         │
+│   │  [ej uso]  │  │  [ej uso]  │  │  [ej uso]  │         │
+│   │            │  │            │  │            │         │
+│   └────────────┘  └────────────┘  └────────────┘         │
+│                                                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Specs visuales
+
+**Sección container**:
+- Background: vuelve a `var(--bg)` warm off-white (alterna con la
+  blanca anterior, ritmo).
+- Padding vertical: 96/64.
+
+**Título H2 y Lead**: mismos specs que las secciones anteriores.
+
+**Cards de perfil**:
+- Background: white `var(--card)`.
+- Padding: 32px desktop / 24px mobile.
+- `border-radius`: 16px.
+- `border`: 1px solid `rgba(0,0,0,0.06)`.
+- `box-shadow`: `0 1px 2px rgba(0,0,0,0.04)`.
+- Sin hover state (no son clickeables).
+
+**Etiqueta de categoría** (KIOSCO / MINIMARKET / ALMACÉN):
+- `font-family`: DM Mono.
+- `font-size`: 11px.
+- `font-weight`: 600.
+- `letter-spacing`: 0.1em.
+- `color`: `var(--ac)` brand violeta — único uso de violeta en esta
+  sección, marca la "categoría".
+- `text-transform`: uppercase.
+
+**Headline del perfil**:
+- `font-size`: 20px desktop / 18px mobile.
+- `font-weight`: 700.
+- `letter-spacing`: -0.015em.
+- `color`: `var(--text)`.
+- Margin top desde etiqueta: 16px.
+- `max-width`: idealmente cabe en 2-3 líneas.
+
+**Punto de dolor**:
+- `font-size`: 14px.
+- `font-weight`: 400.
+- `color`: `var(--text2)`.
+- Margin top: 12px.
+
+**Ejemplo de uso**:
+- `font-size`: 13px.
+- `font-weight`: 400.
+- `color`: `var(--text2)` con opacity 0.85.
+- Margin top: 12px.
+- Separador visual con el punto de dolor: ninguno, solo el gap (la
+  jerarquía tipográfica los separa).
+
+### Qué NO va en esta sección
+
+- **Iconos representando cada negocio** (carrito, balanza, etc.) —
+  caen en cliché tipo "select your industry". El nombre del negocio
+  basta.
+- **Más de 3 perfiles.** Si querés sumar farmacia, ferretería, etc.,
+  diluís el mensaje. Empezamos con 3 nichos claros.
+- **Foto de un kiosco/minimarket/almacén** dentro de cada card —
+  agrega ruido visual.
+- **CTA "Sylvora para kiosco"** que lleva a otra página. V1: una
+  sola landing.
+- **Tabla comparativa "tu negocio vs sin Sylvora"** — pretencioso.
+
+### Transición
+
+Después viene la sección de **features-como-soluciones** (sección
+4.5 del spec original). Ahora que el dueño se identificó, le
+mostramos qué resuelve el producto en detalle.
+
+---
+
+## 14f. Sección "Lo que podés hacer" — spec detallado
+
+Esta es donde la mayoría de las landings se rompen — terminan
+listando 20 features. Disciplina: **6 cards máximo**, cada una
+expresada como **solución a un problema**, no como descripción
+técnica.
+
+### Principio
+
+**Features como verbos de acción del dueño, no como sustantivos
+técnicos del producto.**
+
+Mal:
+> "Punto de venta multidispositivo con sincronización en la nube"
+
+Bien:
+> "Cobrá desde el celular, la tablet o la compu — todos sincronizados."
+
+El cambio: pasamos del POV del producto al POV del usuario.
+
+### Copy final
+
+**Título** (H2):
+
+> "Lo que Sylvora resuelve por vos."
+
+**Lead opcional**: se puede omitir acá — el título es suficiente.
+
+**Las 6 features**:
+
+| # | Headline | Sub | Visual sugerido |
+|---|---|---|---|
+| 1 | **Cobrá en segundos.** | Efectivo, débito, crédito, Mercado Pago. Calcula el vuelto solo. | Screenshot del modal de cobrar con vuelto |
+| 2 | **Stock que te avisa.** | Te marca lo que está por agotarse y los lotes por vencer. | Screenshot de productos con chips críticos |
+| 3 | **Caja cerrada de verdad.** | Al final del día sabés cuánto vendiste, qué retiraste y cuánto queda. | Screenshot del bloque "Caja cerrada" |
+| 4 | **Tu equipo, con control.** | Cada empleado con su cuenta. Vos decidís qué puede tocar cada uno. | Screenshot de `/usuarios` con roles |
+| 5 | **Tickets profesionales.** | Imprimís en térmica o mandás por WhatsApp en un toque. | Screenshot del TicketReceipt |
+| 6 | **Funciona en cualquier celular.** | No hace falta comprar hardware. Si tenés WhatsApp, tenés Sylvora. | Foto editorial de mano + celular real con POS |
+
+### Layout
+
+**Mobile**: stack vertical, 1 feature por "fila", cada una con
+mini-screenshot a su lado o debajo. Gap 56px entre features.
+
+**Desktop**: grid 2x3 (2 columnas, 3 filas). Cada celda contiene una
+feature con su mini-screenshot. Gap 32px.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                            │
+│            Lo que Sylvora resuelve por vos.               │
+│                                                            │
+│   ┌────────────────────┐  ┌────────────────────┐         │
+│   │ Cobrá en segundos. │  │ Stock que te avisa.│         │
+│   │                     │  │                     │         │
+│   │ Efectivo, débito... │  │ Te marca lo que... │         │
+│   │                     │  │                     │         │
+│   │ [screenshot mini]   │  │ [screenshot mini]   │         │
+│   └────────────────────┘  └────────────────────┘         │
+│                                                            │
+│   ┌────────────────────┐  ┌────────────────────┐         │
+│   │ Caja cerrada de... │  │ Tu equipo, con...   │         │
+│   │ ...                 │  │ ...                 │         │
+│   │ [screenshot mini]   │  │ [screenshot mini]   │         │
+│   └────────────────────┘  └────────────────────┘         │
+│                                                            │
+│   ┌────────────────────┐  ┌────────────────────┐         │
+│   │ Tickets profes...   │  │ Funciona en cual...│         │
+│   │ ...                 │  │ ...                 │         │
+│   │ [screenshot mini]   │  │ [foto mano+cel]     │         │
+│   └────────────────────┘  └────────────────────┘         │
+│                                                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Specs visuales
+
+**Sección container**:
+- Background: white `var(--bg2)` (alterna con la sección anterior).
+- Padding vertical: 96/64.
+
+**Cards de feature**:
+- Background: `var(--card)` blanco (sobre fondo blanco — el separador
+  es border + shadow, no fondo distinto).
+- Padding: 28px desktop / 24px mobile.
+- `border-radius`: 16px.
+- `border`: 1px solid `rgba(0,0,0,0.06)`.
+- `box-shadow`: `0 1px 2px rgba(0,0,0,0.04)`.
+
+**Headline de feature**:
+- `font-size`: 20px desktop / 18px mobile.
+- `font-weight`: 700.
+- `letter-spacing`: -0.015em.
+
+**Sub de feature**:
+- `font-size`: 14px.
+- `font-weight`: 400.
+- `color`: `var(--text2)`.
+- Margin top: 8px.
+- `line-height`: 1.55.
+
+**Screenshot dentro de la card**:
+- Tratamiento idéntico al hero pero más chico (radius 12, shadow más
+  sutil).
+- Aspect ratio: cuadrado o 4:3, recortado al área relevante del
+  feature.
+- Margin top: 20px desde el sub.
+
+### Qué NO va
+
+- **Más de 6 features.** Si tenés 7, sacaste mal.
+- **Iconos al lado del headline.** El screenshot es el visual.
+- **Lista de bullets dentro de cada feature.** Sub de 1-2 frases máx.
+- **"Coming soon" badges.** Si no está, no la mostramos.
+- **Comparativa "antes vs después".** Marketing exagerado.
+- **CTAs por feature** ("Aprendé más sobre cobros"). Cero CTAs en
+  esta sección.
+
+---
+
+## 14g. Sección "Precio" — spec detallado
+
+Después de mostrar el producto, el dueño piensa "cuánto vale". Hay
+que contestarle YA, claro, sin trucos.
+
+### Principio
+
+**Un solo plan. Un solo precio. Cero asteriscos.**
+
+### Copy final
+
+**Título** (H2):
+
+> "Un precio. Cero sorpresas."
+
+**Lead opcional**:
+
+> Pagás cuando lo necesitás. Cancelás cuando quieras.
+
+### Composición del bloque de precio
+
+**Una sola card centrada**, muy clara:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                            │
+│                 Un precio. Cero sorpresas.                │
+│                                                            │
+│       Pagás cuando lo necesitás. Cancelás cuando quieras.│
+│                                                            │
+│              ┌────────────────────────────┐               │
+│              │                              │               │
+│              │   30 DÍAS GRATIS             │  ← chip arriba│
+│              │                              │     bg ac    │
+│              │   Sin tarjeta de crédito     │               │
+│              │   Acceso completo            │               │
+│              │   Soporte por WhatsApp       │               │
+│              │                              │               │
+│              │   ─────────────────────      │  ← separator  │
+│              │                              │               │
+│              │   Después                    │               │
+│              │                              │               │
+│              │   $15.000                    │  ← número     │
+│              │   AR$ / mes                  │     grande    │
+│              │                              │     DM Mono   │
+│              │                              │               │
+│              │   ✓ Usuarios ilimitados      │               │
+│              │   ✓ Caja, stock, ventas      │               │
+│              │   ✓ Soporte por WhatsApp     │               │
+│              │   ✓ Sin contrato de permanen.│               │
+│              │                              │               │
+│              │   [ Empezar gratis  → ]      │  ← CTA        │
+│              │                              │               │
+│              └────────────────────────────┘               │
+│                                                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Specs visuales
+
+**Sección container**:
+- Background: vuelve a `var(--bg)` warm off-white.
+- Padding vertical: 96/64.
+
+**Card de precio**:
+- Ancho: 420px desktop centered / full width minus 32px mobile.
+- Background: `var(--card)` white.
+- `border-radius`: 20px (un toque más generoso que las otras cards,
+  reflejando importancia).
+- `border`: 1px solid `rgba(0,0,0,0.08)` (un toque más visible).
+- `box-shadow`: `0 4px 16px rgba(0,0,0,0.04), 0 24px 64px rgba(0,0,0,0.06)` (igual que el screenshot del hero — refuerza
+  importancia visual).
+- Padding: 32px desktop / 28px mobile.
+
+**Chip "30 DÍAS GRATIS"**:
+- `background`: `var(--ac)` brand violeta.
+- `color`: white.
+- `font-family`: DM Mono.
+- `font-size`: 11px.
+- `font-weight`: 700.
+- `letter-spacing`: 0.1em.
+- Padding: 6px 12px.
+- `border-radius`: 999px (pill).
+- Display: inline-block, alineado al inicio de la card.
+
+**Beneficios del trial** (lista debajo del chip):
+- `font-size`: 14px.
+- `font-weight`: 500.
+- `color`: `var(--text)`.
+- Sin viñetas. Cada línea separada por 6px de margin.
+- Margin top desde el chip: 16px.
+
+**Separator**:
+- Border-top: 1px solid `var(--border)`.
+- Margin vertical: 24px.
+
+**Texto "Después"**:
+- `font-size`: 13px.
+- `color`: `var(--text2)`.
+
+**Número del precio**:
+- `font-size`: 56px desktop / 48px mobile.
+- `font-weight`: 700.
+- `font-family`: DM Mono.
+- `letter-spacing`: -0.02em.
+- `color`: `var(--text)`.
+- Margin top: 4px.
+
+**Unidad "AR$ / mes"**:
+- `font-size`: 14px.
+- `font-weight`: 500.
+- `color`: `var(--text2)`.
+- Margin top: 4px.
+
+**Lista de features (post-trial)**:
+- Cada item con `✓` (un checkmark unicode o lucide `Check` size 14
+  color `var(--g)`).
+- `font-size`: 14px.
+- `font-weight`: 500.
+- `color`: `var(--text)`.
+- Gap entre items: 8px.
+- Margin top desde el precio: 24px.
+
+**CTA**:
+- Idéntica al CTA del hero ("Empezar gratis →").
+- Full width dentro de la card.
+- Margin top: 24px.
+
+### Qué NO va en esta sección
+
+- **Múltiples planes.** "Free / Pro / Business" — para V1 = no.
+- **Pricing tier comparativo.** Tabla con check / x — confunde.
+- **Toggle "mensual / anual con descuento".** Para V1 = solo mensual.
+- **Letra chica con asteriscos.** Si el precio tiene condiciones,
+  van en FAQ, no en letra chica.
+- **"Cancelá cuando quieras"** dicho dos veces. Está en el lead.
+- **Logos de pasarelas de pago** (MP, Visa). Distraen.
+- **"Most popular" badge.** Solo hay un plan.
+
+---
+
+## 14h. Sección "Preguntas frecuentes" — spec detallado
+
+FAQ. El último filtro antes del CTA final. Objeciones reales
+contestadas en tono conversacional.
+
+### Principio
+
+**Acordeón colapsable, no lista expandida.** Mostrar todo expandido
+es muro de texto que nadie lee. Acordeón invita a explorar solo lo
+que te importa.
+
+### Copy final
+
+**Título** (H2):
+
+> "Lo que nos preguntan más seguido."
+
+(Suave, conversacional. Evita "FAQ" en mayúscula tech.)
+
+**Las preguntas** (en orden de prioridad — las más críticas
+primero):
+
+1. **¿Tengo que comprar algo además del celular?**
+   No. Si tu celular tiene cámara y conexión, ya está. Si querés
+   imprimir tickets, agregás una impresora térmica que conseguís en
+   cualquier librería.
+
+2. **¿Qué pasa si se me corta internet?**
+   *(Respuesta condicional según estado real del Service Worker)*
+   V1 honesto: Sylvora funciona con internet. Si se corta, podés
+   seguir cobrando con efectivo y registrarlo cuando vuelva la
+   conexión.
+
+3. **¿Cómo pago la suscripción?**
+   Por Mercado Pago, transferencia o débito automático. Sin
+   contrato de permanencia — pagás mes a mes.
+
+4. **¿Mis datos están seguros?**
+   Sí. Todo viaja encriptado, está alojado en Supabase (la misma
+   infraestructura que usan miles de apps en Latinoamérica). Si
+   dejás de usarlo, te exportamos todo en Excel y borramos.
+
+5. **¿Sirve para vender por peso (kg, litro, metro)?**
+   Sí. Podés vender carne por kilo, aceite por litro, tela por
+   metro. Cada producto se configura con su unidad.
+
+6. **¿Cuántos empleados puedo agregar?**
+   Los que quieras. Sin límite. Cada uno con su usuario, su rol y
+   su control de acceso.
+
+7. **¿Puedo anular una venta o reabrir una caja?**
+   Sí, pero solo los administradores. Los empleados pueden cobrar
+   y registrar egresos, pero no anular ni reabrir.
+
+8. **¿Sylvora emite factura electrónica AFIP?**
+   *(Respuesta honesta)* Todavía no. Estamos trabajando en la
+   integración. Por ahora Sylvora es tu sistema operativo de
+   caja y stock; la facturación electrónica la seguís haciendo
+   donde la hacés hoy.
+
+9. **¿Hay un período de prueba?**
+   Sí. 30 días gratis, sin tarjeta de crédito. Al final del trial
+   te avisamos por email y decidís si seguís.
+
+10. **¿Cómo es el soporte?**
+    WhatsApp directo. Te contesta una persona real, no un chatbot.
+    Generalmente respondemos en menos de 2 horas en horario
+    comercial.
+
+### Layout
+
+Stack vertical centrado, max-width 720px. Cada pregunta es un row:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                            │
+│        Lo que nos preguntan más seguido.                  │
+│                                                            │
+│   ┌──────────────────────────────────────────────────┐   │
+│   │ ¿Tengo que comprar algo además del celular?    + │   │
+│   ├──────────────────────────────────────────────────┤   │
+│   │ ¿Qué pasa si se me corta internet?             + │   │
+│   ├──────────────────────────────────────────────────┤   │
+│   │ ¿Cómo pago la suscripción?                     − │   │  ← abierta
+│   │                                                    │   │
+│   │ Por Mercado Pago, transferencia o débito         │   │
+│   │ automático. Sin contrato de permanencia.         │   │
+│   ├──────────────────────────────────────────────────┤   │
+│   │ ¿Mis datos están seguros?                      + │   │
+│   └──────────────────────────────────────────────────┘   │
+│                                                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Specs visuales
+
+**Sección container**:
+- Background: white `var(--bg2)` (alterna).
+- Padding vertical: 96/64.
+
+**Container del acordeón**:
+- `max-width`: 720px centered.
+- `border`: 1px solid `rgba(0,0,0,0.06)`.
+- `border-radius`: 16px.
+- Background: `var(--card)` white.
+
+**Cada row**:
+- Padding: 20px 24px.
+- Separador entre rows: 1px solid `rgba(0,0,0,0.05)` (más sutil que
+  el border externo).
+- Sin separador en el último row (overlap visual con el border).
+
+**Pregunta (closed state)**:
+- `font-size`: 16px desktop / 15px mobile.
+- `font-weight`: 600.
+- `color`: `var(--text)`.
+- Icon `+` (lucide `Plus`) a la derecha, size 18, color `var(--text2)`.
+
+**Pregunta (open state)**:
+- Mismo styling pero icon `−` (lucide `Minus`).
+- Background del row: `var(--bg3)` muy sutil (apenas distingue de
+  closed).
+
+**Respuesta**:
+- `font-size`: 15px.
+- `font-weight`: 400.
+- `color`: `var(--text2)`.
+- `line-height`: 1.6.
+- Padding top: 12px (desde la pregunta).
+- Animación expand: max-height transition 200ms ease.
+
+### Qué NO va en esta sección
+
+- **Búsqueda en el FAQ.** Tenemos 10 preguntas, no se necesita.
+- **Categorías de preguntas** ("Generales / Técnicas / Pago"). El
+  orden curado es suficiente.
+- **"¿No encontrás tu pregunta? Contactanos"** — redundante, el
+  WhatsApp ya está en el footer y soporte.
+- **Preguntas filler** que nadie hizo. Si solo tenemos 6 reales,
+  6 quedan.
+
+---
+
+## 14i. Sección "CTA final" — spec detallado
+
+El último empujón. Después del FAQ, el dueño está casi convencido.
+Esta sección le da el último ping y un solo botón claro.
+
+### Principio
+
+**Una idea. Un botón. Cero ruido.**
+
+### Copy final
+
+**Título** (H2 — un toque más íntimo que las otras secciones):
+
+> "Probalo este sábado."
+
+(Específico. "Hoy" o "ahora" son abstractos, "este sábado" lo
+imagina pasando.)
+
+**Sub**:
+
+> En 2 minutos tenés tu primera venta cobrada.
+
+**CTA**: idéntico al del hero.
+
+**Micro-trust**: idéntico al del hero.
+
+### Layout
+
+Sección corta, contenido centrado, **fondo distintivo** —
+**violeta brand sutil** o **white sobre fondo violeta**. Decisión:
+**white card sobre fondo `var(--ac)` brand violeta**, para que el
+final sea visual y memorable.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │  ← fondo
+│ ▓                                                       ▓ │     var(--ac)
+│ ▓                                                       ▓ │     o gradient
+│ ▓             Probalo este sábado.                     ▓ │     muy sutil
+│ ▓                                                       ▓ │     a partir de
+│ ▓        En 2 minutos tenés tu primera venta cobrada.  ▓ │     var(--ac)
+│ ▓                                                       ▓ │
+│ ▓             ┌──────────────────────────┐            ▓ │
+│ ▓             │  Empezar gratis  →        │            ▓ │
+│ ▓             └──────────────────────────┘            ▓ │
+│ ▓                                                       ▓ │
+│ ▓             Sin tarjeta · 2 minutos                  ▓ │
+│ ▓                                                       ▓ │
+│ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Specs visuales
+
+**Sección container**:
+- Background: `var(--ac)` brand violeta.
+- Opcional: gradient sutilísimo de `var(--ac)` a `#4a3dee` para dar
+  profundidad.
+- Padding vertical: 80/64.
+- Padding lateral: 20px mobile / max-width 1200px desktop.
+
+**Título H2**:
+- `font-size`: 48px desktop / 32px mobile.
+- `font-weight`: 700.
+- `letter-spacing`: -0.025em.
+- `color`: white.
+- `text-align`: center.
+
+**Sub**:
+- `font-size`: 18px desktop / 15px mobile.
+- `font-weight`: 500.
+- `color`: `rgba(255,255,255,0.85)` (white con leve transparencia,
+  más suave).
+- `text-align`: center.
+- Margin top desde título: 12px.
+
+**CTA**:
+- Background: **white** (invertido respecto al hero).
+- `color`: `var(--ac)` brand violeta.
+- Mismo resto de specs que el CTA del hero.
+- Hover: background `rgba(255,255,255,0.92)`, sutil.
+
+**Micro-trust**:
+- `font-size`: 14px.
+- `color`: `rgba(255,255,255,0.7)`.
+- Margin top desde CTA: 12px.
+
+### Qué NO va
+
+- **Imagen / screenshot** en esta sección. Solo texto + CTA. Es el
+  "final beat" — silencio visual.
+- **Lista de últimos beneficios.** Si tenés que recordarle por qué,
+  la landing falló antes.
+- **Testimonio "Juan ya probó"** — sería forzado.
+- **"Última chance" / urgencia falsa.** Ni countdown, ni "oferta
+  limitada".
+
+---
+
+## 14j. Sección "Footer" — spec detallado
+
+Minimalista. El usuario llegó hasta acá — no le abrumes con
+sitemap.
+
+### Composición
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                            │
+│   [Sy] Sylvora                                            │
+│   Punto de venta y stock para comercios chicos.           │
+│                                                            │
+│   ─────────────────────────────────────                   │
+│                                                            │
+│   © 2026 Sylvora    [Términos]  [Privacidad]  [WhatsApp]  │
+│                                                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Specs
+
+**Container**:
+- Background: white `var(--bg2)`.
+- Padding vertical: 48px desktop / 40px mobile.
+- Border top: 1px solid `var(--border)`.
+
+**Bloque izquierdo (mobile: arriba)**:
+- Wordmark + isotipo igual que el nav.
+- Sub: 13px `var(--text2)`, una línea descriptiva.
+
+**Bloque inferior** (mobile: stack, desktop: row):
+- Copyright 12px `var(--text2)`.
+- Links 12px `var(--text2)`, separados por gap 16px.
+- WhatsApp: link al número real, abre `wa.me/...`.
+
+### Qué NO va
+
+- **Sitemap completo** ("Productos / Precio / Blog / Carreras /
+  Inversores").
+- **"Made with ❤️ in Argentina"** — para V1, dejarlo simple.
+- **Newsletter signup.**
+- **Logos de tecnologías** ("Powered by Next.js / Supabase").
+- **Iconos sociales** si no hay perfiles activos. Mejor vacío que
+  links muertos.
+
+---
+
+## 14k. Onboarding completo — del CTA a la primera venta
+
+Refinamiento de la sección 10 del spec original, con specs concretos.
+
+### Paso a paso del flujo
+
+```
+1. Click "Empezar gratis" en landing
+   ↓
+2. /signup
+   Form de 3 campos:
+   - Nombre del comercio *
+   - Email *
+   - Contraseña *
+   Botón: "Crear cuenta"
+   Link debajo: "¿Ya tenés cuenta? Entrar"
+   ↓
+3. Backend:
+   - Crea auth user con email/password
+   - Crea registro de comercio con el nombre
+   - Crea perfil con rol='admin', vinculado al comercio
+   - Crea seed inicial:
+     · Categoría "General"
+     · 3 productos demo:
+       — Coca-Cola 1.5L (precio $4.500, stock 12)
+       — Galletitas Oreo 118g (precio $1.250, stock 24)
+       — Pan flauta (precio $850, stock 8)
+     · Caja del día abierta con saldo 0
+   - Auto-login
+   - Redirect → /pos
+   ↓
+4. /pos primera carga
+   Tooltip 1 (esquina superior, descartable con X):
+   "Bienvenido. Tocá un producto para sumarlo al ticket."
+   ↓
+5. Usuario suma producto
+   Tooltip 1 desaparece, aparece Tooltip 2:
+   "Listo. Apretá Cobrar y elegí cómo te pagan."
+   ↓
+6. Usuario apreta Cobrar y elige método
+   Tooltip 2 desaparece, no aparece nada más.
+   ↓
+7. Venta confirmada
+   Toast grande (Sonner custom):
+   "¡Primera venta cobrada! 🎉 Esto es Sylvora.
+    [Cargar mis productos reales →] (link a /productos/nuevo)"
+   Toast se queda visible 8s o hasta click.
+```
+
+### Reglas de los tooltips
+
+- **Descartables**: cada tooltip tiene una `×` para cerrar sin
+  ejecutar la acción.
+- **Solo 2 tooltips totales.** No 10 pasos. El dueño aprende
+  haciendo.
+- **No bloquean la UI** — son anchored a un elemento pero el resto
+  funciona.
+- **No re-aparecen** una vez descartados (flag en localStorage o en
+  el perfil del user: `onboarding_completado`).
+
+### Emails de seguimiento
+
+| Día | Asunto | Cuerpo (resumen) |
+|---|---|---|
+| 0 (inmediato) | "Bienvenido a Sylvora" | Welcome + 3 tips para arrancar (cargá tus productos, hacé 5 ventas, cerrá tu caja). Firma del fundador. |
+| 3 | "¿Cómo va, [nombre]?" | Pregunta abierta, "respondé este email si necesitás algo". De una persona real (no noreply@). |
+| 7 | "3 cosas que te recomendamos" | Cargar el lote completo, configurar la impresora térmica, invitar a un empleado. |
+| 25 | "Tu prueba termina en 5 días" | Recordatorio. Plan AR$15.000/mes. CTA "Activar mi cuenta". |
+| 28 | "Tu prueba termina mañana" | Last reminder, mismo CTA. |
+| 30 | "Tu prueba terminó" | Acceso limitado, datos conservados 90 días. CTA "Reactivar". |
+
+### Reglas de los emails
+
+- **Firma humana** ("Juan, fundador de Sylvora") con foto si conseguimos.
+- **No automated tone**. Cada email se lee como escrito por alguien.
+- **No spam de "te quedan X días"** entre día 0 y día 25 — silencio
+  productivo.
+- **Reply-to real**: que los emails respondan a un humano, no a
+  noreply@.
+
+### Cuando termina el trial (día 30)
+
+UI behavior:
+- El user puede seguir logueado.
+- Puede VER toda su data (productos, ventas históricas, caja
+  histórica).
+- NO puede ejecutar acciones críticas:
+  - Cobrar (botón Cobrar en POS deshabilitado con tooltip "Activá tu
+    cuenta para seguir cobrando").
+  - Cerrar caja (idem).
+  - Agregar producto.
+  - Anular venta.
+- Banner persistente top: "Tu prueba terminó. Activá tu cuenta por
+  AR$15.000/mes." con CTA "Activar".
+- Login sigue funcionando — la data sigue ahí.
+
+A los 90 días sin reactivar: anonimizar + borrar definitivamente.
+Email de aviso 30 días antes.
+
+### Métricas a trackear desde día 0
+
+- Signup completado.
+- Primera venta cobrada (definición de "activado").
+- Primer producto cargado (real, no del seed).
+- Primer cierre de caja completado.
+- Re-login después del día 1 (retención día 2).
+- Re-login después del día 7.
+- Re-login después del día 30.
+- Conversión trial → pago.
+- Tiempo desde signup hasta primera venta.
+
+Métrica norte: **% de signups que hacen primera venta cobrada
+en menos de 10 minutos**. Si está abajo del 60% en el primer mes,
+hay un problema de onboarding que arreglamos antes de seguir
+optimizando otras cosas.
+
+---
+
 ## 14. Próximos pasos cuando confirmemos
 
 1. **Diseño** (Figma o equivalente): 1 mock mobile + 1 mock desktop
