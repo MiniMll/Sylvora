@@ -668,6 +668,348 @@ uno:
 
 ---
 
+## 14b. Hero — diseño detallado (primera entrega concreta)
+
+Esta sección es el spec operativo del hero. Cada decisión está
+tomada — no hay placeholders ni "tbd". Cuando codeemos, esto es la
+referencia.
+
+### Composición — qué va arriba del fold
+
+**Solo estos 7 elementos. Nada más.**
+
+1. **Wordmark** (Sy isotipo + "Sylvora").
+2. **Link "Entrar"** alineado a la derecha.
+3. **H1** con line breaks controlados.
+4. **Sub-headline** de 2 líneas.
+5. **CTA primaria** "Probar 30 días gratis".
+6. **Micro-trust** "Sin tarjeta · 2 minutos".
+7. **Screenshot** del producto (peek arriba del fold).
+
+Cada uno gana su lugar. Si querés agregar algo más al hero, tenés
+que sacar uno de los 7 — no se suma.
+
+### Layout: single-column centrado
+
+**Decisión**: layout columna única centrada, screenshot debajo del
+texto. NO el clásico two-column "texto izquierda / dashboard
+derecha".
+
+Razones:
+- Two-column es THE template SaaS pattern (Stripe, todo YC). Lo
+  que queremos evitar.
+- Editorial = headline tiene su momento, screenshot tiene el suyo.
+- El screenshot puede ser grande, protagonista — no comprimido al
+  50% del ancho.
+- Funciona idéntico en mobile sin reconfigurar.
+
+### Nav superior
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ [Sy] Sylvora                                       Entrar  │
+└────────────────────────────────────────────────────────────┘
+```
+
+- **Wordmark**:
+  - Isotipo "Sy" 28×28px (mobile) / 32×32 (desktop), `bg var(--ac)`,
+    `borderRadius 8`, "Sy" white DM Sans 700, fontSize 13/15.
+  - Wordmark "Sylvora" al lado, DM Sans 700, 18px mobile / 20px
+    desktop, color `var(--text)`, letter-spacing -0.02em.
+  - Gap entre iso y wordmark: 10px.
+- **"Entrar"** a la derecha:
+  - Link a `/login`.
+  - DM Sans 500, 14px, color `var(--text2)`.
+  - Hover: color `var(--text)`.
+  - No badge ni icon — link plano.
+- **Sin menú** de navegación (Productos / Precio / Blog). Single
+  page, scroll a las secciones.
+- Altura nav: 56px mobile / 72px desktop.
+- Padding lateral: 20px mobile / 32px desktop / `max-width: 1200px`
+  con auto-margins en desktop muy ancho.
+
+### Headline (H1) — line breaks controlados
+
+**Copy**: *"Cobrá, controlá stock y cerrá tu caja desde el celular."*
+
+Los line breaks NO son naturales del flow CSS — son controlados con
+markup explícito (`<br>` o `\n` con `white-space: pre-line`). Razón:
+el ritmo del headline es parte del diseño, no podemos dejarlo a la
+suerte del ancho del viewport.
+
+**Mobile (≤768px)**:
+
+```
+Cobrá,
+controlá stock
+y cerrá tu caja
+desde el celular.
+```
+
+4 líneas. Cada una es una unidad conceptual (verbo + objeto, o frase
+adverbial). Crea un "drumbeat" — el lector hace pausa en cada uno.
+
+**Desktop (≥1024px)**:
+
+```
+Cobrá, controlá stock y cerrá tu caja
+desde el celular.
+```
+
+2 líneas. La primera contiene las 3 acciones, la segunda es el
+diferenciador ("celular" = no es desktop legacy).
+
+**Specs tipográficos**:
+
+| | Mobile | Desktop |
+|---|---|---|
+| `font-size` | 36px | 72px (1024-1280) → 80px (>1280) |
+| `font-weight` | 800 | 800 |
+| `letter-spacing` | -0.025em | -0.03em |
+| `line-height` | 1.1 | 1.05 |
+| `color` | `var(--text)` | `var(--text)` |
+| `font-family` | DM Sans | DM Sans |
+
+**Última palabra "celular." en color brand** (`var(--ac)`)? **No**.
+Tentación grande pero rompe el feel editorial. El violeta lo
+reservamos para el CTA y 1-2 acentos. Headline queda monocromo
+sobrio.
+
+### Sub-headline
+
+**Copy**:
+
+> "Hecho para kioscos, almacenes y minimarkets.
+> Empezás gratis en 2 minutos."
+
+2 líneas. Primera línea identifica al target (auto-identificación).
+Segunda baja la barrera (gratis + fácil).
+
+**Specs**:
+
+| | Mobile | Desktop |
+|---|---|---|
+| `font-size` | 16px | 20px |
+| `font-weight` | 500 | 500 |
+| `line-height` | 1.4 | 1.5 |
+| `color` | `var(--text2)` | `var(--text2)` |
+| `max-width` | 100% | 640px (no se estira a 1200) |
+
+Gap H1 → sub: 16px mobile / 32px desktop.
+
+### CTA primaria
+
+**Copy**: `Probar 30 días gratis →`
+
+(La flecha es parte del texto, no icon separado — más editorial.
+Alternativa: ArrowRight de lucide tamaño 16, ml-2.)
+
+**Style**:
+
+```
+bg: var(--ac)
+color: white
+font-family: DM Sans
+font-weight: 600
+font-size: 17px (todos los viewports)
+padding: 16px 28px (desktop) / 18px (mobile full width)
+border-radius: 12px
+border: none
+box-shadow: 0 1px 2px rgba(0,0,0,0.04)
+transition: all 0.15s ease
+```
+
+**Hover desktop**:
+
+```
+bg: var(--ac-hover)
+box-shadow: 0 4px 16px rgba(91,76,255,0.25)
+transform: translateY(-1px)
+```
+
+(Lift sutil. Sin esto se siente plano. Con más es exagerado.)
+
+**Active**: `transform: scale(0.98)`.
+
+**Width**:
+- Mobile: `width: calc(100% - 40px)` (full menos padding lateral).
+- Desktop: `width: auto`, padding lateral generoso, centrado.
+
+**Alto mínimo**: 56px (touch target).
+
+**NO** segunda CTA tipo "Ver demo" / "Cómo funciona". Single action.
+Si el usuario quiere más info, scrollea.
+
+### Micro-trust
+
+**Copy**: `Sin tarjeta · 2 minutos`
+
+(Notar el separator `·` middle-dot, no `•` bullet, no `|`. Más
+editorial.)
+
+**Specs**:
+
+| | Valor |
+|---|---|
+| `font-size` | 13px mobile / 14px desktop |
+| `font-weight` | 500 |
+| `color` | `var(--text2)` |
+| `text-align` | center |
+| Gap CTA → micro | 12-16px |
+
+**NO**: no agregar más promesas acá. "Sin instalación", "Funciona en
+cualquier celular", "Soporte humano" pueden parecer naturales pero
+diluyen el mensaje. Las dos micro-promesas más fuertes son: **no te
+pido tarjeta** + **es rápido**. Eso es suficiente.
+
+### Screenshot del hero
+
+**Qué muestra**:
+
+Vista del POS con un ticket en curso, listo para cobrar. Composición
+sugerida:
+
+- Panel de búsqueda (izquierda en desktop, arriba en mobile) con
+  algún producto buscado: "Galletitas" con un resultado destacado.
+- Panel del carrito (derecha en desktop, debajo en mobile) con
+  **3 items reales argentinos**:
+  - 1× Galletitas Oreo 118g — $1.250
+  - 2× Coca-Cola 1.5L — $7.400
+  - 1× Pan flauta — $850
+- Sección de método de pago con "Efectivo" destacado.
+- Botón "Cobrar $9.500" prominente en verde abajo.
+
+Por qué este screenshot: el cajero lo ve y reconoce "esto es lo que
+hago todos los días". El dueño lo ve y entiende "este sistema
+maneja mi negocio". Productos reales = credibilidad inmediata.
+
+**Tratamiento visual** (igual que sección 5 imagery):
+
+```
+border-radius: 18px (mobile 14px)
+border: 1px solid rgba(0,0,0,0.06)
+box-shadow:
+  0 4px 16px rgba(0,0,0,0.04),
+  0 24px 64px rgba(0,0,0,0.06)
+```
+
+Sin chrome de browser, sin chrome de OS, sin frame de teléfono. El
+screenshot ES la imagen. Plana, frontal, sin tilt.
+
+**Dimensiones**:
+
+- Desktop: `max-width: 1100px`, ancho real escalado al viewport.
+  Aspect ratio del screenshot real (probablemente 16:10 si tomamos
+  captura de una ventana ~1440×900, o 16:9 si full-screen).
+- Mobile: full width menos padding (16px cada lado), aspect ratio
+  natural del screenshot mobile. Puede ser desktop screenshot
+  recortado al área principal (cart + cobrar), mostrando "esto
+  cabe en mi celular" pero con composición desktop más rica.
+
+**Mejor opción**: capturar el POS **a un viewport intermedio
+(~1024px)** que conserve detalle visible pero no tenga whitespace
+gigante. Recorte de la imagen ajustado al contenido (panel búsqueda
++ carrito + cobrar), sin headers ni navegación de la app.
+
+### Espaciado vertical (mobile)
+
+| Elemento | Alto | Gap inferior |
+|---|---|---|
+| Nav | 56 | — |
+| Top breathing | — | 24 |
+| H1 (4 líneas × 40 lh) | 160 | 16 |
+| Sub (3 líneas × ~22 lh) | 66 | 32 |
+| CTA | 56 | 12 |
+| Micro | 18 | 40 |
+| Screenshot peek | (resto) | — |
+
+Total antes del screenshot: ~480px. En un celular típico (740px
+viewport menos chrome 100 = 640 visible), el screenshot tiene
+**~160px visibles arriba del fold** → buen peek.
+
+### Espaciado vertical (desktop, viewport 1080p)
+
+| Elemento | Alto | Gap inferior |
+|---|---|---|
+| Nav | 72 | — |
+| Top breathing | — | 96 |
+| H1 (2 líneas × 88 lh) | 176 | 32 |
+| Sub (2 líneas × 30 lh) | 60 | 40 |
+| CTA | 56 | 16 |
+| Micro | 22 | 96 |
+| Screenshot peek | (resto) | — |
+
+Total antes del screenshot: ~666px. En 1080p (864 visible), el
+screenshot tiene **~198px visibles** → buen peek.
+
+### Qué NO va en el hero
+
+Lista exhaustiva (re-confirma sección 3 + agrega):
+
+- **No segunda CTA** ("Ver demo", "Mirar video"). Single action.
+- **No badges de "Trusted by"** / "As featured in".
+- **No métricas** ("+5.000 comercios", "98% uptime") si no son
+  reales. Y aunque sean reales: distraen del mensaje en V1.
+- **No barra de "🎉 Nuevo: feature X"** arriba del nav.
+- **No cookie banner gigante** tapando el hero. Si necesitamos
+  cookie consent, va en footer + banner mínimo no-modal.
+- **No 3+ screenshots** en el hero (collage / carousel).
+  **Uno solo**, grande.
+- **No scroll indicator** ("↓ scroll for more"). El usuario sabe
+  scrollear.
+- **No video autoplay** ni iframe de YouTube.
+- **No language picker** (es-AR único en V1).
+- **No social icons** en el nav. Van en footer.
+- **No "Free for first 100 signups" countdown**. Genera urgencia
+  falsa.
+- **No frame de teléfono físico**, no mockup de ventana macOS, no
+  tilt 3D del screenshot.
+
+### Responsive behavior — transiciones
+
+**Breakpoints** del hero:
+
+- `< 768px`: layout mobile (todo vertical, H1 4 líneas, CTA full
+  width).
+- `768-1023px`: transition zone — H1 puede ser 56-64px (entre los
+  dos extremos), sub mantiene 18px, CTA auto-width.
+- `≥ 1024px`: layout desktop full (H1 72-80px, breathing 96px,
+  screenshot 1100 max).
+- `≥ 1440px`: container max-width 1200px, no se sigue estirando.
+
+**No hay layout intermedio "tablet"** con composición distinta —
+solo escalado de tamaños.
+
+### Animación de entrada (opcional)
+
+Mínima y elegante:
+
+- Nav: aparece instantáneo (no animado, evita flash).
+- H1: `opacity 0 → 1` + `translateY(8px → 0)` en 400ms, ease-out,
+  delay 100ms.
+- Sub: mismo timing, delay 250ms.
+- CTA: mismo timing, delay 400ms.
+- Micro: mismo timing, delay 500ms.
+- Screenshot: `opacity 0 → 1` (sin translate) en 600ms, delay 600ms.
+
+Total reveal: ~1.2s desde paint. Suficientemente rápido para no
+sentir "loading", suficientemente lento para que el ojo lo siga.
+
+`prefers-reduced-motion: reduce` → todo aparece instantáneo, sin
+translate.
+
+### Lighthouse / performance targets
+
+- LCP (Largest Contentful Paint) < 1.5s en 4G. Probable que el LCP
+  sea el screenshot — preload + WebP optimizado.
+- CLS (Cumulative Layout Shift) = 0. El screenshot tiene
+  `width`/`height` attributes para reservar espacio.
+- Tipografía: `font-display: swap` en DM Sans y DM Mono. Sin FOIT.
+- Preload del screenshot del hero específicamente (`<link rel="preload"
+  as="image" href="...">`).
+
+---
+
 ## 14. Próximos pasos cuando confirmemos
 
 1. **Diseño** (Figma o equivalente): 1 mock mobile + 1 mock desktop
