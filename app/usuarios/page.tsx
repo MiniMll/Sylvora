@@ -1,9 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Users, AlertTriangle, ShieldCheck, User } from 'lucide-react'
+import { Users, AlertTriangle, ShieldCheck, User, UserPlus } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
-import { Select } from '@/components/ui/Input'
+import { Input, Select } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
 import { usePermissions } from '@/components/PermissionsProvider'
 import { listUsuariosComercio, cambiarRolUsuario } from '@/lib/supabase/usuarios'
 import { labelRol } from '@/lib/permissions'
@@ -24,6 +26,22 @@ export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Perfil[]>([])
   const [cargando, setCargando] = useState(true)
   const [actualizando, setActualizando] = useState<string | null>(null)
+  // Invite modal state.
+  const [invitarOpen, setInvitarOpen] = useState(false)
+  const [invitando, setInvitando] = useState(false)
+  const [invEmail, setInvEmail] = useState('')
+  const [invNombre, setInvNombre] = useState('')
+  const [invRol, setInvRol] = useState<Rol>('empleado')
+
+  const resetInviteForm = () => {
+    setInvEmail('')
+    setInvNombre('')
+    setInvRol('empleado')
+  }
+
+  const refrescarUsuarios = async () => {
+    setUsuarios(await listUsuariosComercio())
+  }
 
   useEffect(() => {
     listUsuariosComercio().then(data => {
@@ -67,9 +85,42 @@ export default function UsuariosPage() {
 
   const cantAdmins = usuarios.filter(u => u.rol === 'admin').length
 
+  const enviarInvitacion = async () => {
+    if (!invEmail.trim()) {
+      toast.error('Ingresá un email')
+      return
+    }
+    setInvitando(true)
+    try {
+      const res = await fetch('/api/usuarios/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: invEmail.trim(),
+          rol: invRol,
+          nombre: invNombre.trim() || undefined,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        toast.success(`Invitación enviada a ${invEmail.trim()}`)
+        await refrescarUsuarios()
+        resetInviteForm()
+        setInvitarOpen(false)
+      } else {
+        toast.error(data.error || 'No se pudo enviar la invitación')
+      }
+    } catch (e) {
+      console.error('[invitar]', e)
+      toast.error('Error de red al enviar la invitación')
+    } finally {
+      setInvitando(false)
+    }
+  }
+
   return (
     <div style={{ padding: 24, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 10 }}>
             <Users size={22} /> Usuarios
@@ -78,17 +129,9 @@ export default function UsuariosPage() {
             {usuarios.length} {usuarios.length === 1 ? 'usuario' : 'usuarios'} · {cantAdmins} {cantAdmins === 1 ? 'admin' : 'admins'}
           </p>
         </div>
-      </div>
-
-      {/* Nota: invite flow viene en P2.2. Por ahora se agregan empleados
-          desde el dashboard de Supabase. */}
-      <div style={{ flexShrink: 0, background: 'rgba(91,76,255,0.06)', border: '1px solid rgba(91,76,255,0.2)', borderRadius: 12, padding: '12px 16px', fontSize: 12, color: 'var(--text2)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <Users size={14} color="var(--ac)" style={{ flexShrink: 0, marginTop: 2 }} />
-        <div>
-          <b style={{ color: 'var(--text)' }}>Invitación por email: próximamente.</b><br />
-          Mientras tanto, los empleados se pueden agregar desde el panel de
-          Supabase. Una vez creado el perfil, podés cambiar su rol desde acá.
-        </div>
+        <Button variant="primary" size="sm" icon={<UserPlus size={14} />} onClick={() => setInvitarOpen(true)}>
+          Invitar usuario
+        </Button>
       </div>
 
       <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
@@ -151,6 +194,64 @@ export default function UsuariosPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal invitar usuario */}
+      <Modal
+        open={invitarOpen}
+        onClose={() => { if (!invitando) { setInvitarOpen(false); resetInviteForm() } }}
+        title="Invitar usuario"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setInvitarOpen(false); resetInviteForm() }} disabled={invitando} style={{ flex: 1 }}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={enviarInvitacion} loading={invitando} style={{ flex: 1 }}>
+              {invitando ? 'Enviando...' : 'Enviar invitación'}
+            </Button>
+          </>
+        }>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+            Se va a enviar un email con un link mágico. El usuario hace click,
+            elige su contraseña, y queda dentro del comercio.
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Email *</label>
+            <Input
+              size="md"
+              type="email"
+              value={invEmail}
+              onChange={e => setInvEmail(e.target.value)}
+              placeholder="empleado@ejemplo.com"
+              disabled={invitando}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Nombre (opcional)</label>
+            <Input
+              size="md"
+              type="text"
+              value={invNombre}
+              onChange={e => setInvNombre(e.target.value)}
+              placeholder="Juan Pérez"
+              disabled={invitando}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Rol</label>
+            <Select
+              size="md"
+              value={invRol}
+              onChange={e => setInvRol(e.target.value as Rol)}
+              disabled={invitando}>
+              <option value="empleado">Empleado</option>
+              <option value="admin">Administrador</option>
+            </Select>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
