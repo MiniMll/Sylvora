@@ -322,23 +322,87 @@ Minimalist:
 - **Numbers / dinero**: DM Mono. Consistente con la app.
 - **Micro-text**: 11–12px, color `--text2`.
 
-### Imagery
+### Imagery — sin mockups fake, screenshots como producto real
 
-- **Screenshots reales** del producto. No mockups stock.
-- **Mockups de celular**: usar uno mínimo (no marca específica de
-  teléfono). Mostrar la mano sosteniéndolo en algunas.
-- **Foto de un kiosco real** si conseguís: 1–2 fotos máximo, no
-  abusar.
-- **Cero ilustraciones flat genéricas** (las de "personas con laptops
-  flotantes"). Mata credibilidad instantáneo.
+**Decisión confirmada**: NO usar el clásico mockup tipo ventana macOS
+con barra negra arriba y los tres botones rojo/amarillo/verde. Es un
+cliché de template que delata "ilustración de producto" en vez de
+"producto". Mata exactamente la credibilidad que estamos buscando.
 
-### Tono visual
+**Cómo mostramos los screenshots en su lugar:**
 
-- Aireado, mucho whitespace.
-- Borders sutiles `var(--border)`.
-- Sombras suaves (`var(--shadow-sm)`).
-- Cards rounded `var(--radius-lg)`.
-- Sin "glassmorphism", "neumorphism" ni efectos 2021. Atemporal.
+- **Screenshots integrados directamente**, sin chrome de browser ni
+  chrome de OS. La captura ES la imagen.
+- **Border radius generoso** (16–20px) en las esquinas del screenshot,
+  para que no se vea como "captura cuadrada pegada al fondo".
+- **Border de 1px** sutilísimo (`rgba(0,0,0,0.06)`) que recorta el
+  screenshot del fondo de la página sin que se note.
+- **Shadow de 2 capas, muy difusa**, tipo:
+  `0 4px 16px rgba(0,0,0,0.04), 0 24px 64px rgba(0,0,0,0.06)`
+  → la captura "flota" un poquito, no parece pegada con scotch.
+- **El fondo de la landing** (`#f5f4f0`) se ve a través del shadow,
+  no es shadow contra blanco puro. Eso es lo que da el feel editorial.
+- **Sin tilt / rotación 3D**. La captura va plana, frontal. Las
+  rotaciones isométricas también son cliché de template.
+- **Sin "frame" de teléfono físico** tipo "este es un iPhone".
+  Si mostramos mobile, el screenshot del POS mobile va solo, con
+  el mismo tratamiento (radius + border + shadow). El user
+  reconoce que es mobile por el aspect ratio y el contenido, no
+  porque le pongamos un dibujo de teléfono.
+
+**Excepción mínima**: si en alguna sección queremos enfatizar que
+es mobile (ej. el hero secundario "funciona desde el celular"),
+podemos mostrar UNA foto real (no ilustración) de una mano
+sosteniendo un teléfono real con el POS en pantalla. **Una sola foto
+así en toda la landing**, no más.
+
+**Composición**:
+
+- Screenshots en sus aspect ratios reales (desktop 16:10 o 16:9,
+  mobile 9:19.5 aprox). No forzar cuadrados ni stretching.
+- Una captura por sección, grande, protagonista — no grids de 4
+  miniaturas tipo "feature gallery".
+- En el hero la captura puede ocupar 50–60% del ancho desktop, full
+  width en mobile.
+
+**Ilustraciones / iconos**:
+
+- **Cero ilustraciones flat genéricas** (personas con laptops
+  flotando, plantas, oficinas isométricas, etc.).
+- **Iconos**: lucide-react (mismo set que la app), tamaño contenido,
+  monocromo `var(--text2)`. Solo cuando refuerzan, no como adorno.
+- **Emoji**: con criterio. 1-2 en toda la landing como mucho, en
+  el lugar correcto (ej. CTA final, sección problema). No en cada
+  título.
+
+### Tono visual — editorial, no template
+
+- **Aireado**, mucho whitespace. La landing respira.
+- **Densidad de texto baja**: cada sección tiene una idea, no un
+  ensayo.
+- **Borders sutilísimos** `rgba(0,0,0,0.06)`, casi imperceptibles.
+  No "boxes con borde marcado".
+- **Sombras suaves de 2 capas** (definidas arriba). Nunca shadow
+  dura tipo `0 2px 4px rgba(0,0,0,0.2)`.
+- **Cards rounded** `var(--radius-lg)` = 18px.
+- **Grids con gap generoso** (32–48px en desktop, 24px mobile).
+- **Color dominante = warm off-white**. El violeta brand aparece
+  acentuado: CTAs, links, 1-2 highlights, y eso es todo. Si
+  llenás de violeta se siente "Stripe genérico".
+- **Sin "glassmorphism", "neumorphism", gradients ruidosos,
+  blur backgrounds**. Atemporal > trendy.
+
+**Referencias mentales** (no copiar, mirar para sintonizar):
+- Linear, pero menos "tech" y más "comercial".
+- Stripe, pero menos corporate.
+- Pacific.app, Plain.com — el feel "editorial moderno limpio".
+
+**Anti-referencias** (NO parecernos):
+- Salesforce, SAP, Tango: tech enterprise viejo.
+- Cualquier landing con "Hero illustration" de figuras humanas
+  flotando.
+- Cualquier "AI-powered" / "All-in-one" con badges de "Featured on
+  Product Hunt".
 
 ### Animaciones
 
@@ -370,10 +434,14 @@ Diseñar mobile primero, expandir a desktop:
 
 ## 7. Screenshots — qué tomar
 
-Lista priorizada para sacar capturas del producto actual:
+Lista priorizada para sacar capturas del producto actual. Cada una
+va con el tratamiento editorial definido en sección 5: radius
+generoso + border sutil + shadow difusa de 2 capas, SIN mockup
+de ventana ni frame de teléfono.
 
 1. **POS cobrando** con productos reales (Galletitas Oreo, Coca,
-   etc.) — el hero shot.
+   etc.) — el hero shot. Aspect ratio del viewport real (desktop o
+   mobile, no recortar).
 2. **Modal de cobrar** con efectivo + vuelto calculado destacado.
 3. **Bloque "Caja cerrada"** del rework reciente (con responsable
    + hora + saldo).
@@ -381,9 +449,29 @@ Lista priorizada para sacar capturas del producto actual:
    verde.
 5. **Detalle de producto** con lotes + vencimiento ("Vence en 5
    días" amarillo).
-6. **Ticket impreso** (foto real del papel térmico saliendo, si
-   conseguís) + screenshot del TicketReceipt en pantalla.
-7. **POS en mockup de celular** con la mano (hero alternativa).
+6. **Ticket impreso**: dos opciones — (a) screenshot del
+   TicketReceipt en pantalla con el tratamiento editorial, o (b)
+   foto real del papel térmico saliendo de la impresora. La (b)
+   es más poderosa si conseguís impresora térmica + buena foto,
+   pero opcional.
+7. **Mobile real**: una sola foto editorial (no mockup, no frame)
+   de un celular real sostenido por una mano, mostrando el POS.
+   Reservada para enfatizar "funciona desde el celular" en una
+   sola sección — no abusar.
+
+**Cómo prepararlas**:
+
+- **Data dummy realista** con productos argentinos y precios
+  coherentes ($4.200 una Coca de 1.5L, no $42 ni $4.200.000).
+- **Sin nombres de empleados reales** (privacidad).
+- **Sin pantallas vacías ni Lorem ipsum**. Si la captura sale
+  pobre (carrito vacío, lista de 2 productos), no la usamos.
+- **Resolución 2x retina** mínimo.
+- **Recorte limpio** sin chrome del browser ni address bar.
+- **Mismo modo (light)** en toda la landing. No mezclar light
+  con dark dentro de capturas.
+- Exportar **WebP** optimizado, fallback PNG. Apuntar a
+  <100KB por captura.
 
 Capturas en **modo claro** (el target casi seguro usa light). Dark
 mode lo dejamos para una sección secundaria.
