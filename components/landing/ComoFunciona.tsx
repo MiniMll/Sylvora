@@ -87,7 +87,7 @@ export function ComoFunciona() {
   const { ref: headerRef, inView: headerInView } = useInView<HTMLDivElement>()
 
   return (
-    <Section background="card" paddingY="lg">
+    <Section background="card" paddingY="lg" id="como-funciona">
       <Container maxWidth={1200}>
         <div
           ref={headerRef}

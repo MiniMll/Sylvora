@@ -42,7 +42,7 @@ export function Pricing({ isAuthenticated }: PricingProps) {
   const precioFormateado = '$' + PRECIO_MENSUAL_AR.toLocaleString('es-AR')
 
   return (
-    <Section background="bg" paddingY="lg">
+    <Section background="bg" paddingY="lg" id="precios">
       <Container maxWidth={1100}>
         <div
           ref={ref}

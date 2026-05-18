@@ -44,7 +44,7 @@ export function FAQ() {
   const { ref, inView } = useInView<HTMLDivElement>()
 
   return (
-    <Section background="bg" paddingY="lg">
+    <Section background="bg" paddingY="lg" id="preguntas">
       <Container maxWidth={720}>
         <div
           ref={ref}

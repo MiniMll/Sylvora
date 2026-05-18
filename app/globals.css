@@ -390,11 +390,78 @@ button:active { transform: scale(0.97); }
 @media (min-width: 768px)  { .landing-container { padding: 0 32px; } }
 @media (min-width: 1024px) { .landing-container { padding: 0 48px; } }
 
-/* Section: ritmo vertical consistente entre secciones. */
-.landing-section { padding-top: 64px; padding-bottom: 64px; }
+/* Section: ritmo vertical consistente entre secciones.
+   Fase A: bumped a 80 mobile / 120 desktop para más aire premium.
+   Era 64/96 antes — la diferencia es chica en cada sección pero
+   suma a 200+px extra de respiración en el scroll completo. */
+.landing-section { padding-top: 80px; padding-bottom: 80px; }
 @media (min-width: 768px) {
-  .landing-section--lg { padding-top: 96px; padding-bottom: 96px; }
+  .landing-section--lg { padding-top: 120px; padding-bottom: 120px; }
 }
+/* Scroll margin top en secciones con anchor (Cómo funciona, Precios,
+   Preguntas) para que el sticky nav no las tape cuando saltás
+   desde un link. La altura del nav es 56px — sumamos un poco más
+   para que respire visualmente el aterrizaje. */
+.landing-section[id] { scroll-margin-top: 72px; }
+
+/* === Nav rica =====================================================
+   Sticky con brand izq, links centrales (desktop only), CTA derecha.
+   En mobile <768 los links centrales se ocultan y queda solo
+   brand + CTA. */
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg);
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  /* Backdrop blur sutil cuando hay contenido por debajo. */
+  backdrop-filter: saturate(180%) blur(8px);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
+}
+.landing-nav-inner {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.landing-nav-brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--text);
+}
+.landing-nav-links {
+  display: none;
+}
+@media (min-width: 768px) {
+  .landing-nav-links {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+}
+.landing-nav-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text2);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.landing-nav-link:hover {
+  color: var(--text);
+  background: rgba(0,0,0,0.03);
+}
+.landing-nav-cta {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text2);
+  text-decoration: none;
+  padding: 8px 4px;
+}
+.landing-nav-cta:hover { color: var(--text); }
 
 /* Tipografía responsive. Headlines crecen en desktop; sub se
    ajusta más sutilmente. */
@@ -410,10 +477,17 @@ button:active { transform: scale(0.97); }
   .landing-h1 { font-size: 56px; letter-spacing: -0.028em; line-height: 1.08; }
 }
 @media (min-width: 1024px) {
-  .landing-h1 { font-size: 72px; letter-spacing: -0.03em; line-height: 1.05; }
+  /* En el split, el H1 vive en una columna de ~45% del container —
+     bajamos a 60px (de 72) para que el wrap natural no se rompa en
+     5 líneas. La pérdida de tamaño la compensa la composición
+     horizontal (texto + screenshot lado a lado). */
+  .landing-h1 { font-size: 60px; letter-spacing: -0.028em; line-height: 1.06; }
+}
+@media (min-width: 1280px) {
+  .landing-h1 { font-size: 64px; }
 }
 @media (min-width: 1440px) {
-  .landing-h1 { font-size: 80px; }
+  .landing-h1 { font-size: 68px; letter-spacing: -0.03em; line-height: 1.04; }
 }
 
 .landing-h2 {
@@ -448,15 +522,237 @@ button:active { transform: scale(0.97); }
 /* Hero — gaps verticales entre elementos.
    Mobile: H1→sub 16, sub→CTA 32, CTA→micro 12, micro→screenshot 40.
    Desktop: H1→sub 32, sub→CTA 40, CTA→micro 16, micro→screenshot 96. */
+/* Gaps verticales del hero. */
+.hero-h1-gap         { margin-top: 20px; }
 .hero-sub-gap        { margin-top: 16px; }
-.hero-cta-gap        { margin-top: 32px; }
+.hero-cta-gap        { margin-top: 28px; }
 .hero-micro-gap      { margin-top: 12px; }
-.hero-screenshot-gap { margin-top: 40px; }
 @media (min-width: 1024px) {
-  .hero-sub-gap        { margin-top: 32px; }
-  .hero-cta-gap        { margin-top: 40px; }
-  .hero-micro-gap      { margin-top: 16px; }
-  .hero-screenshot-gap { margin-top: 96px; }
+  .hero-h1-gap         { margin-top: 24px; }
+  .hero-sub-gap        { margin-top: 20px; }
+  .hero-cta-gap        { margin-top: 32px; }
+  .hero-micro-gap      { margin-top: 14px; }
+}
+
+/* Hero split layout — desktop ≥1024px.
+   Mobile/tablet vuelven al stack vertical centered. */
+.hero-split {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+@media (min-width: 1024px) {
+  .hero-split {
+    /* 45/55 a favor del producto. La columna texto queda holgada
+       para el H1 a 60px y el screenshot domina visualmente. */
+    display: grid;
+    grid-template-columns: 45fr 55fr;
+    column-gap: 48px;
+    align-items: center;
+    text-align: left;
+  }
+}
+@media (min-width: 1280px) {
+  .hero-split { column-gap: 64px; }
+}
+/* La columna de texto: stack flex en mobile (centered), stack flex
+   alineado a la izquierda en desktop. */
+.hero-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 640px;
+}
+@media (min-width: 1024px) {
+  .hero-text {
+    align-items: flex-start;
+    max-width: none;
+  }
+}
+
+/* CTA row: en desktop el CTA + micro-trust van en línea (CTA |
+   "sin tarjeta · 2 min"), aprovechando ancho horizontal disponible.
+   En mobile el CTA va full-width y el micro debajo. */
+.hero-cta-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .hero-cta-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    width: auto;
+  }
+}
+
+/* Eyebrow — en split desktop NO es un chip cerrado tipo Pricing.
+   Es un label inline con un dot/marker violeta a la izquierda que
+   ancla el bloque visualmente. Se siente más "editorial" y menos
+   "badge tag" cuando va alineado a la izquierda en lugar de
+   centered. Sobre mobile sigue siendo chip-like compacto. */
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ac);
+  background: var(--ac-light);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+@media (min-width: 768px) {
+  .hero-eyebrow { font-size: 12px; padding: 7px 16px; }
+}
+@media (min-width: 1024px) {
+  /* En desktop, eyebrow pierde el background chip y queda como
+     label inline con marker. Más editorial, menos "badge". */
+  .hero-eyebrow {
+    background: transparent;
+    padding: 0;
+    gap: 10px;
+  }
+}
+.hero-eyebrow-marker {
+  /* Dot violeta — visible solo en desktop donde el chip pierde bg. */
+  display: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ac);
+  flex-shrink: 0;
+}
+@media (min-width: 1024px) {
+  .hero-eyebrow-marker { display: inline-block; }
+}
+
+/* Benefits row — banda full-width debajo del split.
+   Bridge visual entre el hero y la siguiente sección (Problema).
+   Mobile: grid 2×2 contenido. Desktop: fila horizontal centrada con
+   gaps amplios — funciona como "tira de señales" más que como cards
+   apretadas. */
+.hero-benefits {
+  list-style: none;
+  margin: 40px auto 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 520px;
+}
+@media (min-width: 768px) {
+  .hero-benefits {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    max-width: none;
+  }
+}
+@media (min-width: 1024px) {
+  /* Más aire para que se sienta "banda" en lugar de "row de chips". */
+  .hero-benefits { margin-top: 72px; gap: 14px; }
+}
+.hero-benefit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.hero-benefit svg {
+  color: var(--ac);
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .hero-benefit { font-size: 14px; padding: 11px 18px; }
+}
+
+/* Columna del screenshot.
+   Mobile: stack debajo del texto, gap arriba.
+   Desktop: 55% del split, sin gap top porque alinea con el bloque
+   de texto via align-items: center del grid. */
+.hero-screenshot-col {
+  position: relative;
+  margin-top: 40px;
+  width: 100%;
+  isolation: isolate;
+}
+@media (min-width: 1024px) {
+  .hero-screenshot-col { margin-top: 0; }
+}
+
+/* Glow violet detrás del screenshot. Anclado al ::before del col.
+   En mobile el glow va centrado debajo. En desktop se desplaza hacia
+   la derecha + abajo para acompañar la posición del screenshot que
+   se escapa del container. */
+.hero-screenshot-col::before {
+  content: '';
+  position: absolute;
+  inset: 10% -5% -20% -5%;
+  background: radial-gradient(
+    ellipse at center 60%,
+    rgba(91, 76, 255, 0.22),
+    rgba(91, 76, 255, 0.10) 40%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  z-index: -1;
+  pointer-events: none;
+}
+@media (min-width: 1024px) {
+  .hero-screenshot-col::before {
+    /* Glow corrido a la derecha — acompaña el screenshot overflow. */
+    inset: 5% -15% -15% 5%;
+  }
+}
+
+/* Overflow del screenshot: en desktop el screenshot es más ancho
+   que su columna y se permite que salga visualmente hacia la
+   derecha. Esto genera la sensación "hay más app, esto es solo un
+   vistazo". El truco es overflow visible + width fijo > columna. */
+.hero-screenshot-overflow {
+  /* Mobile: contained, sin overflow especial. */
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .hero-screenshot-overflow {
+    /* Width 120% de la columna — se asoma 20% por la derecha.
+       Calculado para que en viewports normales (1280-1920) se vea
+       intencional sin ser caótico en viewports muy chicos. */
+    width: 120%;
+    /* Pero limit duro a 50vw para que no se desborde absurdamente
+       en viewports muy anchos. */
+    max-width: 50vw;
+  }
+}
+
+/* Mask bottom: el screenshot se desvanece sutil hacia abajo. */
+.hero-screenshot-mask {
+  -webkit-mask-image: linear-gradient(to bottom, black 88%, transparent);
+          mask-image: linear-gradient(to bottom, black 88%, transparent);
+}
+@media (min-width: 1024px) {
+  .hero-screenshot-mask {
+    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent);
+            mask-image: linear-gradient(to bottom, black 85%, transparent);
+  }
 }
 
 /* Hero CTA — botón primario violeta.
@@ -522,11 +818,15 @@ button:active { transform: scale(0.97); }
   opacity: 0;
   animation: hero-fade-in 0.5s var(--ease-out) forwards;
 }
-.hero-stagger-1 { animation-delay: 0.10s; }
-.hero-stagger-2 { animation-delay: 0.25s; }
-.hero-stagger-3 { animation-delay: 0.40s; }
-.hero-stagger-4 { animation-delay: 0.50s; }
-.hero-stagger-5 { animation-delay: 0.60s; animation-duration: 0.6s; }
+/* Stagger delays — extendido a 7 slots para hospedar el eyebrow (1)
+   y la benefits row (6) además del flujo original. Total ~1.4s. */
+.hero-stagger-1 { animation-delay: 0.05s; }
+.hero-stagger-2 { animation-delay: 0.15s; }
+.hero-stagger-3 { animation-delay: 0.28s; }
+.hero-stagger-4 { animation-delay: 0.40s; }
+.hero-stagger-5 { animation-delay: 0.50s; }
+.hero-stagger-6 { animation-delay: 0.60s; }
+.hero-stagger-7 { animation-delay: 0.72s; animation-duration: 0.6s; }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-stagger {
