@@ -52,6 +52,11 @@ CREATE TABLE IF NOT EXISTS categorias (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   comercio_id  UUID NOT NULL REFERENCES comercios(id) ON DELETE CASCADE,
   nombre       TEXT NOT NULL,
+  -- El flow de registro (app/registro/page.tsx) inserta icono + color
+  -- al crear las categorías default. Sin estas columnas el insert
+  -- falla con "column does not exist".
+  icono        TEXT,
+  color        TEXT,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (comercio_id, nombre)
 );
@@ -378,6 +383,48 @@ CREATE POLICY "aperturas_caja_write_admin" ON aperturas_caja FOR ALL
 
 
 -- ─────────────────────────────────────────────────────────────────────
+-- Storage — bucket "productos" + policies
+-- ─────────────────────────────────────────────────────────────────────
+-- La app sube imágenes de productos a un bucket llamado "productos"
+-- (ver lib/supabase/productos.ts subirImagen). Sin esto, intentar
+-- subir una imagen devuelve "Bucket not found".
+--
+-- Bucket public=true porque las URLs de las imágenes se sirven sin
+-- auth desde POS, productos, ticket, etc. Las policies de WRITE
+-- gatean por rol admin, coherentes con la policy de la tabla
+-- productos.
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'productos',
+  'productos',
+  true,
+  5242880,                                                    -- 5MB max
+  ARRAY['image/jpeg','image/png','image/webp','image/gif']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 5242880,
+  allowed_mime_types = ARRAY['image/jpeg','image/png','image/webp','image/gif'];
+
+DROP POLICY IF EXISTS "productos_storage_read" ON storage.objects;
+CREATE POLICY "productos_storage_read" ON storage.objects FOR SELECT
+  USING (bucket_id = 'productos');
+
+DROP POLICY IF EXISTS "productos_storage_insert_admin" ON storage.objects;
+CREATE POLICY "productos_storage_insert_admin" ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'productos' AND get_rol() = 'admin');
+
+DROP POLICY IF EXISTS "productos_storage_update_admin" ON storage.objects;
+CREATE POLICY "productos_storage_update_admin" ON storage.objects FOR UPDATE
+  USING (bucket_id = 'productos' AND get_rol() = 'admin');
+
+DROP POLICY IF EXISTS "productos_storage_delete_admin" ON storage.objects;
+CREATE POLICY "productos_storage_delete_admin" ON storage.objects FOR DELETE
+  USING (bucket_id = 'productos' AND get_rol() = 'admin');
+
+
+-- ─────────────────────────────────────────────────────────────────────
 -- Verificación final — debe imprimir el bloque ✅
 -- ─────────────────────────────────────────────────────────────────────
 
@@ -386,6 +433,8 @@ DECLARE
   v_tablas_count int;
   v_policies_count int;
   v_funcs_count int;
+  v_bucket_existe boolean;
+  v_storage_policies int;
 BEGIN
   SELECT count(*) INTO v_tablas_count
   FROM information_schema.tables
@@ -403,6 +452,12 @@ BEGIN
   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE n.nspname = 'public' AND p.proname IN ('get_comercio_id', 'get_rol');
 
+  SELECT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'productos') INTO v_bucket_existe;
+
+  SELECT count(*) INTO v_storage_policies
+  FROM pg_policies
+  WHERE schemaname = 'storage' AND policyname LIKE 'productos_storage%';
+
   IF v_tablas_count <> 12 THEN
     RAISE EXCEPTION 'Faltan tablas: esperadas 12, encontradas %', v_tablas_count;
   END IF;
@@ -412,12 +467,19 @@ BEGIN
   IF v_policies_count < 20 THEN
     RAISE EXCEPTION 'Faltan policies RLS: esperadas 20+, encontradas %', v_policies_count;
   END IF;
+  IF NOT v_bucket_existe THEN
+    RAISE EXCEPTION 'Falta storage bucket "productos"';
+  END IF;
+  IF v_storage_policies < 4 THEN
+    RAISE EXCEPTION 'Faltan policies de storage: esperadas 4 (read + insert/update/delete admin), encontradas %', v_storage_policies;
+  END IF;
 
   RAISE NOTICE '';
   RAISE NOTICE '✅ Bootstrap completo:';
   RAISE NOTICE '   • % tablas', v_tablas_count;
   RAISE NOTICE '   • % funciones RLS', v_funcs_count;
-  RAISE NOTICE '   • % policies', v_policies_count;
+  RAISE NOTICE '   • % policies de tablas', v_policies_count;
+  RAISE NOTICE '   • bucket "productos" + % policies de storage', v_storage_policies;
   RAISE NOTICE '';
   RAISE NOTICE 'Siguiente paso: correr `npm run seed:landing` desde tu terminal.';
 END $$;
