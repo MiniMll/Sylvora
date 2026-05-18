@@ -7,6 +7,7 @@ import { Hero } from '@/components/landing/Hero'
 import { Problema } from '@/components/landing/Problema'
 import { ComoFunciona } from '@/components/landing/ComoFunciona'
 import { ParaQuien } from '@/components/landing/ParaQuien'
+import { Features } from '@/components/landing/Features'
 import { Footer } from '@/components/landing/Footer'
 
 // Server component. Lee la cookie de auth en el server para decidir si
@@ -75,8 +76,9 @@ export default async function HomePage() {
         <Problema />
         <ComoFunciona />
         <ParaQuien />
-        {/* Próximas secciones (Features, Pricing, FAQ, CTAFinal) en
-            commits siguientes. */}
+        <Features />
+        {/* Próximas secciones (Pricing, FAQ, CTAFinal) en commits
+            siguientes. */}
       </main>
       <Footer />
     </>
