@@ -64,21 +64,28 @@ CREATE TABLE IF NOT EXISTS proveedores (
 );
 
 CREATE TABLE IF NOT EXISTS productos (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  comercio_id     UUID NOT NULL REFERENCES comercios(id) ON DELETE CASCADE,
-  nombre          TEXT NOT NULL,
-  sku             TEXT,
-  codigo_barras   TEXT,
-  categoria       TEXT,
-  precio_costo    NUMERIC NOT NULL DEFAULT 0,
-  precio_venta    NUMERIC NOT NULL DEFAULT 0,
-  precio_por_kg   NUMERIC,
-  stock_actual    NUMERIC NOT NULL DEFAULT 0,
-  stock_minimo    NUMERIC NOT NULL DEFAULT 0,
-  stock_ideal     NUMERIC,
-  unidad_venta    TEXT NOT NULL DEFAULT 'unidad',
-  imagen_url      TEXT,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  comercio_id       UUID NOT NULL REFERENCES comercios(id) ON DELETE CASCADE,
+  nombre            TEXT NOT NULL,
+  sku               TEXT,
+  codigo_barras     TEXT,
+  categoria         TEXT,
+  precio_costo      NUMERIC NOT NULL DEFAULT 0,
+  precio_venta      NUMERIC NOT NULL DEFAULT 0,
+  precio_mayorista  NUMERIC,
+  precio_por_kg     NUMERIC,
+  stock_actual      NUMERIC NOT NULL DEFAULT 0,
+  stock_minimo      NUMERIC NOT NULL DEFAULT 0,
+  stock_ideal       NUMERIC,
+  unidad_venta      TEXT NOT NULL DEFAULT 'unidad',
+  ubicacion         TEXT,
+  imagen_url        TEXT,
+  -- El frontend filtra explícitamente `.eq('activo', true)` en
+  -- getProductos / getStockCritico. Sin esta columna, las queries
+  -- fallan con error vacío `{}` y el POS aparece sin productos.
+  activo            BOOLEAN NOT NULL DEFAULT true,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT productos_unidad_check CHECK (unidad_venta IN ('unidad', 'kg', 'litro', 'metro'))
 );
 
@@ -88,6 +95,9 @@ CREATE TABLE IF NOT EXISTS lotes (
   numero_lote        TEXT NOT NULL,
   cantidad           NUMERIC NOT NULL DEFAULT 0,
   fecha_vencimiento  DATE,
+  -- type Lote en types/database.ts expone fecha_ingreso. Default a
+  -- now() = misma idea que created_at pero el campo del producto.
+  fecha_ingreso      TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
