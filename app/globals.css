@@ -535,6 +535,190 @@ button:active { transform: scale(0.97); }
   }
 }
 
+/* === Landing: fade-in al scrollear (useInView hook) ============
+   Default opacity 0 + translateY: el elemento aparece cuando el
+   hook setea la clase --visible. Como las secciones que lo usan
+   están below-fold (después del hero), el FOUC inicial no se ve.
+   prefers-reduced-motion: aparece directo, sin transition. */
+.landing-fade-in {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+}
+.landing-fade-in--visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-fade-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* === Sección Problema ========================================== */
+.problema-grid {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 768px) {
+  .problema-grid { margin-top: 56px; gap: 20px; }
+}
+@media (min-width: 1024px) {
+  .problema-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+}
+.problema-card {
+  background: var(--bg2);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+@media (min-width: 1024px) {
+  .problema-card { padding: 28px 24px; }
+}
+.problema-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text2);
+  margin-bottom: 16px;
+}
+.problema-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  line-height: 1.3;
+  margin: 0;
+}
+@media (min-width: 1024px) { .problema-card-title { font-size: 18px; } }
+.problema-card-desc {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--text2);
+  margin: 10px 0 0;
+}
+@media (min-width: 1024px) { .problema-card-desc { font-size: 15px; } }
+
+/* === Sección Cómo funciona ===================================== */
+.comofunciona-pasos {
+  margin-top: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+@media (min-width: 1024px) {
+  .comofunciona-pasos { margin-top: 80px; gap: 96px; }
+}
+.comofunciona-row {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+@media (min-width: 1024px) {
+  .comofunciona-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 64px;
+  }
+  .comofunciona-row--reverse { flex-direction: row-reverse; }
+}
+.comofunciona-text { flex: 1; max-width: 480px; }
+.comofunciona-screenshot { flex: 1; min-width: 0; }
+.comofunciona-numero {
+  font-family: "DM Mono", monospace;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text2);
+  opacity: 0.55;
+  display: inline-block;
+}
+.comofunciona-titulo {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.2;
+  margin: 12px 0 0;
+}
+@media (min-width: 1024px) { .comofunciona-titulo { font-size: 32px; } }
+.comofunciona-desc {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--text2);
+  margin: 12px 0 0;
+  max-width: 380px;
+}
+@media (min-width: 1024px) { .comofunciona-desc { font-size: 16px; } }
+
+/* === Sección Para quién ======================================== */
+.paraquien-grid {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 768px) {
+  .paraquien-grid { margin-top: 56px; gap: 20px; }
+}
+@media (min-width: 1024px) {
+  .paraquien-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+}
+.paraquien-card {
+  background: var(--bg2);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 16px;
+  padding: 28px 24px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+@media (min-width: 1024px) {
+  .paraquien-card { padding: 32px 28px; }
+}
+.paraquien-label {
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ac);
+  text-transform: uppercase;
+  display: inline-block;
+}
+.paraquien-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  line-height: 1.3;
+  margin: 16px 0 0;
+}
+@media (min-width: 1024px) { .paraquien-title { font-size: 20px; } }
+.paraquien-dolor {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--text2);
+  margin: 12px 0 0;
+}
+.paraquien-ejemplo {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--text2);
+  opacity: 0.85;
+  margin: 12px 0 0;
+}
+
 /* Row hover utility para tablas modernas. */
 .row-hover { transition: background 0.12s ease; }
 .row-hover:hover { background: var(--bg3); }

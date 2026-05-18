@@ -4,6 +4,9 @@ import { createServerClient } from '@supabase/ssr'
 import type { Metadata } from 'next'
 import { Nav } from '@/components/landing/Nav'
 import { Hero } from '@/components/landing/Hero'
+import { Problema } from '@/components/landing/Problema'
+import { ComoFunciona } from '@/components/landing/ComoFunciona'
+import { ParaQuien } from '@/components/landing/ParaQuien'
 import { Footer } from '@/components/landing/Footer'
 
 // Server component. Lee la cookie de auth en el server para decidir si
@@ -69,8 +72,11 @@ export default async function HomePage() {
       <Nav isAuthenticated={isAuthenticated} />
       <main>
         <Hero isAuthenticated={isAuthenticated} />
-        {/* Próximas secciones (Problema, ComoFunciona, ParaQuien,
-            Features, Pricing, FAQ, CTAFinal) en commits siguientes. */}
+        <Problema />
+        <ComoFunciona />
+        <ParaQuien />
+        {/* Próximas secciones (Features, Pricing, FAQ, CTAFinal) en
+            commits siguientes. */}
       </main>
       <Footer />
     </>
