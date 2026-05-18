@@ -1,29 +1,37 @@
 'use client'
+import type { ReactNode } from 'react'
 import { Section } from './lib/Section'
 import { Container } from './lib/Container'
-import { ScreenshotCard } from './lib/ScreenshotCard'
+import {
+  MiniPOSPreview,
+  MiniStockPreview,
+  MiniCajaPreview,
+  MiniUsersPreview,
+  MiniTicketPreview,
+  MiniLotesPreview,
+} from './lib/MiniPreviews'
 import { useInView } from './lib/useInView'
 
 // Las 6 features presentadas como "qué resuelve por vos" — verbos
 // de acción del dueño, no sustantivos técnicos del producto.
-// Cada card: título + sub corto + mini-screenshot abajo.
+// Cada card: título + sub corto + mini preview recreado en JSX/CSS.
+//
+// Por qué Mini* en lugar de mini-screenshots (decisión post-commit-4):
+// las capturas WebP a 80KB en cards de ~520px se sienten blandas y
+// rompen la percepción premium. Los Mini* usan los mismos tokens y
+// la misma DM Sans/Mono que el producto real — son vector-crisp, no
+// pesan bytes, y mantienen continuidad visual con la app.
 //
 // Disciplina aplicada (docs/landing-spec.md §14f):
 // - 6 max, ni 7 ni 5.
 // - Cada sub agrega UN detalle que el hero/cómo funciona no
 //   mencionaron (métodos de pago, vencimientos, roles, etc.) para
 //   no repetir lo mismo en otro tono.
-// - 3 screenshots únicos (usuarios, tickets, lotes) + 3 repetidos
-//   en mini-card. La repetición está OK acá porque el contexto
-//   visual cambia (mini vs full).
 
 interface Feature {
   titulo: string
   descripcion: string
-  screenshot: string
-  alt: string
-  width: number
-  height: number
+  preview: ReactNode
 }
 
 const FEATURES: Feature[] = [
@@ -31,55 +39,37 @@ const FEATURES: Feature[] = [
     titulo: 'Cobrá en segundos.',
     descripcion:
       'Efectivo, débito, crédito, Mercado Pago. Calcula el vuelto solo.',
-    screenshot: '/landing/01-hero-pos.webp',
-    alt: 'POS cobrando con métodos de pago y total destacado',
-    width: 1440,
-    height: 900,
+    preview: <MiniPOSPreview />,
   },
   {
     titulo: 'Stock que te avisa.',
     descripcion:
       'Te marca lo que está por agotarse y separa lo crítico de lo que recién baja.',
-    screenshot: '/landing/03-productos-stock.webp',
-    alt: 'Lista de productos con chips de estado de stock',
-    width: 1200,
-    height: 700,
+    preview: <MiniStockPreview />,
   },
   {
     titulo: 'Caja cerrada de verdad.',
     descripcion:
       'Al final del día sabés cuánto vendiste, qué retiraste y cuánto queda.',
-    screenshot: '/landing/02-caja-cerrada.webp',
-    alt: 'Bloque "Caja cerrada" con saldo, diferencia y retiro',
-    width: 1200,
-    height: 700,
+    preview: <MiniCajaPreview />,
   },
   {
     titulo: 'Tu equipo, con control.',
     descripcion:
       'Cada empleado con su cuenta y su rol. Vos decidís qué puede tocar cada uno.',
-    screenshot: '/landing/05-usuarios-roles.webp',
-    alt: 'Página /usuarios con roles admin y empleado asignados',
-    width: 1200,
-    height: 700,
+    preview: <MiniUsersPreview />,
   },
   {
     titulo: 'Tickets profesionales.',
     descripcion:
       'Imprimís en térmica o mandás por WhatsApp en un toque. Sin programas raros.',
-    screenshot: '/landing/06-ticket.webp',
-    alt: 'Ticket de venta con productos, totales y datos del comercio',
-    width: 600,
-    height: 900,
+    preview: <MiniTicketPreview />,
   },
   {
     titulo: 'Lotes con vencimiento.',
     descripcion:
       'Cargás la fecha al recibir mercadería. Sylvora te avisa cuando algo está por vencer.',
-    screenshot: '/landing/04-lotes-vencimientos.webp',
-    alt: 'Lotes de un producto con countdown de vencimiento',
-    width: 1200,
-    height: 700,
+    preview: <MiniLotesPreview />,
   },
 ]
 
@@ -93,12 +83,7 @@ function FeatureCard({ feature }: { feature: Feature }) {
       <h3 className="feature-title">{feature.titulo}</h3>
       <p className="feature-desc">{feature.descripcion}</p>
       <div className="feature-screenshot">
-        <ScreenshotCard
-          src={feature.screenshot}
-          alt={feature.alt}
-          width={feature.width}
-          height={feature.height}
-        />
+        {feature.preview}
       </div>
     </article>
   )

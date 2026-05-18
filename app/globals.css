@@ -774,6 +774,253 @@ button:active { transform: scale(0.97); }
    visual del grid. */
 .feature-screenshot { margin-top: auto; }
 
+/* === Sección Pricing ============================================
+   Una sola card centrada. La oferta de entrada (gratis 30d) ocupa
+   la jerarquía visual; el monto después está abajo, separado por un
+   divider. Auth-aware: el CTA cambia label/destino según prop. */
+.pricing-card {
+  max-width: 480px;
+  margin: 40px auto 0;
+  background: var(--bg2);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.04),
+    0 24px 64px rgba(0,0,0,0.06);
+  text-align: center;
+}
+@media (min-width: 768px) {
+  .pricing-card { margin-top: 56px; padding: 40px 36px; }
+}
+.pricing-eyebrow {
+  display: inline-block;
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--ac);
+  background: var(--ac-light);
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+.pricing-headline {
+  margin-top: 20px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.15;
+}
+@media (min-width: 768px) {
+  .pricing-headline { font-size: 32px; }
+}
+.pricing-headline-accent { color: var(--ac); }
+.pricing-bullets {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.pricing-bullets li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+.pricing-bullets li svg {
+  color: var(--ac);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.pricing-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 28px 0 24px;
+}
+.pricing-after {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.pricing-after-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+}
+.pricing-precio-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.pricing-precio {
+  font-family: "DM Mono", monospace;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+@media (min-width: 768px) {
+  .pricing-precio { font-size: 48px; }
+}
+.pricing-precio-suffix {
+  font-size: 15px;
+  color: var(--text2);
+  font-weight: 500;
+}
+.pricing-cta {
+  margin-top: 28px;
+  width: 100%;
+}
+.pricing-micro {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+/* === Sección FAQ ================================================
+   <details>/<summary> nativo. El caret rota con CSS via [open] sin
+   JS extra. Animación de altura limitada — abrir/cerrar es instant
+   por accesibilidad (los pseudo-elements no animan height bien). */
+.faq-list {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+@media (min-width: 768px) {
+  .faq-list { margin-top: 56px; gap: 10px; }
+}
+.faq-item {
+  background: var(--bg2);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+.faq-item[open] {
+  border-color: rgba(0,0,0,0.10);
+}
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text);
+  cursor: pointer;
+  list-style: none;
+  /* Remueve el triángulo nativo en Safari. */
+  -webkit-appearance: none;
+}
+.faq-question::-webkit-details-marker { display: none; }
+.faq-question:hover { background: var(--bg); }
+.faq-question:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: -2px;
+}
+.faq-caret {
+  font-family: "DM Mono", monospace;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text2);
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+.faq-item[open] .faq-caret {
+  /* "+" rotado 45° = "×" — cierra sin tener que cambiar el char. */
+  transform: rotate(45deg);
+  color: var(--ac);
+}
+.faq-answer {
+  padding: 0 20px 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text2);
+}
+@media (min-width: 768px) {
+  .faq-question { padding: 20px 24px; font-size: 16px; }
+  .faq-answer { padding: 0 24px 20px; font-size: 15px; }
+}
+
+/* === Sección CTA Final ==========================================
+   Fondo violeta brand. Texto en blanco, CTA invertida (fondo blanco,
+   texto violeta) para máximo contraste sobre el bg. Un solo botón,
+   un solo mensaje, cero ruido lateral. */
+.ctafinal-title {
+  font-family: "DM Sans", sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: white;
+}
+@media (min-width: 768px) {
+  .ctafinal-title { font-size: 44px; }
+}
+@media (min-width: 1024px) {
+  .ctafinal-title { font-size: 52px; }
+}
+.ctafinal-sub {
+  margin-top: 16px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+}
+@media (min-width: 768px) {
+  .ctafinal-sub { font-size: 18px; margin-top: 20px; }
+}
+.ctafinal-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 32px;
+  padding: 18px 32px;
+  background: white;
+  color: var(--ac);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: 12px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ctafinal-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.14);
+}
+.ctafinal-cta:focus-visible {
+  outline: 3px solid rgba(255,255,255,0.6);
+  outline-offset: 3px;
+}
+@media (min-width: 1024px) {
+  .ctafinal-cta { margin-top: 40px; }
+}
+.ctafinal-micro {
+  margin-top: 14px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.70);
+  font-weight: 500;
+}
+
 /* Row hover utility para tablas modernas. */
 .row-hover { transition: background 0.12s ease; }
 .row-hover:hover { background: var(--bg3); }

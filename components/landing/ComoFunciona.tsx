@@ -1,24 +1,37 @@
 'use client'
+import type { ReactNode } from 'react'
 import { Section } from './lib/Section'
 import { Container } from './lib/Container'
-import { ScreenshotCard } from './lib/ScreenshotCard'
+import {
+  MiniStockPreview,
+  MiniCajaPreview,
+  MiniPhoneFrame,
+} from './lib/MiniPreviews'
 import { useInView } from './lib/useInView'
 
 // 3 pasos del producto en formato visual zig-zag (desktop) / stack
 // vertical (mobile). Cada paso: número 01/02/03 en DM Mono sutil +
-// headline + sub + screenshot.
+// headline + sub + visual.
 //
-// Ver docs/landing-spec.md §14d. Background white para alternar con
-// la sección anterior (off-white).
+// Visual mix (decisión post-commit-4):
+// - Paso 1 (Productos): MiniStockPreview recreado en JSX. La utilidad
+//   de "stock que te avisa" se entiende mejor con chips crisp que con
+//   un screenshot comprimido.
+// - Paso 2 (POS mobile): screenshot real DENTRO de MiniPhoneFrame.
+//   El frame editorial (bezel + notch en código) le da escala correcta
+//   — antes el WebP a flex:1 quedaba gigante vs los otros Mini*. La
+//   imagen real adentro del frame sigue diciendo "corre en mi celu".
+// - Paso 3 (Caja): MiniCajaPreview recreado. El bloque de saldo es
+//   denso y chico — vector le sienta mucho mejor.
+//
+// Ver docs/landing-spec.md §14d.
 
 interface Paso {
   numero: string
   titulo: string
   descripcion: string
-  screenshot: string
-  alt: string
-  width: number
-  height: number
+  /** Render del visual del paso. Puede ser un screenshot o un Mini*. */
+  visual: ReactNode
 }
 
 const PASOS: Paso[] = [
@@ -26,30 +39,28 @@ const PASOS: Paso[] = [
     numero: '01',
     titulo: 'Cargás tus productos.',
     descripcion: 'Una vez. Foto, precio, stock. Listo.',
-    screenshot: '/landing/03-productos-stock.webp',
-    alt: 'Lista de productos del comercio en Sylvora con sus estados de stock',
-    width: 1200,
-    height: 700,
+    visual: <MiniStockPreview />,
   },
   {
     numero: '02',
     titulo: 'Cobrás desde el celular.',
     descripcion:
       'Tu empleado solo necesita su teléfono. El sistema calcula el vuelto.',
-    screenshot: '/landing/07-pos-mobile.webp',
-    alt: 'POS de Sylvora corriendo en un celular con un ticket listo para cobrar',
-    width: 600,
-    height: 900,
+    visual: (
+      <MiniPhoneFrame
+        src="/landing/07-pos-mobile.webp"
+        alt="POS de Sylvora corriendo en un celular con un ticket listo para cobrar"
+        width={600}
+        height={900}
+      />
+    ),
   },
   {
     numero: '03',
     titulo: 'Cerrás caja al final del día.',
     descripcion:
       'Ves qué vendiste, cuánto te quedó y qué falta reponer.',
-    screenshot: '/landing/02-caja-cerrada.webp',
-    alt: 'Bloque de estado "Caja cerrada" con saldo neto, diferencia y retiro',
-    width: 1200,
-    height: 700,
+    visual: <MiniCajaPreview />,
   },
 ]
 
@@ -66,12 +77,7 @@ function PasoRow({ paso, reverse }: { paso: Paso; reverse: boolean }) {
         <p className="comofunciona-desc">{paso.descripcion}</p>
       </div>
       <div className="comofunciona-screenshot">
-        <ScreenshotCard
-          src={paso.screenshot}
-          alt={paso.alt}
-          width={paso.width}
-          height={paso.height}
-        />
+        {paso.visual}
       </div>
     </div>
   )
