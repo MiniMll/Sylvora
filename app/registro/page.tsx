@@ -30,53 +30,47 @@ export default function RegistroPage() {
 
     setCargando(true)
     setError('')
-    const supabase = createClient()
 
-    // 1. Crear usuario en Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // El onboarding completo (user + comercio + perfil + categorías)
+    // ahora va por POST /api/registro con service-role. La RLS de
+    // `comercios` no permite INSERT desde el cliente, y crear el
+    // primer admin requiere bootstrappear todo atómicamente del
+    // lado del server. Ver app/api/registro/route.ts.
+    const res = await fetch('/api/registro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+        nombre: form.nombre,
+        comercio: form.comercio,
+        tipo: form.tipo,
+        telefono: form.telefono,
+      }),
+    })
+
+    const data = await res.json().catch(() => null) as { ok?: boolean; error?: string } | null
+
+    if (!res.ok || !data?.ok) {
+      setError(data?.error || 'Error al crear la cuenta')
+      setCargando(false)
+      return
+    }
+
+    // Logueo cliente para obtener la cookie de sesión y entrar al
+    // dashboard sin pasar por /login.
+    const supabase = createClient()
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
     })
 
-    if (authError || !authData.user) {
-      setError(authError?.message || 'Error al crear la cuenta')
+    if (signInErr) {
+      setError('Cuenta creada. Iniciá sesión para entrar.')
       setCargando(false)
+      router.push('/login')
       return
     }
-
-    // 2. Crear el comercio
-    const { data: comercio, error: comercioError } = await supabase
-      .from('comercios')
-      .insert({ nombre: form.comercio, tipo: form.tipo, telefono: form.telefono, email: form.email, plan: 'pro' })
-      .select()
-      .single()
-
-    if (comercioError || !comercio) {
-      setError('Error al crear el comercio')
-      setCargando(false)
-      return
-    }
-
-    // 3. Crear perfil del usuario
-    const { error: perfilError } = await supabase
-      .from('perfiles')
-      .insert({ id: authData.user.id, comercio_id: comercio.id, nombre: form.nombre, rol: 'admin' })
-
-    if (perfilError) {
-      setError('Error al crear el perfil')
-      setCargando(false)
-      return
-    }
-
-    // 4. Crear categorías por defecto
-    const cats = [
-      { nombre: 'Bebidas', icono: 'BV', color: '#5b4cff' },
-      { nombre: 'Almacén', icono: 'AL', color: '#00c896' },
-      { nombre: 'Lácteos', icono: 'LC', color: '#ff6b35' },
-      { nombre: 'Limpieza', icono: 'LM', color: '#ffd23f' },
-      { nombre: 'Ferretería', icono: 'FR', color: '#ff4757' },
-    ]
-    await supabase.from('categorias').insert(cats.map(c => ({ ...c, comercio_id: comercio.id })))
 
     router.push('/dashboard')
   }

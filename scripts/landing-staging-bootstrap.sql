@@ -36,8 +36,22 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- gen_random_uuid()
 CREATE TABLE IF NOT EXISTS comercios (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nombre      TEXT NOT NULL,
+  tipo        TEXT,
+  telefono    TEXT,
+  email       TEXT,
+  plan        TEXT NOT NULL DEFAULT 'trial',
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Migración defensiva: si la DB ya existía con la versión minimal
+-- (solo id/nombre/created_at), agregamos las columnas faltantes sin
+-- romper datos existentes. Idempotente. Equivalente a
+-- scripts/migration-comercios-extended.sql para staging actuales.
+ALTER TABLE comercios
+  ADD COLUMN IF NOT EXISTS tipo      TEXT,
+  ADD COLUMN IF NOT EXISTS telefono  TEXT,
+  ADD COLUMN IF NOT EXISTS email     TEXT,
+  ADD COLUMN IF NOT EXISTS plan      TEXT NOT NULL DEFAULT 'trial';
 
 CREATE TABLE IF NOT EXISTS perfiles (
   id           UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
