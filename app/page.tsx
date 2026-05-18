@@ -1,7 +1,9 @@
+import ReactDOM from 'react-dom'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import type { Metadata } from 'next'
 import { Nav } from '@/components/landing/Nav'
+import { Hero } from '@/components/landing/Hero'
 import { Footer } from '@/components/landing/Footer'
 
 // Server component. Lee la cookie de auth en el server para decidir si
@@ -56,13 +58,19 @@ async function resolverAuth(): Promise<boolean> {
 export default async function HomePage() {
   const isAuthenticated = await resolverAuth()
 
+  // Preload del screenshot del hero para acelerar el LCP.
+  // ReactDOM.preload inyecta <link rel="preload"> en el head del HTML
+  // server-rendered. Solo el desktop — mobile recibe el suyo via
+  // <picture> source y el browser lo descarga apenas resuelve el media.
+  ReactDOM.preload('/landing/01-hero-pos.webp', { as: 'image', fetchPriority: 'high' })
+
   return (
     <>
       <Nav isAuthenticated={isAuthenticated} />
       <main>
-        {/* Las secciones (Hero, Problema, ComoFunciona, ParaQuien,
-            Features, Pricing, FAQ, CTAFinal) se agregan en commits
-            siguientes. */}
+        <Hero isAuthenticated={isAuthenticated} />
+        {/* Próximas secciones (Problema, ComoFunciona, ParaQuien,
+            Features, Pricing, FAQ, CTAFinal) en commits siguientes. */}
       </main>
       <Footer />
     </>

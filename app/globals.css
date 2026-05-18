@@ -445,6 +445,96 @@ button:active { transform: scale(0.97); }
   .landing-show-desktop { display: inline; }
 }
 
+/* Hero — gaps verticales entre elementos.
+   Mobile: H1→sub 16, sub→CTA 32, CTA→micro 12, micro→screenshot 40.
+   Desktop: H1→sub 32, sub→CTA 40, CTA→micro 16, micro→screenshot 96. */
+.hero-sub-gap        { margin-top: 16px; }
+.hero-cta-gap        { margin-top: 32px; }
+.hero-micro-gap      { margin-top: 12px; }
+.hero-screenshot-gap { margin-top: 40px; }
+@media (min-width: 1024px) {
+  .hero-sub-gap        { margin-top: 32px; }
+  .hero-cta-gap        { margin-top: 40px; }
+  .hero-micro-gap      { margin-top: 16px; }
+  .hero-screenshot-gap { margin-top: 96px; }
+}
+
+/* Hero CTA — botón primario violeta.
+   Mobile: full-width minus container padding.
+   Desktop: auto-width centrado. */
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 28px;
+  background: var(--ac);
+  color: white;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: 12px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  /* Mobile full-width. */
+  width: 100%;
+  max-width: 360px;
+}
+@media (min-width: 768px) {
+  .hero-cta {
+    width: auto;
+    max-width: none;
+    padding: 16px 28px;
+  }
+}
+.hero-cta:hover {
+  background: var(--ac-hover);
+  box-shadow: 0 4px 16px rgba(91,76,255,0.25);
+  transform: translateY(-1px);
+}
+.hero-cta:active { transform: scale(0.98); }
+.hero-cta:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 3px;
+}
+
+/* Micro-trust debajo del CTA. */
+.hero-micro {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+}
+@media (min-width: 1024px) {
+  .hero-micro { font-size: 14px; }
+}
+
+/* Stagger animation: cada elemento aparece con delay creciente.
+   Total ~1.2s desde load. Respeta prefers-reduced-motion. */
+@keyframes hero-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.hero-stagger {
+  opacity: 0;
+  animation: hero-fade-in 0.5s var(--ease-out) forwards;
+}
+.hero-stagger-1 { animation-delay: 0.10s; }
+.hero-stagger-2 { animation-delay: 0.25s; }
+.hero-stagger-3 { animation-delay: 0.40s; }
+.hero-stagger-4 { animation-delay: 0.50s; }
+.hero-stagger-5 { animation-delay: 0.60s; animation-duration: 0.6s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stagger {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 /* Row hover utility para tablas modernas. */
 .row-hover { transition: background 0.12s ease; }
 .row-hover:hover { background: var(--bg3); }
