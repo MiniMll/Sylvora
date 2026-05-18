@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Brand } from '@/components/Brand'
 
 export default function RegistroPage() {
   const router = useRouter()
@@ -87,13 +88,10 @@ export default function RegistroPage() {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(145deg, #f0eefc 0%, #f5f4f0 50%, #edf5f2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif', padding: 16 }}>
       <div style={{ background: '#ffffff', borderRadius: 22, padding: '40px 36px', width: '100%', maxWidth: 420, boxShadow: '0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)', animation: 'fadeIn 0.3s ease' }}>
 
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--ac)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ color: 'white', fontWeight: 700, fontSize: 14, letterSpacing: '-0.04em' }}>Sy</span></div>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 600, color: '#1a1a1e', letterSpacing: '-0.01em' }}>Sylvora</div>
-            <div style={{ fontSize: 11, color: 'var(--text2)' }}>Crear cuenta gratis</div>
-          </div>
+        {/* Brand */}
+        <div style={{ marginBottom: 28 }}>
+          <Brand variant="wordmark" size={22} color="dark" />
+          <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 6 }}>Crear cuenta gratis</div>
         </div>
 
         {/* Pasos */}

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Brand } from '@/components/Brand'
 
 // Nav de la landing. Server component — el `isAuthenticated` viene
 // resuelto desde `app/page.tsx` que lee la cookie en el server, así
@@ -40,39 +41,11 @@ export function Nav({ isAuthenticated }: NavProps) {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 10,
             textDecoration: 'none',
             color: 'var(--text)',
           }}
         >
-          <span
-            aria-hidden="true"
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              background: 'var(--ac)',
-              color: 'white',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: 13,
-              letterSpacing: '-0.04em',
-            }}
-          >
-            Sy
-          </span>
-          <span
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
-              color: 'var(--text)',
-            }}
-          >
-            Sylvora
-          </span>
+          <Brand variant="wordmark" size={20} color="dark" />
         </Link>
 
         <Link

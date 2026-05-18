@@ -3,6 +3,7 @@ import { memo } from 'react'
 import Link from 'next/link'
 import { Sun, Moon, LogOut } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { Brand } from '@/components/Brand'
 import { Notificaciones } from './Notificaciones'
 
 export interface NavItem {
@@ -51,18 +52,7 @@ function SidebarInnerImpl({
       {/* Logo */}
       <div style={{ padding: '16px 14px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 30, height: 30,
-              borderRadius: 8,
-              background: 'var(--ac)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <span style={{ color: 'white', fontWeight: 700, fontSize: 13, letterSpacing: '-0.04em' }}>Sy</span>
-            </div>
-            <div style={{ color: 'white', fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>Sylvora</div>
-          </div>
+          <Brand variant="wordmark" size={18} color="light" />
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Notificaciones />
             <button onClick={onToggleTheme}

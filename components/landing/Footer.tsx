@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Brand } from '@/components/Brand'
 
 // Footer minimalista. Server component sin interactividad.
 // Los links Términos / Privacidad apuntan a `#` por ahora — cuando
@@ -23,40 +24,10 @@ export function Footer() {
           gap: 24,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span
-            aria-hidden="true"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'var(--ac)',
-              color: 'white',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: 14,
-              letterSpacing: '-0.04em',
-            }}
-          >
-            Sy
-          </span>
-          <div>
-            <div
-              style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: 'var(--text)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.2,
-              }}
-            >
-              Sylvora
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
-              Punto de venta y stock para comercios chicos.
-            </div>
+        <div>
+          <Brand variant="wordmark" size={22} color="dark" />
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 6 }}>
+            Punto de venta y stock para comercios chicos.
           </div>
         </div>
 

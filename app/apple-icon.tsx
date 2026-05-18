@@ -1,8 +1,9 @@
 import { ImageResponse } from 'next/og'
 
 // Apple touch icon (180×180). Lo usa iOS para "Agregar a pantalla
-// de inicio" y también queda referenciado en el manifest para PWA
-// en general. Mismo estilo flat que app/icon.tsx, escalado.
+// de inicio" y también queda referenciado en el manifest para PWA.
+// Versión wordmark prototype: "s" minúscula bold blanca sobre
+// violeta brand, mismo lockup que el favicon escalado.
 
 export const size = { width: 180, height: 180 }
 export const contentType = 'image/png'
@@ -19,13 +20,14 @@ export default function AppleIcon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 96,
-          fontWeight: 700,
+          fontSize: 130,
+          fontWeight: 800,
           borderRadius: 38,
           letterSpacing: '-0.05em',
+          paddingBottom: 14,
         }}
       >
-        Sy
+        s
       </div>
     ),
     size,

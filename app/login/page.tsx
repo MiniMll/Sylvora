@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
+import { Brand } from '@/components/Brand'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -64,19 +65,9 @@ export default function LoginPage() {
         zIndex: 1,
       }}>
 
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
-          <div style={{
-            width: 38, height: 38,
-            borderRadius: 10,
-            background: 'var(--ac)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ color: 'white', fontWeight: 700, fontSize: 15, letterSpacing: '-0.04em' }}>Sy</span>
-          </div>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 600, color: '#1a1a1e', letterSpacing: '-0.01em' }}>Sylvora</div>
-          </div>
+        {/* Brand */}
+        <div style={{ marginBottom: 32 }}>
+          <Brand variant="wordmark" size={22} color="dark" />
         </div>
 
         <div style={{ fontSize: 21, fontWeight: 700, color: '#1a1a1e', letterSpacing: '-0.4px', marginBottom: 6 }}>Iniciar sesión</div>
