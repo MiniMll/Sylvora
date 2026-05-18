@@ -367,6 +367,84 @@ button:active { transform: scale(0.97); }
 }
 .page-in { animation: pageIn 0.25s var(--ease-out); }
 
+
+/* =============================================================
+   Landing pública — clases con prefijo .landing-*
+
+   Conviven con el resto de la app pero solo se aplican vía las
+   clases explícitas. La landing tiene tipografía y ritmo distintos
+   al sistema interno (más editorial, más aireado), por eso el
+   prefijo dedicado.
+
+   Mobile-first: cada regla arranca con valores mobile, las media
+   queries escalan para ≥768 (tablet), ≥1024 (desktop) y ≥1440
+   (wide).
+   ============================================================= */
+
+/* Container: padding lateral creciente; max-width via inline style. */
+.landing-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+@media (min-width: 768px)  { .landing-container { padding: 0 32px; } }
+@media (min-width: 1024px) { .landing-container { padding: 0 48px; } }
+
+/* Section: ritmo vertical consistente entre secciones. */
+.landing-section { padding-top: 64px; padding-bottom: 64px; }
+@media (min-width: 768px) {
+  .landing-section--lg { padding-top: 96px; padding-bottom: 96px; }
+}
+
+/* Tipografía responsive. Headlines crecen en desktop; sub se
+   ajusta más sutilmente. */
+.landing-h1 {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin: 0;
+  color: var(--text);
+}
+@media (min-width: 768px) {
+  .landing-h1 { font-size: 56px; letter-spacing: -0.028em; line-height: 1.08; }
+}
+@media (min-width: 1024px) {
+  .landing-h1 { font-size: 72px; letter-spacing: -0.03em; line-height: 1.05; }
+}
+@media (min-width: 1440px) {
+  .landing-h1 { font-size: 80px; }
+}
+
+.landing-h2 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+  color: var(--text);
+}
+@media (min-width: 768px)  { .landing-h2 { font-size: 40px; } }
+@media (min-width: 1024px) { .landing-h2 { font-size: 48px; letter-spacing: -0.025em; } }
+
+.landing-sub {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text2);
+  margin: 0;
+}
+@media (min-width: 1024px) { .landing-sub { font-size: 20px; } }
+
+/* Helpers para mostrar/ocultar nodos por viewport (ej. line breaks
+   distintos del H1 según mobile vs desktop). Display por defecto
+   `inline` para que el contenido fluya con el texto. */
+.landing-show-desktop { display: none; }
+@media (min-width: 768px) {
+  .landing-hide-desktop { display: none; }
+  .landing-show-desktop { display: inline; }
+}
+
 /* Row hover utility para tablas modernas. */
 .row-hover { transition: background 0.12s ease; }
 .row-hover:hover { background: var(--bg3); }

@@ -1,7 +1,24 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const RUTAS_PUBLICAS = ['/login', '/registro']
+// Lista explícita de rutas que requieren autenticación. Todo lo demás
+// (`/`, `/login`, `/registro`, futuras páginas públicas) queda accesible
+// sin auth. Invertimos la lógica respecto al diseño anterior (donde
+// listábamos rutas públicas) para que agregar la landing o cualquier
+// página pública nueva no requiera tocar este archivo.
+const RUTAS_PROTEGIDAS = [
+  '/dashboard',
+  '/pos',
+  '/productos',
+  '/stock',
+  '/ventas',
+  '/caja',
+  '/reportes',
+  '/exportar',
+  '/precios',
+  '/perfil',
+  '/usuarios',
+]
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -25,15 +42,17 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
-  const esPublica = RUTAS_PUBLICAS.some(r => pathname.startsWith(r))
+  const esProtegida = RUTAS_PROTEGIDAS.some(r => pathname === r || pathname.startsWith(`${r}/`))
 
-  // Si no está logueado y trata de entrar a una ruta protegida, redirigir al login
-  if (!user && !esPublica) {
+  // Sin auth y ruta protegida → /login.
+  if (!user && esProtegida) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Si está logueado y va al login, redirigir al dashboard
-  if (user && pathname.startsWith('/login')) {
+  // Con auth y va a /login o /registro → /dashboard. El user logueado
+  // que llega a la landing (/) la ve normalmente; el nav le muestra
+  // "Ir al dashboard" en vez de "Entrar".
+  if (user && (pathname.startsWith('/login') || pathname.startsWith('/registro'))) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
