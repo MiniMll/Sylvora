@@ -4,7 +4,7 @@ import { getStockCritico, ajustarStock } from '@/lib/supabase/productos'
 import { getLotes, agregarLote, getSiguienteNumeroLote, eliminarLote } from '@/lib/supabase/stock'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { toast } from 'sonner'
-import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2, Check, X, Loader2 } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -293,8 +293,12 @@ export default function StockPage() {
                                 Editar
                               </button>
                               <button onClick={() => borrarLote(lote)} disabled={borrandoLote === lote.id}
-                                style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--r)' }}>
-                                {borrandoLote === lote.id ? '...' : '🗑️'}
+                                aria-label="Borrar lote"
+                                style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {borrandoLote === lote.id
+                                  ? <Loader2 size={12} color="var(--r)" style={{ animation: 'spin 0.8s linear infinite' }} />
+                                  : <Trash2 size={12} color="#ff4757" strokeWidth={2} />
+                                }
                               </button>
                             </>
                           )}
@@ -304,12 +308,14 @@ export default function StockPage() {
                             <Input type="number" value={nuevoStockLote} onChange={e => setNuevoStockLote(e.target.value)}
                               style={{ flex: 1, padding: '8px 10px' }} placeholder="Nueva cantidad" autoFocus />
                             <button onClick={guardarEdicionLote}
-                              style={{ padding: '7px 12px', borderRadius: 7, background: 'var(--ac)', color: 'white', border: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                              ✓
+                              aria-label="Guardar cambios del lote"
+                              style={{ padding: '7px 10px', borderRadius: 7, background: 'var(--ac)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Check size={14} strokeWidth={2.6} />
                             </button>
                             <button onClick={() => setEditandoLote(null)}
-                              style={{ padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 12, cursor: 'pointer', color: 'var(--text)', fontFamily: 'inherit' }}>
-                              ✕
+                              aria-label="Cancelar edición"
+                              style={{ padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', color: 'var(--text2)', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <X size={14} strokeWidth={2.2} />
                             </button>
                           </div>
                         )}
