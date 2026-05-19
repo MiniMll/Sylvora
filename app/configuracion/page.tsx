@@ -35,7 +35,7 @@ export default function PerfilPage() {
         .maybeSingle()
 
       if (perfilErr) {
-        console.error('[/perfil] No se pudo cargar el perfil:', perfilErr)
+        console.error('[/configuracion] No se pudo cargar el perfil:', perfilErr)
         toast.error('No se pudo cargar tu perfil')
         setCargando(false)
         return
@@ -107,7 +107,7 @@ export default function PerfilPage() {
       .select()
 
     if (comercioErr) {
-      console.error('[/perfil] UPDATE comercios falló:', comercioErr)
+      console.error('[/configuracion] UPDATE comercios falló:', comercioErr)
       toast.error('No se pudieron guardar los datos del comercio')
       setGuardando(false)
       return
@@ -127,7 +127,7 @@ export default function PerfilPage() {
       .eq('id', user.id)
 
     if (perfilErr) {
-      console.error('[/perfil] UPDATE perfiles falló:', perfilErr)
+      console.error('[/configuracion] UPDATE perfiles falló:', perfilErr)
       toast.error('Datos del comercio guardados, pero tu nombre no se pudo actualizar')
       setGuardando(false)
       return

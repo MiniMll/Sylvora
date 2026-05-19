@@ -25,7 +25,7 @@ const nav: NavItem[] = [
   { href: '/reportes',        label: 'Reportes',           icon: BarChart2,       section: 'Finanzas' },
   { href: '/exportar',        label: 'Exportar',           icon: Download,        section: 'Finanzas' },
   { href: '/usuarios',        label: 'Usuarios',           icon: Users,           section: 'Cuenta',     requierePermiso: 'usuario.gestionar' },
-  { href: '/perfil',          label: 'Configuración',      icon: Settings,        section: 'Cuenta' },
+  { href: '/configuracion',   label: 'Configuración',      icon: Settings,        section: 'Cuenta' },
 ]
 
 const sections = ['Principal', 'Ventas', 'Inventario', 'Finanzas', 'Cuenta']
