@@ -1,0 +1,99 @@
+// GET /api/debug/auth-check
+// ⚠️ TEMPORAL — endpoint de diagnóstico. Borrar cuando el bug de RLS
+// de comercios esté resuelto.
+//
+// Qué hace: usa las MISMAS cookies del usuario que está logueado en
+// el browser y reporta:
+//   1. user.id que ve el server (= auth.uid() en RLS)
+//   2. perfil del user (rol + comercio_id) según la tabla perfiles
+//   3. resultado de un UPDATE no-op a comercios (mismo flujo que /perfil)
+//   4. resultado de SELECT comercios filtrado por comercio_id
+//
+// Si el UPDATE devuelve 0 filas pero el perfil tiene rol='admin' →
+// la policy de RLS está mal escrita o las functions get_rol/
+// get_comercio_id no resuelven bien.
+//
+// Si el UPDATE devuelve 1 fila → la RLS funciona y el bug está
+// en otro lado (probablemente el client side de /perfil).
+
+import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export async function GET() {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll() { /* no-op — GET no muta cookies */ },
+      },
+    }
+  )
+
+  // ───── 1. Auth user ───────────────────────────────────────────────
+  const { data: { user }, error: userErr } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({
+      error: 'No hay sesión activa',
+      userErr: userErr?.message,
+      hint: 'Probá esto desde una pestaña donde estés logueado.',
+    }, { status: 401 })
+  }
+
+  // ───── 2. Perfil del user ─────────────────────────────────────────
+  const { data: perfil, error: perfilErr } = await supabase
+    .from('perfiles')
+    .select('id, rol, comercio_id, nombre')
+    .eq('id', user.id)
+    .single()
+
+  // ───── 3. SELECT comercio (debería pasar comercios_read_propio) ───
+  const { data: comercio, error: comercioSelErr } = await supabase
+    .from('comercios')
+    .select('id, nombre, tipo, direccion, telefono, email')
+    .eq('id', perfil?.comercio_id ?? '')
+    .single()
+
+  // ───── 4. UPDATE no-op (mismo flujo que /perfil) ──────────────────
+  // Seteamos el nombre al MISMO valor que ya tenía. Si la policy
+  // de UPDATE funciona, devuelve la fila modificada. Si bloquea,
+  // devuelve [] sin error.
+  const { data: updateRows, error: updateErr } = await supabase
+    .from('comercios')
+    .update({ nombre: comercio?.nombre ?? '__noop__' })
+    .eq('id', perfil?.comercio_id ?? '')
+    .select()
+
+  return NextResponse.json({
+    auth: {
+      user_id: user.id,
+      user_email: user.email,
+    },
+    perfil: {
+      data: perfil,
+      error: perfilErr?.message ?? null,
+    },
+    select_comercio: {
+      data: comercio,
+      error: comercioSelErr?.message ?? null,
+    },
+    update_comercio_noop: {
+      filas_afectadas: updateRows?.length ?? 0,
+      data: updateRows,
+      error: updateErr?.message ?? null,
+    },
+    diagnostico: {
+      tiene_sesion: !!user,
+      tiene_perfil: !!perfil,
+      rol: perfil?.rol ?? null,
+      rol_length: perfil?.rol?.length ?? null,
+      rol_es_admin_exacto: perfil?.rol === 'admin',
+      perfil_id_coincide_user: perfil?.id === user.id,
+      comercio_select_funciona: !!comercio,
+      comercio_update_funciona: (updateRows?.length ?? 0) > 0,
+    },
+  })
+}
