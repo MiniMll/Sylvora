@@ -9,6 +9,18 @@ import { Brand } from '@/components/Brand'
 // al scrollear. Border-bottom mínimo aparece sutilmente cuando el
 // contenido pasa por debajo (no usamos efectos JS de "elevate on
 // scroll" para mantenerlo simple).
+//
+// Links centrales (Cómo funciona · Precios · Preguntas) son anchors
+// a las secciones correspondientes — usan `<a href="#...">` plano
+// para que el browser maneje el smooth scroll nativamente.
+// Desktop ≥768: visibles. Mobile: ocultos (sin hamburguesa todavía,
+// el target del producto está acostumbrado a hacer scroll directo).
+
+const NAV_LINKS = [
+  { href: '#como-funciona', label: 'Cómo funciona' },
+  { href: '#precios',       label: 'Precios'        },
+  { href: '#preguntas',     label: 'Preguntas'      },
+]
 
 interface NavProps {
   isAuthenticated: boolean
@@ -16,47 +28,30 @@ interface NavProps {
 
 export function Nav({ isAuthenticated }: NavProps) {
   return (
-    <header
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        background: 'var(--bg)',
-        borderBottom: '1px solid rgba(0,0,0,0.04)',
-      }}
-    >
+    <header className="landing-nav">
       <div
-        className="landing-container"
-        style={{
-          maxWidth: 1200,
-          height: 56,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
+        className="landing-container landing-nav-inner"
+        style={{ maxWidth: 1200 }}
       >
         <Link
           href="/"
           aria-label="Sylvora — inicio"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            textDecoration: 'none',
-            color: 'var(--text)',
-          }}
+          className="landing-nav-brand"
         >
           <Brand variant="wordmark" size={20} color="dark" />
         </Link>
 
+        <nav className="landing-nav-links" aria-label="Navegación principal">
+          {NAV_LINKS.map(l => (
+            <a key={l.href} href={l.href} className="landing-nav-link">
+              {l.label}
+            </a>
+          ))}
+        </nav>
+
         <Link
           href={isAuthenticated ? '/dashboard' : '/login'}
-          style={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: 'var(--text2)',
-            textDecoration: 'none',
-            padding: '8px 4px',
-          }}
+          className="landing-nav-cta"
         >
           {isAuthenticated ? 'Ir al dashboard' : 'Entrar'}
         </Link>

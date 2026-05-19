@@ -13,6 +13,7 @@ import { EditProductModal, type EditFormValues } from './components/EditProductM
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Trash2 } from 'lucide-react'
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -319,7 +320,20 @@ export default function ProductosPage() {
         }>
         {confirmarBorrar && (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🗑️</div>
+            {/* Badge circular con Trash2 lucide. Reemplaza el emoji 🗑️
+                que rompía la consistencia visual con el resto del
+                producto. Bg rojo translúcido + icon en rojo brand. */}
+            <div style={{
+              width: 64, height: 64,
+              borderRadius: '50%',
+              background: 'rgba(255,71,87,0.10)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 14,
+            }}>
+              <Trash2 size={28} color="var(--r)" strokeWidth={1.8} />
+            </div>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, color: 'var(--text)' }}>¿Borrar producto?</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 20, background: 'var(--bg3)', borderRadius: 10, padding: '10px 16px' }}>
               {confirmarBorrar.nombre}

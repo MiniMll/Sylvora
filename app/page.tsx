@@ -8,7 +8,13 @@ import { Problema } from '@/components/landing/Problema'
 import { ComoFunciona } from '@/components/landing/ComoFunciona'
 import { ParaQuien } from '@/components/landing/ParaQuien'
 import { Features } from '@/components/landing/Features'
+import { Pricing } from '@/components/landing/Pricing'
+import { FAQ } from '@/components/landing/FAQ'
+import { CTAFinal } from '@/components/landing/CTAFinal'
 import { Footer } from '@/components/landing/Footer'
+import { JsonLd } from '@/components/landing/JsonLd'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
 // Server component. Lee la cookie de auth en el server para decidir si
 // el visitante está logueado, así el nav muestra "Ir al dashboard" o
@@ -70,6 +76,10 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* Structured data para Google rich results — Organization,
+          SoftwareApplication y FAQPage. Render server-side, sin JS
+          al cliente. */}
+      <JsonLd siteUrl={APP_URL} />
       <Nav isAuthenticated={isAuthenticated} />
       <main>
         <Hero isAuthenticated={isAuthenticated} />
@@ -77,8 +87,9 @@ export default async function HomePage() {
         <ComoFunciona />
         <ParaQuien />
         <Features />
-        {/* Próximas secciones (Pricing, FAQ, CTAFinal) en commits
-            siguientes. */}
+        <Pricing isAuthenticated={isAuthenticated} />
+        <FAQ />
+        <CTAFinal isAuthenticated={isAuthenticated} />
       </main>
       <Footer />
     </>
