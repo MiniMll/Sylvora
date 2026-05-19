@@ -22,8 +22,18 @@ import { cookies } from 'next/headers'
 
 export async function GET() {
   const cookieStore = await cookies()
+
+  // Project ref extraído del URL — sirve para confirmar si el deploy
+  // está apuntando al mismo proyecto Supabase que el SQL Editor que
+  // estás mirando en otra pestaña. Bug clásico de "el comercio existe
+  // pero el SELECT devuelve null" = SQL Editor en proyecto A, deploy
+  // en proyecto B.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  const projectRefMatch = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)
+  const projectRef = projectRefMatch?.[1] ?? null
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -72,6 +82,11 @@ export async function GET() {
     .select()
 
   return NextResponse.json({
+    proyecto: {
+      project_ref: projectRef,
+      url: supabaseUrl,
+      hint: 'Comparalo con el project_ref en la URL de tu SQL Editor. Si no coinciden, estás mirando 2 DBs distintas.',
+    },
     auth: {
       user_id: user.id,
       user_email: user.email,
@@ -82,12 +97,25 @@ export async function GET() {
     },
     select_comercio: {
       data: comercio,
-      error: comercioSelErr?.message ?? null,
+      // Full error object — para distinguir "Cannot coerce" (era con
+      // .single, ya no debería pasar) vs PGRST116 ("not found") vs
+      // 42501 ("permission denied") que indicaría RLS.
+      error: comercioSelErr ? {
+        message: comercioSelErr.message,
+        code: (comercioSelErr as any).code,
+        details: (comercioSelErr as any).details,
+        hint: (comercioSelErr as any).hint,
+      } : null,
     },
     update_comercio_noop: {
       filas_afectadas: updateRows?.length ?? 0,
       data: updateRows,
-      error: updateErr?.message ?? null,
+      error: updateErr ? {
+        message: updateErr.message,
+        code: (updateErr as any).code,
+        details: (updateErr as any).details,
+        hint: (updateErr as any).hint,
+      } : null,
     },
     diagnostico: {
       tiene_sesion: !!user,
