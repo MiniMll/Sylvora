@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { invalidarCacheComercio } from '@/lib/supabase/_base'
 import { toast } from 'sonner'
 import { Building2, Save, User, Phone, Mail, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -25,23 +26,53 @@ export default function PerfilPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: perfil } = await supabase
+      // maybeSingle en vez de single para distinguir 0 filas (perfil
+      // no existe — caso raro) de N filas (bug de schema).
+      const { data: perfil, error: perfilErr } = await supabase
         .from('perfiles')
         .select('*, comercios(*)')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (perfil) {
-        setUsuario(perfil)
-        setForm({
-          nombre_comercio: perfil.comercios?.nombre || '',
-          tipo: perfil.comercios?.tipo || '',
-          telefono: perfil.comercios?.telefono || '',
-          email: perfil.comercios?.email || user.email || '',
-          direccion: perfil.comercios?.direccion || '',
-          nombre_admin: perfil.nombre || '',
-        })
+      if (perfilErr) {
+        console.error('[/perfil] No se pudo cargar el perfil:', perfilErr)
+        toast.error('No se pudo cargar tu perfil')
+        setCargando(false)
+        return
       }
+      if (!perfil) {
+        toast.error('Tu perfil no existe en el sistema. Contactá al soporte.')
+        setCargando(false)
+        return
+      }
+
+      // Detectar comercio huérfano: el perfil apunta a un comercio_id
+      // que no existe en la tabla comercios. El join devuelve null en
+      // perfil.comercios. Mostramos error explícito en vez de form vacío
+      // que parecía bug de "no guarda" pero en realidad era "no hay nada
+      // que guardar contra".
+      if (!perfil.comercios) {
+        toast.error(
+          'Tu perfil apunta a un comercio que ya no existe. ' +
+          'Contactá al soporte con tu email para reparar la cuenta.'
+        )
+        // Igual seteamos el usuario para que el guardar() falle con
+        // mensaje claro en vez de crash.
+        setUsuario(perfil)
+        setForm(f => ({ ...f, nombre_admin: perfil.nombre || '' }))
+        setCargando(false)
+        return
+      }
+
+      setUsuario(perfil)
+      setForm({
+        nombre_comercio: perfil.comercios.nombre || '',
+        tipo:            perfil.comercios.tipo || '',
+        telefono:        perfil.comercios.telefono || '',
+        email:           perfil.comercios.email || user.email || '',
+        direccion:       perfil.comercios.direccion || '',
+        nombre_admin:    perfil.nombre || '',
+      })
       setCargando(false)
     }
     cargar()
@@ -51,9 +82,19 @@ export default function PerfilPage() {
     setGuardando(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      toast.error('Sesión expirada — volvé a entrar')
+      setGuardando(false)
+      return
+    }
 
-    await supabase
+    // UPDATE del comercio. Usamos .select() para que Supabase nos
+    // devuelva las filas afectadas — si RLS bloquea o la fila no
+    // existe, devuelve [] sin error. Sin esto, el toast.success se
+    // mostraba incluso cuando el UPDATE afectaba 0 rows (bug previo:
+    // la policy comercios_update_admin no existía, todos los UPDATEs
+    // fallaban silente, /perfil parecía guardar pero nada persistía).
+    const { data: comercioUpdated, error: comercioErr } = await supabase
       .from('comercios')
       .update({
         nombre: form.nombre_comercio,
@@ -63,11 +104,39 @@ export default function PerfilPage() {
         direccion: form.direccion,
       })
       .eq('id', usuario.comercio_id)
+      .select()
 
-    await supabase
+    if (comercioErr) {
+      console.error('[/perfil] UPDATE comercios falló:', comercioErr)
+      toast.error('No se pudieron guardar los datos del comercio')
+      setGuardando(false)
+      return
+    }
+    if (!comercioUpdated || comercioUpdated.length === 0) {
+      // 0 rows afectadas = RLS bloqueó o id no coincide. En cualquier
+      // caso, NO mostramos success.
+      toast.error('No tenés permisos para editar los datos del comercio. Pedile al admin que actualice esto.')
+      setGuardando(false)
+      return
+    }
+
+    // UPDATE del nombre del admin en perfiles. Misma defensa.
+    const { error: perfilErr } = await supabase
       .from('perfiles')
       .update({ nombre: form.nombre_admin })
       .eq('id', user.id)
+
+    if (perfilErr) {
+      console.error('[/perfil] UPDATE perfiles falló:', perfilErr)
+      toast.error('Datos del comercio guardados, pero tu nombre no se pudo actualizar')
+      setGuardando(false)
+      return
+    }
+
+    // Invalidar caché de comercio/perfil. Sin esto, el ticket impreso
+    // y cualquier otro lugar que use getComercio() seguiría mostrando
+    // los datos viejos hasta el próximo full reload.
+    invalidarCacheComercio()
 
     toast.success('Perfil actualizado correctamente')
     setGuardando(false)

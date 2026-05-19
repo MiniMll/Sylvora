@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS comercios (
   tipo        TEXT,
   telefono    TEXT,
   email       TEXT,
+  direccion   TEXT,
   plan        TEXT NOT NULL DEFAULT 'trial',
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -46,11 +47,13 @@ CREATE TABLE IF NOT EXISTS comercios (
 -- Migración defensiva: si la DB ya existía con la versión minimal
 -- (solo id/nombre/created_at), agregamos las columnas faltantes sin
 -- romper datos existentes. Idempotente. Equivalente a
--- scripts/migration-comercios-extended.sql para staging actuales.
+-- scripts/migration-comercios-extended.sql + scripts/migration-comercios-direccion.sql
+-- aplicados al staging actual.
 ALTER TABLE comercios
   ADD COLUMN IF NOT EXISTS tipo      TEXT,
   ADD COLUMN IF NOT EXISTS telefono  TEXT,
   ADD COLUMN IF NOT EXISTS email     TEXT,
+  ADD COLUMN IF NOT EXISTS direccion TEXT,
   ADD COLUMN IF NOT EXISTS plan      TEXT NOT NULL DEFAULT 'trial';
 
 CREATE TABLE IF NOT EXISTS perfiles (
@@ -304,10 +307,19 @@ ALTER TABLE aperturas_caja     ENABLE ROW LEVEL SECURITY;
 -- Ver docs/roles-permissions-spec.md.
 -- ─────────────────────────────────────────────────────────────────────
 
--- comercios: lectura del propio comercio. Sin write (se crea via service role).
+-- comercios: lectura del propio comercio + UPDATE admin-only.
+-- INSERT no tiene policy: la creación inicial del comercio viaja via
+-- service-role en POST /api/registro (caso circular — antes de que
+-- exista perfil admin no hay forma de policy con get_rol() = 'admin').
+-- Una vez creado, UPDATE sí tiene policy normal admin-only para que
+-- /perfil pueda completar nombre/dirección/teléfono.
 DROP POLICY IF EXISTS "comercios_read_propio" ON comercios;
+DROP POLICY IF EXISTS "comercios_update_admin" ON comercios;
 CREATE POLICY "comercios_read_propio" ON comercios FOR SELECT
   USING (id = get_comercio_id());
+CREATE POLICY "comercios_update_admin" ON comercios FOR UPDATE
+  USING      (id = get_comercio_id() AND get_rol() = 'admin')
+  WITH CHECK (id = get_comercio_id() AND get_rol() = 'admin');
 
 -- perfiles
 DROP POLICY IF EXISTS "perfiles_propio" ON perfiles;

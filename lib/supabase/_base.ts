@@ -6,6 +6,7 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Comercio } from '@/types/database'
 
 let _client: SupabaseClient | null = null
 
@@ -59,6 +60,8 @@ export function invalidarCacheComercio() {
   _comercioIdUsuario = null
   _perfilActualPromise = null
   _perfilActualUsuario = null
+  _comercioPromise = null
+  _comercioUsuario = null
 }
 
 // ============================================================
@@ -119,4 +122,56 @@ export async function getPerfilActual(): Promise<PerfilActual | null> {
     })()
   }
   return _perfilActualPromise
+}
+
+// ============================================================
+// Comercio actual completo (nombre, tipo, dirección, etc.).
+// Cacheado por sesión igual que getPerfilActual. Lo usa el ticket
+// para renderizar el header del comercio. No re-fetcha cuando el
+// usuario edita su comercio en /configuracion — ese flujo tiene
+// que llamar a invalidarCacheComercio() para forzar reload.
+// ============================================================
+
+let _comercioPromise: Promise<Comercio | null> | null = null
+let _comercioUsuario: string | null = null
+
+export async function getComercio(): Promise<Comercio | null> {
+  const supabase = getBrowserClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    _comercioPromise = null
+    _comercioUsuario = null
+    return null
+  }
+
+  if (_comercioUsuario !== user.id) {
+    _comercioPromise = null
+    _comercioUsuario = user.id
+  }
+
+  if (!_comercioPromise) {
+    _comercioPromise = (async () => {
+      try {
+        // Resolvemos primero el comercio_id del perfil para no depender
+        // del orden de carga: getComercio se puede llamar antes que
+        // getPerfilActual sin problema.
+        const { data: perfil } = await supabase
+          .from('perfiles')
+          .select('comercio_id')
+          .eq('id', user.id)
+          .single()
+        if (!perfil?.comercio_id) return null
+
+        const { data: comercio } = await supabase
+          .from('comercios')
+          .select('id, nombre, tipo, telefono, email, direccion, plan, created_at')
+          .eq('id', perfil.comercio_id)
+          .single()
+        return (comercio as Comercio | null) ?? null
+      } catch {
+        return null
+      }
+    })()
+  }
+  return _comercioPromise
 }

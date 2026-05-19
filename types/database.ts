@@ -108,6 +108,23 @@ export interface CierreCaja {
   created_at: string
 }
 
+/** Comercio = "tenant" del sistema. Cada perfil/producto/venta pertenece
+ *  a un comercio. Los campos opcionales se completan en /configuracion;
+ *  algunos los seteás recién al registrarte (nombre, tipo), otros (email,
+ *  telefono, direccion) los completás después porque condicionan cómo
+ *  aparece tu marca en tickets y comunicaciones. */
+export interface Comercio {
+  id: string
+  nombre: string
+  tipo: string | null
+  telefono: string | null
+  email: string | null
+  direccion: string | null
+  /** 'trial' al registrarse desde la landing → 'pro' / 'expired' después. */
+  plan: string
+  created_at: string
+}
+
 /** Roles soportados por el sistema. Ver docs/roles-permissions-spec.md.
  *  Tras la migration P2.1, `rol` en DB es NOT NULL con CHECK ('admin'|'empleado'). */
 export type Rol = 'admin' | 'empleado'

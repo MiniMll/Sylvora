@@ -1,17 +1,76 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getProductos } from '@/lib/supabase/productos'
 import { getVentas } from '@/lib/supabase/ventas'
+import { getComercio } from '@/lib/supabase/_base'
 import { toast } from 'sonner'
 import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
 import { Select } from '@/components/ui/Input'
+import type { Comercio } from '@/types/database'
+import type jsPDF from 'jspdf'
 
+// Cabecera consistente para los 3 PDFs: nombre del comercio uppercase
+// como brand principal, sub-headers con datos de contacto si están
+// disponibles, después el título del reporte y la fecha generada.
+// El "Generado con Sylvora" va al footer del documento, no al header
+// — el reporte es del comercio, no de Sylvora.
+function dibujarCabecera(
+  doc: jsPDF,
+  comercio: Comercio | null,
+  titulo: string,
+  fecha: string,
+): number {
+  const nombre = (comercio?.nombre || 'SYLVORA').toUpperCase()
+  const subHeader = [comercio?.direccion, comercio?.telefono]
+    .filter(Boolean)
+    .join(' · ')
+
+  // Brand del comercio en negro fuerte (no violeta — el violeta era
+  // "Sylvora" como marca; el comercio es marca propia, neutra).
+  doc.setFontSize(20); doc.setTextColor(30, 30, 30)
+  doc.text(nombre, 14, 18)
+
+  let yCursor = 18
+  if (subHeader) {
+    doc.setFontSize(9); doc.setTextColor(120, 120, 120)
+    doc.text(subHeader, 14, 25)
+    yCursor = 25
+  }
+
+  // Título del reporte
+  doc.setFontSize(13); doc.setTextColor(40, 40, 40)
+  doc.text(titulo, 14, yCursor + 9)
+  doc.setFontSize(9); doc.setTextColor(120, 120, 120)
+  doc.text(`Generado el ${fecha}`, 14, yCursor + 16)
+
+  return yCursor + 16  // Y donde empezar el siguiente contenido
+}
+
+// Footer chiquito al final de cada página con atribución Sylvora.
+// Estética: gris claro, fontSize 7, centrado horizontalmente.
+function dibujarFooter(doc: jsPDF) {
+  const pageCount = doc.getNumberOfPages()
+  doc.setFontSize(7); doc.setTextColor(160, 160, 160)
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    const pageHeight = doc.internal.pageSize.height
+    const pageWidth = doc.internal.pageSize.width
+    doc.text('Generado con Sylvora · sylvora.app', pageWidth / 2, pageHeight - 8, { align: 'center' })
+  }
+}
 
 
 export default function ExportarPage() {
   const [periodo, setPeriodo] = useState('mes')
   const [cargando, setCargando] = useState<string | null>(null)
+  // Datos del comercio para el header de los PDFs. Cached por sesión
+  // via getComercio. Se carga una vez al montar la página.
+  const [comercio, setComercio] = useState<Comercio | null>(null)
+
+  useEffect(() => {
+    getComercio().then(setComercio)
+  }, [])
 
   const exportar = async (id: string, fn: () => Promise<void>) => {
     setCargando(id)
@@ -31,22 +90,17 @@ export default function ExportarPage() {
   const doc = new jsPDF()
   const fecha = new Date().toLocaleDateString('es-AR')
 
-  doc.setFontSize(20); doc.setTextColor(91, 76, 255)
-  doc.text('Sylvora', 14, 18)
-  doc.setFontSize(13); doc.setTextColor(40, 40, 40)
-  doc.text('Reporte de Stock', 14, 27)
-  doc.setFontSize(9); doc.setTextColor(120, 120, 120)
-  doc.text(`Generado el ${fecha}`, 14, 34)
+  const yAfterHeader = dibujarCabecera(doc, comercio, 'Reporte de Stock', fecha)
 
   const sinStock = productos.filter((p: any) => p.stock_actual === 0).length
   const criticos = productos.filter((p: any) => p.stock_actual > 0 && p.stock_actual <= p.stock_minimo * 0.3).length
   const bajos = productos.filter((p: any) => p.stock_actual > p.stock_minimo * 0.3 && p.stock_actual <= p.stock_minimo).length
 
   doc.setFontSize(10); doc.setTextColor(40, 40, 40)
-  doc.text(`Total: ${productos.length} · Sin stock: ${sinStock} · Críticos: ${criticos} · Stock bajo: ${bajos}`, 14, 42)
+  doc.text(`Total: ${productos.length} · Sin stock: ${sinStock} · Críticos: ${criticos} · Stock bajo: ${bajos}`, 14, yAfterHeader + 8)
 
   autoTable(doc, {
-    startY: 48,
+    startY: yAfterHeader + 14,
     head: [['Producto', 'SKU', 'Código', 'Stock', 'Mínimo', 'P. Venta', 'Estado']],
     body: productos.map((p: any) => {
       const estado = p.stock_actual === 0 ? 'Sin stock' : p.stock_actual <= p.stock_minimo * 0.3 ? 'Crítico' : p.stock_actual <= p.stock_minimo ? 'Stock bajo' : 'OK'
@@ -65,9 +119,10 @@ export default function ExportarPage() {
       }
     }
   })
+  dibujarFooter(doc)
   doc.save(`stock-${fecha.replace(/\//g, '-')}.pdf`)
   setCargando(null)
-  toast.success('📄 Stock PDF descargado')
+  toast.success('Stock PDF descargado')
 }
   const exportarStockExcel = async () => {
   setCargando('stock-excel')
@@ -131,21 +186,14 @@ export default function ExportarPage() {
     const fecha = new Date().toLocaleDateString('es-AR')
     const total = ventas.reduce((s: number, v: any) => s + Number(v.total), 0)
 
-    doc.setFontSize(20)
-    doc.setTextColor(91, 76, 255)
-    doc.text('Sylvora', 14, 18)
-    doc.setFontSize(13)
-    doc.setTextColor(40, 40, 40)
-    doc.text('Historial de Ventas', 14, 27)
-    doc.setFontSize(9)
-    doc.setTextColor(120, 120, 120)
-    doc.text(`Generado el ${fecha}`, 14, 34)
+    const yAfterHeader = dibujarCabecera(doc, comercio, 'Historial de Ventas', fecha)
+
     doc.setFontSize(10)
     doc.setTextColor(40, 40, 40)
-    doc.text(`Total: ${ventas.length} ventas · Recaudado: ${formatPeso(total)}`, 14, 42)
+    doc.text(`Total: ${ventas.length} ventas · Recaudado: ${formatPeso(total)}`, 14, yAfterHeader + 8)
 
     autoTable(doc, {
-      startY: 48,
+      startY: yAfterHeader + 14,
       head: [['Fecha', 'Ticket', 'Método', 'Desc.%', 'Rec.%', 'Total', 'Estado']],
       body: ventas.map((v: any) => [
         new Date(v.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }),
@@ -160,8 +208,9 @@ export default function ExportarPage() {
       bodyStyles: { fontSize: 8 },
       alternateRowStyles: { fillColor: [248, 248, 248] },
     })
+    dibujarFooter(doc)
     doc.save(`ventas-${fecha.replace(/\//g, '-')}.pdf`)
-    toast.success('📄 Stock PDF descargado')
+    toast.success('Ventas PDF descargado')
   }
 
   const exportarVentasExcel = async () => {
@@ -197,18 +246,14 @@ export default function ExportarPage() {
     const doc = new jsPDF()
     const fecha = new Date().toLocaleDateString('es-AR')
 
-    doc.setFontSize(20)
-    doc.setTextColor(91, 76, 255)
-    doc.text('Sylvora', 14, 18)
-    doc.setFontSize(13)
-    doc.setTextColor(40, 40, 40)
-    doc.text('Alertas de Stock — Lista de reposición', 14, 27)
+    const yAfterHeader = dibujarCabecera(doc, comercio, 'Alertas de Stock — Lista de reposición', fecha)
+
     doc.setFontSize(9)
     doc.setTextColor(120, 120, 120)
-    doc.text(`Generado el ${fecha} · ${alertas.length} productos para reponer`, 14, 34)
+    doc.text(`${alertas.length} productos para reponer`, 14, yAfterHeader + 8)
 
     autoTable(doc, {
-      startY: 42,
+      startY: yAfterHeader + 14,
       head: [['Producto', 'SKU', 'Stock actual', 'Mínimo', 'Necesita', 'Estado']],
       body: alertas.map((p: any) => [
         p.nombre,
@@ -222,8 +267,9 @@ export default function ExportarPage() {
       bodyStyles: { fontSize: 8 },
       alternateRowStyles: { fillColor: [248, 248, 248] },
     })
+    dibujarFooter(doc)
     doc.save(`alertas-stock-${fecha.replace(/\//g, '-')}.pdf`)
-    toast.success('📄 Stock PDF descargado')
+    toast.success('Alertas PDF descargado')
   }
 
   const REPORTES = [

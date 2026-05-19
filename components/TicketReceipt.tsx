@@ -6,31 +6,57 @@
  * output impreso sea idéntico en ambos puntos de entrada.
  *
  * Diseño:
- * - Header brand (SYLVORA) en sans-serif, peso fuerte, centrado.
- * - Sub-header con número de ticket monospace + fecha legible.
+ * - Header con NOMBRE DEL COMERCIO en uppercase peso fuerte (estilo
+ *   ticket térmico clásico). Si está disponible, sub-header con datos
+ *   del comercio (dirección, teléfono).
+ * - Sub-header con "Comprobante no fiscal" en gris.
+ * - Bloque ticket meta con número + fecha.
  * - Sección items: separadores dashed (look de ticket real), filas
  *   con qty + nombre + monto alineado a la derecha (monospace).
  * - Bloque totales: subtotal/descuento/recargo solo si aplican, TOTAL
  *   prominente con borders sólidos arriba y abajo.
  * - Método de pago en línea separada.
- * - Footer "Gracias por tu compra" centrado, pequeño.
+ * - Footer "Gracias por tu compra" + nota chiquita "Generado con Sylvora".
+ *
+ * La prop `comercio` puede venir null (carga asincrónica todavía no
+ * resuelta o usuario sin perfil). En ese caso degradamos el header a
+ * "SYLVORA" para no romper el render — pero el flujo normal de POS
+ * y ventas siempre lo pasa, así que en la práctica nunca se ve.
  *
  * Forzamos colores oscuros en negro para que rinda bien tanto en
  * impresora térmica como en print-to-PDF. No depende de variables CSS
  * porque @media print suele descartar background-color.
  */
 import { formatPeso, formatFechaTicket, labelMetodoPago } from '@/lib/utils'
-import type { Venta } from '@/types/database'
+import type { Venta, Comercio } from '@/types/database'
 
 const COLOR_INK = '#000'
 const COLOR_INK_SOFT = '#333'
 
-export function TicketReceipt({ venta }: { venta: Venta }) {
+interface TicketReceiptProps {
+  venta: Venta
+  /** Datos del comercio para el header. Si es null, fallback "SYLVORA". */
+  comercio?: Comercio | null
+}
+
+export function TicketReceipt({ venta, comercio }: TicketReceiptProps) {
   const ticketN = String(venta.numero_ticket).padStart(4, '0')
   const fecha = formatFechaTicket(venta.created_at)
   const items = venta.items_venta || []
   const hayAjustes = venta.descuento_porcentaje > 0 || venta.recargo_porcentaje > 0
   const isAnulada = venta.estado === 'anulada'
+
+  // Header del comercio. Si vino la data, usamos su nombre. Si no,
+  // fallback a SYLVORA — solo se debería ver en preview/desarrollo,
+  // nunca en producción porque POS y ventas siempre lo pasan.
+  const nombreHeader = (comercio?.nombre || 'SYLVORA').toUpperCase()
+
+  // Sub-header con dirección + teléfono si hay alguno. Se renderizan
+  // con punto medio entre ellos en una sola línea — si el comercio
+  // todavía no completó esos datos en /configuracion, se omiten.
+  const subHeader = [comercio?.direccion, comercio?.telefono]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <div
@@ -44,7 +70,7 @@ export function TicketReceipt({ venta }: { venta: Venta }) {
         width: '100%',
       }}
     >
-      {/* ───── Brand header ───── */}
+      {/* ───── Brand header — NOMBRE DEL COMERCIO ───── */}
       <div
         style={{
           textAlign: 'center',
@@ -52,10 +78,27 @@ export function TicketReceipt({ venta }: { venta: Venta }) {
           fontSize: 16,
           letterSpacing: '0.18em',
           marginBottom: 2,
+          /* Truncamos por si el nombre es muy largo — evita romper el
+             layout del ticket térmico de 80mm. */
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}
       >
-        SYLVORA
+        {nombreHeader}
       </div>
+      {subHeader && (
+        <div
+          style={{
+            textAlign: 'center',
+            fontSize: 9,
+            color: COLOR_INK_SOFT,
+            marginBottom: 2,
+          }}
+        >
+          {subHeader}
+        </div>
+      )}
       <div
         style={{
           textAlign: 'center',
@@ -217,7 +260,7 @@ export function TicketReceipt({ venta }: { venta: Venta }) {
         </div>
       )}
 
-      {/* Footer */}
+      {/* Footer — agradecimiento + atribución Sylvora chiquita. */}
       <div
         style={{
           textAlign: 'center',
@@ -231,13 +274,14 @@ export function TicketReceipt({ venta }: { venta: Venta }) {
       <div
         style={{
           textAlign: 'center',
-          marginTop: 4,
+          marginTop: 8,
+          paddingTop: 6,
+          borderTop: `1px dotted ${COLOR_INK_SOFT}`,
           fontSize: 8,
           color: COLOR_INK_SOFT,
-          letterSpacing: '0.15em',
         }}
       >
-        sylvora.app
+        Generado con Sylvora · sylvora.app
       </div>
     </div>
   )

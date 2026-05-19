@@ -5,9 +5,10 @@ import { toast } from 'sonner'
 import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
 import { guardarVenta } from '@/lib/supabase/ventas'
+import { getComercio } from '@/lib/supabase/_base'
 import { TicketReceipt } from '@/components/TicketReceipt'
 import type { MetodoPago } from '@/types'
-import type { Venta } from '@/types/database'
+import type { Venta, Comercio } from '@/types/database'
 
 const METODOS: { id: MetodoPago; label: string }[] = [
   { id: 'efectivo', label: 'Efectivo' },
@@ -28,6 +29,16 @@ function POSPaymentImpl() {
   // de éxito pueda ofrecer Imprimir / Compartir. Se limpia al
   // cobrar la siguiente o tras unos segundos.
   const [ventaParaTicket, setVentaParaTicket] = useState<Venta | null>(null)
+  // Datos del comercio para el header del ticket impreso. Se fetchea
+  // una vez al montar el POS y se cachea via getComercio() —
+  // suficiente para una sesión completa de cobros.
+  const [comercio, setComercio] = useState<Comercio | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    getComercio().then(c => { if (!cancelled) setComercio(c) })
+    return () => { cancelled = true }
+  }, [])
 
   const cobrarRef = useRef<() => void>(() => {})
 
@@ -146,7 +157,7 @@ function POSPaymentImpl() {
               onClick={async () => {
                 toast.dismiss(t)
                 const r = await shareOrCopy(
-                  formatTicketText(ventaImprimible),
+                  formatTicketText(ventaImprimible, comercio),
                   `Ticket #${String(ventaImprimible.numero_ticket).padStart(4, '0')}`,
                 )
                 if (r === 'copied') toast.success('Ticket copiado al portapapeles', { id: 'pos-share' })
@@ -337,7 +348,7 @@ function POSPaymentImpl() {
           imprimir; .print-only lo saca de la pantalla normalmente. */}
       {ventaParaTicket && (
         <div data-printable className="print-only">
-          <TicketReceipt venta={ventaParaTicket} />
+          <TicketReceipt venta={ventaParaTicket} comercio={comercio} />
         </div>
       )}
     </>
