@@ -1,234 +1,228 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { invalidarCacheComercio } from '@/lib/supabase/_base'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Building2, User, CreditCard, Users, type LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import { Building2, Save, User, Phone, Mail, MapPin } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Input, Select } from '@/components/ui/Input'
+import { createClient } from '@/lib/supabase/client'
+import { Spinner } from '@/components/ui/Spinner'
+import type { Comercio } from '@/types/database'
 
-export default function PerfilPage() {
-  const [loading, setCargando] = useState(true)
-  const [guardando, setGuardando] = useState(false)
-  const [usuario, setUsuario] = useState<any>(null)
-  const [form, setForm] = useState({
-    nombre_comercio: '',
-    tipo: '',
-    telefono: '',
-    email: '',
-    direccion: '',
-    nombre_admin: '',
-  })
+import { TabComercio } from './components/TabComercio'
+import { TabCuenta }   from './components/TabCuenta'
+import { TabPlan }     from './components/TabPlan'
+import { TabEquipo }   from './components/TabEquipo'
 
-  useEffect(() => {
-    const cargar = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+// /configuracion — shell con tabs comercio/cuenta/plan/equipo.
+//
+// Estado dividido por tab: cada uno maneja su propio form +
+// guardar(). El shell solo se ocupa de:
+//   - cargar perfil + comercio una vez
+//   - parsear el tab activo del URL (?tab=)
+//   - re-fetchear data después de un save (callback onSaved)
+//
+// Sub-tabs son URL params en vez de páginas para evitar re-mount
+// del shell entre tabs (estado del fetch se mantiene). Trade-off:
+// no se puede tener pre-render por tab. Aceptable porque toda la
+// data viene del cliente authenticado de Supabase.
 
-      // maybeSingle en vez de single para distinguir 0 filas (perfil
-      // no existe — caso raro) de N filas (bug de schema).
-      const { data: perfil, error: perfilErr } = await supabase
-        .from('perfiles')
-        .select('*, comercios(*)')
-        .eq('id', user.id)
-        .maybeSingle()
+type TabId = 'comercio' | 'cuenta' | 'plan' | 'equipo'
 
-      if (perfilErr) {
-        console.error('[/configuracion] No se pudo cargar el perfil:', perfilErr)
-        toast.error('No se pudo cargar tu perfil')
-        setCargando(false)
-        return
-      }
-      if (!perfil) {
-        toast.error('Tu perfil no existe en el sistema. Contactá al soporte.')
-        setCargando(false)
-        return
-      }
+const TABS: { id: TabId; label: string; Icon: LucideIcon }[] = [
+  { id: 'comercio', label: 'Comercio', Icon: Building2  },
+  { id: 'cuenta',   label: 'Cuenta',   Icon: User       },
+  { id: 'plan',     label: 'Plan',     Icon: CreditCard },
+  { id: 'equipo',   label: 'Equipo',   Icon: Users      },
+]
 
-      // Detectar comercio huérfano: el perfil apunta a un comercio_id
-      // que no existe en la tabla comercios. El join devuelve null en
-      // perfil.comercios. Mostramos error explícito en vez de form vacío
-      // que parecía bug de "no guarda" pero en realidad era "no hay nada
-      // que guardar contra".
-      if (!perfil.comercios) {
-        toast.error(
-          'Tu perfil apunta a un comercio que ya no existe. ' +
-          'Contactá al soporte con tu email para reparar la cuenta.'
-        )
-        // Igual seteamos el usuario para que el guardar() falle con
-        // mensaje claro en vez de crash.
-        setUsuario(perfil)
-        setForm(f => ({ ...f, nombre_admin: perfil.nombre || '' }))
-        setCargando(false)
-        return
-      }
+const TAB_IDS: TabId[] = ['comercio', 'cuenta', 'plan', 'equipo']
 
-      setUsuario(perfil)
-      setForm({
-        nombre_comercio: perfil.comercios.nombre || '',
-        tipo:            perfil.comercios.tipo || '',
-        telefono:        perfil.comercios.telefono || '',
-        email:           perfil.comercios.email || user.email || '',
-        direccion:       perfil.comercios.direccion || '',
-        nombre_admin:    perfil.nombre || '',
-      })
-      setCargando(false)
-    }
-    cargar()
-  }, [])
+interface DataConfiguracion {
+  userId:        string
+  userEmail:     string
+  perfilNombre:  string | null
+  comercio:      Comercio | null
+  comercioId:    string | null
+}
 
-  const guardar = async () => {
-    setGuardando(true)
+function ConfiguracionShell() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const tabParam = searchParams.get('tab') as TabId | null
+  const tabActivo: TabId = tabParam && TAB_IDS.includes(tabParam) ? tabParam : 'comercio'
+
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<DataConfiguracion | null>(null)
+
+  const cargar = useCallback(async () => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      toast.error('Sesión expirada — volvé a entrar')
-      setGuardando(false)
+      setLoading(false)
       return
     }
 
-    // UPDATE del comercio. Usamos .select() para que Supabase nos
-    // devuelva las filas afectadas — si RLS bloquea o la fila no
-    // existe, devuelve [] sin error. Sin esto, el toast.success se
-    // mostraba incluso cuando el UPDATE afectaba 0 rows (bug previo:
-    // la policy comercios_update_admin no existía, todos los UPDATEs
-    // fallaban silente, /perfil parecía guardar pero nada persistía).
-    const { data: comercioUpdated, error: comercioErr } = await supabase
-      .from('comercios')
-      .update({
-        nombre: form.nombre_comercio,
-        tipo: form.tipo,
-        telefono: form.telefono,
-        email: form.email,
-        direccion: form.direccion,
-      })
-      .eq('id', usuario.comercio_id)
-      .select()
-
-    if (comercioErr) {
-      console.error('[/configuracion] UPDATE comercios falló:', comercioErr)
-      toast.error('No se pudieron guardar los datos del comercio')
-      setGuardando(false)
-      return
-    }
-    if (!comercioUpdated || comercioUpdated.length === 0) {
-      // 0 rows afectadas = RLS bloqueó o id no coincide. En cualquier
-      // caso, NO mostramos success.
-      toast.error('No tenés permisos para editar los datos del comercio. Pedile al admin que actualice esto.')
-      setGuardando(false)
-      return
-    }
-
-    // UPDATE del nombre del admin en perfiles. Misma defensa.
-    const { error: perfilErr } = await supabase
+    const { data: perfil, error: perfilErr } = await supabase
       .from('perfiles')
-      .update({ nombre: form.nombre_admin })
+      .select('*, comercios(*)')
       .eq('id', user.id)
+      .maybeSingle()
 
     if (perfilErr) {
-      console.error('[/configuracion] UPDATE perfiles falló:', perfilErr)
-      toast.error('Datos del comercio guardados, pero tu nombre no se pudo actualizar')
-      setGuardando(false)
+      console.error('[/configuracion] No se pudo cargar el perfil:', perfilErr)
+      toast.error('No se pudo cargar tu perfil')
+      setLoading(false)
+      return
+    }
+    if (!perfil) {
+      toast.error('Tu perfil no existe en el sistema. Contactá al soporte.')
+      setLoading(false)
       return
     }
 
-    // Invalidar caché de comercio/perfil. Sin esto, el ticket impreso
-    // y cualquier otro lugar que use getComercio() seguiría mostrando
-    // los datos viejos hasta el próximo full reload.
-    invalidarCacheComercio()
+    if (!perfil.comercios) {
+      // Comercio huérfano — mismo flow defensivo que tenía la versión
+      // pre-tabs (ver scripts/migration-rls-recovery.sql para historia).
+      toast.error(
+        'Tu perfil apunta a un comercio que ya no existe. ' +
+        'Contactá al soporte con tu email para reparar la cuenta.'
+      )
+    }
 
-    toast.success('Perfil actualizado correctamente')
-    setGuardando(false)
+    setData({
+      userId:       user.id,
+      userEmail:    user.email ?? '',
+      perfilNombre: perfil.nombre,
+      comercio:     (perfil.comercios as Comercio | null) ?? null,
+      comercioId:   perfil.comercio_id ?? null,
+    })
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { cargar() }, [cargar])
+
+  // Cambio de tab — `replace` evita inflar el history (no querés
+  // que el botón "atrás" del browser navegue tab-por-tab dentro
+  // de la misma página). scroll: false mantiene la posición.
+  const cambiarTab = (id: TabId) => {
+    router.replace(`/configuracion?tab=${id}`, { scroll: false })
   }
 
-  const lbl: React.CSSProperties = { fontSize: 12, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 5 }
-  const sec: React.CSSProperties = { background: 'var(--card)', borderRadius: 16, padding: 20, border: '1px solid var(--border)', marginBottom: 14 }
+  if (loading) {
+    return (
+      <div style={{ padding: 24, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Spinner texto="Cargando configuración..." />
+      </div>
+    )
+  }
 
-  if (loading) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}>
-      Cargando...
-    </div>
-  )
+  if (!data) {
+    return (
+      <div style={{ padding: 24, color: 'var(--text2)' }}>
+        No se pudo cargar la configuración.
+      </div>
+    )
+  }
 
   return (
-    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Perfil y Configuración</h1>
-        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Datos de tu comercio y cuenta</p>
+    <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+      {/* Header de página */}
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{
+          fontSize: 24, fontWeight: 700, margin: 0,
+          letterSpacing: '-0.02em', color: 'var(--text)',
+        }}>
+          Configuración
+        </h1>
+        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>
+          Tu comercio, cuenta, plan y equipo
+        </p>
       </div>
 
-      <div style={{ maxWidth: 600 }}>
-        {/* Comercio */}
-        <div style={sec}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-            <Building2 size={16} color="#5b4cff" /> Datos del comercio
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={lbl}>Nombre del comercio</label>
-              <Input size="md" value={form.nombre_comercio} onChange={e => setForm(f => ({ ...f, nombre_comercio: e.target.value }))} placeholder="Almacén Don Juan" />
-            </div>
-            <div>
-              <label style={lbl}>Tipo de comercio</label>
-              <Select size="md" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
-                <option value="kiosco">Kiosco</option>
-                <option value="almacen">Almacén</option>
-                <option value="ferreteria">Ferretería</option>
-                <option value="supermercado">Supermercado</option>
-                <option value="otro">Otro</option>
-              </Select>
-            </div>
-            <div>
-              <label style={lbl}>Teléfono</label>
-              <Input size="md" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="+54 11 1234-5678" />
-            </div>
-            <div>
-              <label style={lbl}>Email del comercio</label>
-              <Input size="md" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={lbl}>Dirección</label>
-              <Input size="md" value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))} placeholder="Av. Corrientes 1234, CABA" />
-            </div>
-          </div>
-        </div>
+      {/* Tabs nav — underline style. Scroll horizontal en mobile
+          si los 4 tabs no entran (cada uno ~110px). */}
+      <div style={{
+        display: 'flex',
+        gap: 4,
+        borderBottom: '1px solid var(--border)',
+        marginBottom: 24,
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+      }}>
+        {TABS.map(t => {
+          const active = tabActivo === t.id
+          const Icon = t.Icon
+          return (
+            <button
+              key={t.id}
+              onClick={() => cambiarTab(t.id)}
+              aria-pressed={active}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '12px 16px',
+                background: 'transparent',
+                border: 'none',
+                // Underline activo: borde inferior violet que sobresale
+                // del border del container. -1px de offset lo alinea
+                // perfecto sobre el border-bottom del wrapper.
+                borderBottom: `2px solid ${active ? 'var(--ac)' : 'transparent'}`,
+                marginBottom: -1,
+                color: active ? 'var(--text)' : 'var(--text2)',
+                fontSize: 14, fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'color 0.12s ease, border-color 0.12s ease',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Icon size={15} strokeWidth={2} color={active ? 'var(--ac)' : 'var(--text2)'} />
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
 
-        {/* Admin */}
-        <div style={sec}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-            <User size={16} color="#5b4cff" /> Tu cuenta
+      {/* Contenido del tab — max-width 720 para que los forms no se
+          estiren absurdamente en monitores anchos. */}
+      <div style={{ maxWidth: 720 }}>
+        {tabActivo === 'comercio' && data.comercio && (
+          <TabComercio comercio={data.comercio} onSaved={cargar} />
+        )}
+        {tabActivo === 'comercio' && !data.comercio && (
+          <div style={{ color: 'var(--text2)', fontSize: 13 }}>
+            No se puede editar el comercio porque no se pudo cargar.
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={lbl}>Tu nombre</label>
-              <Input size="md" value={form.nombre_admin} onChange={e => setForm(f => ({ ...f, nombre_admin: e.target.value }))} placeholder="Juan García" />
-            </div>
-            <div>
-              <label style={lbl}>Email de acceso</label>
-              <Input size="md" style={{ opacity: 0.6 }} value={form.email} disabled />
-            </div>
-          </div>
-        </div>
-
-        {/* Plan */}
-        <div style={sec}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-            Plan activo
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, var(--ac), #9b8fff)', borderRadius: 12, padding: '16px 20px' }}>
-            <div>
-              <div style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>Plan Pro</div>
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 2 }}>Productos ilimitados · 3 usuarios</div>
-            </div>
-            <div style={{ color: 'white', fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 700 }}>$17.990<span style={{ fontSize: 11, fontWeight: 400 }}>/mes</span></div>
-          </div>
-        </div>
-
-        <Button variant="primary" onClick={guardar} loading={guardando} icon={!guardando ? <Save size={14} /> : undefined}>
-          {guardando ? 'Guardando...' : 'Guardar cambios'}
-        </Button>
+        )}
+        {tabActivo === 'cuenta' && (
+          <TabCuenta
+            perfilId={data.userId}
+            perfilNombre={data.perfilNombre}
+            email={data.userEmail}
+            onSaved={cargar}
+          />
+        )}
+        {tabActivo === 'plan' && (
+          <TabPlan plan={data.comercio?.plan ?? 'trial'} />
+        )}
+        {tabActivo === 'equipo' && (
+          <TabEquipo />
+        )}
       </div>
     </div>
+  )
+}
+
+// Suspense boundary — useSearchParams en Next 16 requiere que el
+// componente esté envuelto en Suspense para que el static render
+// no rompa.
+export default function ConfiguracionPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ padding: 24, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Spinner texto="Cargando configuración..." />
+      </div>
+    }>
+      <ConfiguracionShell />
+    </Suspense>
   )
 }
