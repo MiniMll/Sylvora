@@ -27,7 +27,10 @@ export const ProductGrid = memo(ProductGridImpl)
 function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: Omit<Props, 'vista'>) {
   const { has } = usePermissions()
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 14 }}>
+    // Grid 170/10 (antes 200/14): cards más compactas para mostrar más
+    // productos por fila en desktop sin sacrificar legibilidad. En
+    // mobile (1 col) la diferencia es marginal.
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 10 }}>
       {productos.map(p => {
         const sc = stockColor(p.stock_actual, p.stock_minimo, p.unidad_venta)
         const sl = stockLabel(p.stock_actual, p.stock_minimo, p.unidad_venta)
@@ -46,10 +49,12 @@ function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
               flexDirection: 'column',
             }}>
 
-            {/* Imagen — aspect-square con respiración interior */}
+            {/* Imagen — aspect 5/4 (antes 1/1): ahorra ~20% de alto
+                manteniendo el producto reconocible. El padding interior
+                baja de 14 a 12 para acompañar el formato. */}
             <div style={{
               width: '100%',
-              aspectRatio: '1 / 1',
+              aspectRatio: '5 / 4',
               background: 'var(--bg3)',
               display: 'flex',
               alignItems: 'center',
@@ -59,16 +64,16 @@ function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
             }}>
               {p.imagen_url
                 ? <img src={p.imagen_url} alt={p.nombre}
-                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: 14 }} />
-                : <Package size={36} color="var(--border-strong)" strokeWidth={1.8} style={{ opacity: 0.6 }} />
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: 12 }} />
+                : <Package size={32} color="var(--border-strong)" strokeWidth={1.8} style={{ opacity: 0.6 }} />
               }
               {p.unidad_venta !== 'unidad' && (
                 <span style={{
-                  position: 'absolute', top: 10, left: 10,
+                  position: 'absolute', top: 8, left: 8,
                   background: 'rgba(91,76,255,0.95)',
                   color: 'white',
-                  fontSize: 10,
-                  padding: '3px 8px',
+                  fontSize: 9,
+                  padding: '2px 7px',
                   borderRadius: 999,
                   fontWeight: 600,
                   letterSpacing: '0.02em',
@@ -96,9 +101,12 @@ function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
               )}
             </div>
 
-            {/* Info */}
-            <div style={{ padding: '12px 14px 10px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Info — padding ajustado al sistema 4/8 (10 lateral, 8 vertical). */}
+            <div style={{ padding: '10px 12px 8px', flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{
+                // tier "title" del sistema: 13/600 — antes era igual
+                // pero ahora la card es más chica así que el text-overflow
+                // ellipsis se activa más seguido. Acepatable.
                 fontSize: 13, fontWeight: 600, color: 'var(--text)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 letterSpacing: '-0.01em',
@@ -106,52 +114,74 @@ function CardsView({ productos, onAbrirDetalle, onEditar, onConfirmarBorrar }: O
               <div style={{ fontSize: 10, color: 'var(--text2)', fontFamily: 'DM Mono, monospace' }}>
                 {p.sku || p.codigo_barras || '—'}
               </div>
-              <div style={{ marginTop: 'auto', paddingTop: 4 }}>
+              <div style={{ marginTop: 'auto', paddingTop: 2 }}>
                 {p.unidad_venta === 'kg'
-                  ? <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', letterSpacing: '-0.02em' }}>{formatPeso(p.precio_por_kg || 0)}<span style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 400, marginLeft: 2 }}>/kg</span></div>
+                  ? <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', letterSpacing: '-0.02em' }}>{formatPeso(p.precio_por_kg || 0)}<span style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 400, marginLeft: 2 }}>/kg</span></div>
                   : p.unidad_venta === 'litro'
-                  ? <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', letterSpacing: '-0.02em' }}>{formatPeso(p.precio_venta)}<span style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 400, marginLeft: 2 }}>/L</span></div>
+                  ? <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', letterSpacing: '-0.02em' }}>{formatPeso(p.precio_venta)}<span style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 400, marginLeft: 2 }}>/L</span></div>
                   : p.unidad_venta === 'metro'
-                  ? <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', letterSpacing: '-0.02em' }}>{formatPeso(p.precio_venta)}<span style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 400, marginLeft: 2 }}>/m</span></div>
-                  : <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', letterSpacing: '-0.02em' }}>{formatPeso(p.precio_venta)}</div>
+                  ? <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', letterSpacing: '-0.02em' }}>{formatPeso(p.precio_venta)}<span style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 400, marginLeft: 2 }}>/m</span></div>
+                  : <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', letterSpacing: '-0.02em' }}>{formatPeso(p.precio_venta)}</div>
                 }
               </div>
             </div>
 
-            {/* Footer: stock badge + acciones */}
+            {/* Footer — min-height 36 (antes 40) consistente con tier sm.
+                Botones acción 28×28 (antes ~28×24 variable). */}
             <div style={{
               borderTop: '1px solid var(--border)',
-              padding: '8px 12px',
+              padding: '6px 10px',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              minHeight: 40,
+              gap: 6,
+              minHeight: 36,
             }}>
               <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
+                display: 'inline-flex', alignItems: 'center', gap: 5,
                 background: sc + '14',
                 color: sc,
-                padding: '4px 9px',
+                padding: '3px 8px',
                 borderRadius: 999,
                 fontSize: 10, fontWeight: 600,
                 letterSpacing: '0.01em',
+                minWidth: 0,
+                overflow: 'hidden',
               }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: sc }} />
-                <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 700 }}>{formatStock(p.stock_actual, p.unidad_venta)}</span>
-                <span style={{ opacity: 0.85 }}>· {sl}</span>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: sc, flexShrink: 0 }} />
+                <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 700, whiteSpace: 'nowrap' }}>{formatStock(p.stock_actual, p.unidad_venta)}</span>
+                <span style={{ opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>· {sl}</span>
               </span>
               {(has('producto.editar') || has('producto.eliminar')) && (
-                <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                   {has('producto.editar') && (
-                    <button onClick={() => onEditar(p)}
+                    <button
+                      onClick={() => onEditar(p)}
                       aria-label="Editar producto"
-                      style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Pencil size={12} color="var(--text2)" />
+                      style={{
+                        width: 24, height: 24,
+                        borderRadius: 6,
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg2)',
+                        cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <Pencil size={11} color="var(--text2)" strokeWidth={2.2} />
                     </button>
                   )}
                   {has('producto.eliminar') && (
-                    <button onClick={() => onConfirmarBorrar(p)}
+                    <button
+                      onClick={() => onConfirmarBorrar(p)}
                       aria-label="Eliminar producto"
-                      style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(255,71,87,0.22)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Trash2 size={12} color="#ff4757" />
+                      style={{
+                        width: 24, height: 24,
+                        borderRadius: 6,
+                        border: '1px solid rgba(255,71,87,0.22)',
+                        background: 'var(--bg2)',
+                        cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <Trash2 size={11} color="#ff4757" strokeWidth={2.2} />
                     </button>
                   )}
                 </div>

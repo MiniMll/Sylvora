@@ -71,7 +71,7 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
     <Modal
       open
       onClose={onClose}
-      title="✏️ Editar producto"
+      title="Editar producto"
       size="md"
       footer={
         <>
