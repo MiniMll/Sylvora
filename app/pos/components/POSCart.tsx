@@ -1,6 +1,6 @@
 'use client'
 import { memo, useState } from 'react'
-import { ShoppingCart, X } from 'lucide-react'
+import { ShoppingCart, X, Plus, Minus } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
 
@@ -56,10 +56,12 @@ function POSCartImpl() {
             </div>
             {!item.peso_kg ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad - 1)}
                     aria-label="Disminuir cantidad"
-                    style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>−</button>
+                    style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
+                    <Minus size={13} strokeWidth={2.2} />
+                  </button>
                   {editingId === item.producto_id ? (
                     <input
                       type="number"
@@ -110,19 +112,21 @@ function POSCartImpl() {
                   )}
                   <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad + 1)}
                     aria-label="Aumentar cantidad"
-                    style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)', fontSize: 14, fontWeight: 600 }}>+</button>
+                    style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
+                    <Plus size={13} strokeWidth={2.2} />
+                  </button>
                 </div>
                 <button onClick={() => store.quitarItem(item.producto_id)}
                   aria-label="Quitar item"
-                  style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid rgba(255,71,87,0.22)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--r)', flexShrink: 0 }}>
-                  <X size={11} />
+                  style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(255,71,87,0.22)', background: 'var(--bg2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--r)', flexShrink: 0 }}>
+                  <X size={13} strokeWidth={2.2} />
                 </button>
               </>
             ) : (
               <button onClick={() => store.quitarItem(item.producto_id)}
                 aria-label="Quitar item"
                 style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--r)' }}>
-                <X size={13} />
+                <X size={13} strokeWidth={2.2} />
               </button>
             )}
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ac)', fontFamily: 'DM Mono, monospace', minWidth: 56, textAlign: 'right' }}>

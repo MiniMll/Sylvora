@@ -1,6 +1,16 @@
 'use client'
 import { memo, useEffect, useRef, useState } from 'react'
-import { CheckCircle, Loader2, Printer, Share2 } from 'lucide-react'
+import {
+  Check,
+  CheckCircle,
+  Loader2,
+  Printer,
+  Share2,
+  Banknote,
+  CreditCard,
+  Smartphone,
+  type LucideIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
@@ -10,11 +20,14 @@ import { TicketReceipt } from '@/components/TicketReceipt'
 import type { MetodoPago } from '@/types'
 import type { Venta, Comercio } from '@/types/database'
 
-const METODOS: { id: MetodoPago; label: string }[] = [
-  { id: 'efectivo', label: 'Efectivo' },
-  { id: 'debito', label: 'Débito' },
-  { id: 'credito', label: 'Crédito' },
-  { id: 'mercadopago', label: 'Mercado Pago' },
+// Métodos de pago — icono arriba + label abajo. Mismo lenguaje
+// visual que MiniPOSPreview en la landing, para coherencia entre
+// marketing y producto real.
+const METODOS: { id: MetodoPago; label: string; Icon: LucideIcon }[] = [
+  { id: 'efectivo',    label: 'Efectivo',     Icon: Banknote   },
+  { id: 'debito',      label: 'Débito',       Icon: CreditCard },
+  { id: 'credito',     label: 'Crédito',      Icon: CreditCard },
+  { id: 'mercadopago', label: 'Mercado Pago', Icon: Smartphone },
 ]
 
 const COBRADO_FEEDBACK_MS = 800
@@ -225,29 +238,53 @@ function POSPaymentImpl() {
 
   return (
     <>
-      {/* Método pago */}
-      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6 }}>
+      {/* Métodos de pago — icon arriba + label abajo.
+          Grid 4 cols fijo en desktop (siempre entran los 4); mobile
+          autofit ≥80px para que no se aplasten. */}
+      <div style={{ padding: '12px', borderTop: '1px solid var(--border)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
           {METODOS.map(m => {
             const active = store.metodoPago === m.id
+            const Icon = m.Icon
             return (
-              <button key={m.id} onClick={() => store.setMetodoPago(m.id)}
+              <button
+                key={m.id}
+                onClick={() => store.setMetodoPago(m.id)}
                 aria-pressed={active}
                 style={{
-                  minHeight: 40,
-                  padding: '8px 10px',
+                  // Vertical, icon + label. Altura mínima 60 para
+                  // tap-target cómodo en mobile + respiración visual.
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  minHeight: 60,
+                  padding: '8px 6px',
                   borderRadius: 10,
                   border: '1px solid',
                   borderColor: active ? 'var(--ac)' : 'var(--border)',
                   background: active ? 'var(--ac)' : 'var(--bg2)',
                   color: active ? 'white' : 'var(--text)',
-                  fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  letterSpacing: '-0.01em',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
                   boxShadow: active ? '0 2px 8px rgba(91,76,255,0.25)' : 'none',
                   transition: 'all 0.15s var(--ease-out)',
+                }}
+              >
+                <Icon size={18} strokeWidth={2} color={active ? 'white' : 'var(--text2)'} />
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: '-0.005em',
+                  // Truncate de "Mercado Pago" si la columna se aprieta
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%',
                 }}>
-                {m.label}
+                  {m.label}
+                </span>
               </button>
             )
           })}
@@ -339,7 +376,17 @@ function POSPaymentImpl() {
               <Loader2 size={16} style={{ animation: 'spin 0.75s linear infinite' }} />
               Guardando…
             </>
-          ) : cobrado ? '¡Cobrado!' : 'Cobrar'}
+          ) : cobrado ? (
+            <>
+              <CheckCircle size={18} strokeWidth={2.2} />
+              ¡Cobrado!
+            </>
+          ) : (
+            <>
+              <Check size={18} strokeWidth={2.4} />
+              Cobrar
+            </>
+          )}
         </button>
       </div>
 
