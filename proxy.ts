@@ -16,7 +16,7 @@ const RUTAS_PROTEGIDAS = [
   '/reportes',
   '/exportar',
   '/precios',
-  '/perfil',
+  '/configuracion',
   '/usuarios',
 ]
 
