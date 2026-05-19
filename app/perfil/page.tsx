@@ -26,23 +26,53 @@ export default function PerfilPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: perfil } = await supabase
+      // maybeSingle en vez de single para distinguir 0 filas (perfil
+      // no existe — caso raro) de N filas (bug de schema).
+      const { data: perfil, error: perfilErr } = await supabase
         .from('perfiles')
         .select('*, comercios(*)')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (perfil) {
-        setUsuario(perfil)
-        setForm({
-          nombre_comercio: perfil.comercios?.nombre || '',
-          tipo: perfil.comercios?.tipo || '',
-          telefono: perfil.comercios?.telefono || '',
-          email: perfil.comercios?.email || user.email || '',
-          direccion: perfil.comercios?.direccion || '',
-          nombre_admin: perfil.nombre || '',
-        })
+      if (perfilErr) {
+        console.error('[/perfil] No se pudo cargar el perfil:', perfilErr)
+        toast.error('No se pudo cargar tu perfil')
+        setCargando(false)
+        return
       }
+      if (!perfil) {
+        toast.error('Tu perfil no existe en el sistema. Contactá al soporte.')
+        setCargando(false)
+        return
+      }
+
+      // Detectar comercio huérfano: el perfil apunta a un comercio_id
+      // que no existe en la tabla comercios. El join devuelve null en
+      // perfil.comercios. Mostramos error explícito en vez de form vacío
+      // que parecía bug de "no guarda" pero en realidad era "no hay nada
+      // que guardar contra".
+      if (!perfil.comercios) {
+        toast.error(
+          'Tu perfil apunta a un comercio que ya no existe. ' +
+          'Contactá al soporte con tu email para reparar la cuenta.'
+        )
+        // Igual seteamos el usuario para que el guardar() falle con
+        // mensaje claro en vez de crash.
+        setUsuario(perfil)
+        setForm(f => ({ ...f, nombre_admin: perfil.nombre || '' }))
+        setCargando(false)
+        return
+      }
+
+      setUsuario(perfil)
+      setForm({
+        nombre_comercio: perfil.comercios.nombre || '',
+        tipo:            perfil.comercios.tipo || '',
+        telefono:        perfil.comercios.telefono || '',
+        email:           perfil.comercios.email || user.email || '',
+        direccion:       perfil.comercios.direccion || '',
+        nombre_admin:    perfil.nombre || '',
+      })
       setCargando(false)
     }
     cargar()

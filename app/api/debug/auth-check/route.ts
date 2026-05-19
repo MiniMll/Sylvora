@@ -44,18 +44,22 @@ export async function GET() {
   }
 
   // ───── 2. Perfil del user ─────────────────────────────────────────
+  // maybeSingle distingue 0 filas (null sin error) de N filas (error).
+  // single() en cambio explota con "Cannot coerce" cuando hay 0 — que
+  // confunde con un problema de auth/RLS cuando en realidad es "el
+  // row no existe".
   const { data: perfil, error: perfilErr } = await supabase
     .from('perfiles')
     .select('id, rol, comercio_id, nombre')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   // ───── 3. SELECT comercio (debería pasar comercios_read_propio) ───
   const { data: comercio, error: comercioSelErr } = await supabase
     .from('comercios')
     .select('id, nombre, tipo, direccion, telefono, email')
     .eq('id', perfil?.comercio_id ?? '')
-    .single()
+    .maybeSingle()
 
   // ───── 4. UPDATE no-op (mismo flujo que /perfil) ──────────────────
   // Seteamos el nombre al MISMO valor que ya tenía. Si la policy
@@ -92,6 +96,9 @@ export async function GET() {
       rol_length: perfil?.rol?.length ?? null,
       rol_es_admin_exacto: perfil?.rol === 'admin',
       perfil_id_coincide_user: perfil?.id === user.id,
+      // Si perfil.comercio_id apunta a una fila inexistente, este
+      // flag distingue claramente "comercio no existe" de "RLS bloqueó".
+      perfil_apunta_a_comercio_huerfano: !!perfil && !comercio,
       comercio_select_funciona: !!comercio,
       comercio_update_funciona: (updateRows?.length ?? 0) > 0,
     },
