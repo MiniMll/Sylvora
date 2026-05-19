@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
-import { Package, X, Layers } from 'lucide-react'
+import { Package, X, Layers, Pencil, Trash2, Loader2, Plus } from 'lucide-react'
 import { formatPeso, calcularMargen, stockColor, stockLabel, formatStock, formatVencimiento } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -111,7 +111,8 @@ export function ProductDetail({
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 5 }}><Layers size={12} /> Lotes</div>
               {puedeGestionarLotes && (
                 <Button variant="primary" size="sm" onClick={onAgregarLote}>
-                  + Agregar lote
+                  <Plus size={13} strokeWidth={2.4} style={{ marginRight: 4 }} />
+                  Agregar lote
                 </Button>
               )}
             </div>
@@ -138,9 +139,28 @@ export function ProductDetail({
                         {formatStock(lote.cantidad, producto.unidad_venta)}
                       </div>
                       {puedeGestionarLotes && (
-                        <button onClick={() => onBorrarLote(lote)} disabled={borrandoLote === lote.id}
-                          style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.2)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', color: 'var(--r)' }}>
-                          {borrandoLote === lote.id ? '...' : '🗑️'}
+                        <button
+                          onClick={() => onBorrarLote(lote)}
+                          disabled={borrandoLote === lote.id}
+                          aria-label={`Borrar lote ${lote.numero_lote}`}
+                          style={{
+                            // Tier sm consistente con resto del POS/productos
+                            width: 28, height: 28,
+                            borderRadius: 7,
+                            border: '1px solid rgba(255,71,87,0.2)',
+                            background: 'var(--bg2)',
+                            cursor: borrandoLote === lote.id ? 'wait' : 'pointer',
+                            color: 'var(--r)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {borrandoLote === lote.id
+                            ? <Loader2 size={12} className="spin" style={{ animation: 'spin 0.75s linear infinite' }} />
+                            : <Trash2 size={12} strokeWidth={2.2} />
+                          }
                         </button>
                       )}
                     </div>
@@ -161,13 +181,29 @@ export function ProductDetail({
             <div style={{ display: 'flex', gap: 8 }}>
               {has('producto.editar') && (
                 <Button variant="primary" onClick={onEditar} style={{ flex: 1 }}>
-                  ✏️ Editar
+                  <Pencil size={14} strokeWidth={2.2} style={{ marginRight: 6 }} />
+                  Editar
                 </Button>
               )}
               {has('producto.eliminar') && (
-                <button onClick={onBorrar}
-                  style={{ padding: '10px 14px', borderRadius: 9, background: 'var(--bg2)', color: 'var(--r)', border: '1px solid rgba(255,71,87,0.3)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  🗑️
+                <button
+                  onClick={onBorrar}
+                  aria-label="Borrar producto"
+                  style={{
+                    width: 40, height: 40,
+                    borderRadius: 9,
+                    background: 'var(--bg2)',
+                    color: 'var(--r)',
+                    border: '1px solid rgba(255,71,87,0.3)',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Trash2 size={15} strokeWidth={2.2} />
                 </button>
               )}
             </div>
