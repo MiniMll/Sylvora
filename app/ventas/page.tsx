@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { getVentas, anularVenta } from '@/lib/supabase/ventas'
+import { getComercio } from '@/lib/supabase/_base'
 import { formatPeso, formatTicketText, shareOrCopy, formatFechaTicket, labelMetodoPago } from '@/lib/utils'
 import { puedeAnularVenta } from '@/lib/permissions'
 import { Search, TrendingUp, Receipt, Hash, X, AlertTriangle, Printer, Share2 } from 'lucide-react'
@@ -11,7 +12,7 @@ import { TicketReceipt } from '@/components/TicketReceipt'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Input'
-import type { Venta } from '@/types/database'
+import type { Venta, Comercio } from '@/types/database'
 
 export default function VentasPage() {
   const { rol } = usePermissions()
@@ -23,9 +24,13 @@ export default function VentasPage() {
   const [filtroFecha, setFiltroFecha] = useState('todo')
   const [confirmarAnular, setConfirmarAnular] = useState(false)
   const [anulando, setAnulando] = useState(false)
+  // Datos del comercio para el header del ticket re-impreso desde
+  // historial. Cached via getComercio, una sola query por sesión.
+  const [comercio, setComercio] = useState<Comercio | null>(null)
 
   useEffect(() => {
     getVentas().then(data => { setVentas(data); setCargando(false) })
+    getComercio().then(setComercio)
   }, [])
 
   const ventasFiltradas = ventas.filter(v => {
@@ -430,7 +435,7 @@ export default function VentasPage() {
           entre el flujo post-cobro y el de historial. */}
       {detalle && (
         <div data-printable className="print-only">
-          <TicketReceipt venta={detalle} />
+          <TicketReceipt venta={detalle} comercio={comercio} />
         </div>
       )}
 
