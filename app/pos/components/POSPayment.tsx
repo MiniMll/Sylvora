@@ -157,7 +157,7 @@ function POSPaymentImpl() {
               onClick={async () => {
                 toast.dismiss(t)
                 const r = await shareOrCopy(
-                  formatTicketText(ventaImprimible),
+                  formatTicketText(ventaImprimible, comercio),
                   `Ticket #${String(ventaImprimible.numero_ticket).padStart(4, '0')}`,
                 )
                 if (r === 'copied') toast.success('Ticket copiado al portapapeles', { id: 'pos-share' })

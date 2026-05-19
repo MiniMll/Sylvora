@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { invalidarCacheComercio } from '@/lib/supabase/_base'
 import { toast } from 'sonner'
 import { Building2, Save, User, Phone, Mail, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -51,9 +52,19 @@ export default function PerfilPage() {
     setGuardando(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      toast.error('Sesión expirada — volvé a entrar')
+      setGuardando(false)
+      return
+    }
 
-    await supabase
+    // UPDATE del comercio. Usamos .select() para que Supabase nos
+    // devuelva las filas afectadas — si RLS bloquea o la fila no
+    // existe, devuelve [] sin error. Sin esto, el toast.success se
+    // mostraba incluso cuando el UPDATE afectaba 0 rows (bug previo:
+    // la policy comercios_update_admin no existía, todos los UPDATEs
+    // fallaban silente, /perfil parecía guardar pero nada persistía).
+    const { data: comercioUpdated, error: comercioErr } = await supabase
       .from('comercios')
       .update({
         nombre: form.nombre_comercio,
@@ -63,11 +74,39 @@ export default function PerfilPage() {
         direccion: form.direccion,
       })
       .eq('id', usuario.comercio_id)
+      .select()
 
-    await supabase
+    if (comercioErr) {
+      console.error('[/perfil] UPDATE comercios falló:', comercioErr)
+      toast.error('No se pudieron guardar los datos del comercio')
+      setGuardando(false)
+      return
+    }
+    if (!comercioUpdated || comercioUpdated.length === 0) {
+      // 0 rows afectadas = RLS bloqueó o id no coincide. En cualquier
+      // caso, NO mostramos success.
+      toast.error('No tenés permisos para editar los datos del comercio. Pedile al admin que actualice esto.')
+      setGuardando(false)
+      return
+    }
+
+    // UPDATE del nombre del admin en perfiles. Misma defensa.
+    const { error: perfilErr } = await supabase
       .from('perfiles')
       .update({ nombre: form.nombre_admin })
       .eq('id', user.id)
+
+    if (perfilErr) {
+      console.error('[/perfil] UPDATE perfiles falló:', perfilErr)
+      toast.error('Datos del comercio guardados, pero tu nombre no se pudo actualizar')
+      setGuardando(false)
+      return
+    }
+
+    // Invalidar caché de comercio/perfil. Sin esto, el ticket impreso
+    // y cualquier otro lugar que use getComercio() seguiría mostrando
+    // los datos viejos hasta el próximo full reload.
+    invalidarCacheComercio()
 
     toast.success('Perfil actualizado correctamente')
     setGuardando(false)

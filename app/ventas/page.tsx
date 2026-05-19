@@ -66,7 +66,7 @@ export default function VentasPage() {
 
   const handleCompartir = async () => {
     if (!detalle) return
-    const text = formatTicketText(detalle)
+    const text = formatTicketText(detalle, comercio)
     const r = await shareOrCopy(text, `Ticket #${String(detalle.numero_ticket).padStart(4, '0')}`)
     if (r === 'copied') toast.success('Ticket copiado al portapapeles', { id: 'venta-share' })
     else if (r === 'error') toast.error('No se pudo compartir', { id: 'venta-share' })

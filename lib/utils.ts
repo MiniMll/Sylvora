@@ -129,23 +129,31 @@ export function formatFechaTicket(iso: string): string {
 /**
  * Genera el texto plano del ticket para compartir vía WhatsApp/email
  * o copiar al clipboard. Formato pensado para ser legible en mobile,
- * con jerarquía clara: brand → ticket → items → total → método → footer.
+ * con jerarquía clara: comercio → ticket → items → total → método → footer.
+ *
+ * Si el comercio se pasa, el header es su nombre (uppercase) seguido de
+ * dirección y teléfono cuando estén disponibles. Sin comercio,
+ * fallback a "SYLVORA" para no romper el render — pero el flujo
+ * normal de POS y ventas siempre lo pasa.
  */
-export function formatTicketText(venta: Venta): string {
+export function formatTicketText(venta: Venta, comercio?: { nombre: string; direccion?: string | null; telefono?: string | null } | null): string {
   const items = (venta.items_venta || []).map(i => {
     const qty = i.peso_kg ? `${i.peso_kg} kg` : `${i.cantidad} ×`
     return `• ${qty} ${i.nombre_producto} — ${formatPeso(i.subtotal)}`
   }).join('\n')
 
   const ticketN = String(venta.numero_ticket).padStart(4, '0')
+  const nombreHeader = (comercio?.nombre || 'SYLVORA').toUpperCase()
+  const subHeader = [comercio?.direccion, comercio?.telefono].filter(Boolean).join(' · ')
 
   const lines: string[] = [
-    `SYLVORA · Ticket #${ticketN}`,
-    formatFechaTicket(venta.created_at),
-    '',
-    items || '(sin detalle de items)',
-    '',
+    `${nombreHeader} · Ticket #${ticketN}`,
   ]
+  if (subHeader) lines.push(subHeader)
+  lines.push(formatFechaTicket(venta.created_at))
+  lines.push('')
+  lines.push(items || '(sin detalle de items)')
+  lines.push('')
 
   // Mostrar subtotal solo si hay ajustes (descuento/recargo); si no, ruido.
   const hayAjustes = venta.descuento_porcentaje > 0 || venta.recargo_porcentaje > 0
@@ -167,6 +175,7 @@ export function formatTicketText(venta: Venta): string {
   }
   lines.push('')
   lines.push('Gracias por tu compra.')
+  lines.push('— Generado con Sylvora')
   return lines.join('\n')
 }
 
