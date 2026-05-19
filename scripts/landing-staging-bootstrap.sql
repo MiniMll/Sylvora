@@ -216,6 +216,45 @@ CREATE INDEX IF NOT EXISTS idx_categorias_comercio        ON categorias(comercio
 
 
 -- ─────────────────────────────────────────────────────────────────────
+-- Numeración de tickets per-comercio
+-- ─────────────────────────────────────────────────────────────────────
+-- numero_ticket arranca en 1 para cada comercio (NO global). El cliente
+-- (lib/supabase/ventas.ts) no envía valor: el trigger lo asigna como
+-- MAX(numero_ticket)+1 dentro del mismo comercio.
+--
+-- Unique constraint (comercio_id, numero_ticket) defiende contra race
+-- condition entre dos cajeros simultáneos del mismo comercio. Si ocurre
+-- el conflicto raro, el cliente hace retry.
+--
+-- Para staging actuales que tenían SERIAL global, ver
+-- scripts/migration-numero-ticket-por-comercio.sql (incluye backfill).
+
+ALTER TABLE ventas DROP CONSTRAINT IF EXISTS ventas_comercio_numero_ticket_unique;
+ALTER TABLE ventas
+  ADD CONSTRAINT ventas_comercio_numero_ticket_unique
+  UNIQUE (comercio_id, numero_ticket);
+
+CREATE OR REPLACE FUNCTION asignar_numero_ticket()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.numero_ticket IS NULL THEN
+    SELECT COALESCE(MAX(numero_ticket), 0) + 1
+      INTO NEW.numero_ticket
+      FROM ventas
+      WHERE comercio_id = NEW.comercio_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS ventas_set_numero_ticket ON ventas;
+CREATE TRIGGER ventas_set_numero_ticket
+  BEFORE INSERT ON ventas
+  FOR EACH ROW
+  EXECUTE FUNCTION asignar_numero_ticket();
+
+
+-- ─────────────────────────────────────────────────────────────────────
 -- Funciones de RLS — resuelven el comercio y rol del auth user actual
 -- ─────────────────────────────────────────────────────────────────────
 

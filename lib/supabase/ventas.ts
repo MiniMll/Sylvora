@@ -21,29 +21,67 @@ interface VentaInput {
   items: ItemVentaInput[]
 }
 
+// Cuántas veces reintentar el INSERT de venta si choca contra la
+// unique constraint (comercio_id, numero_ticket). Caso esperado:
+// dos cajeros del mismo comercio cobran al mismo tiempo, el trigger
+// les asigna el mismo MAX+1, la unique constraint detecta el choque
+// en el segundo INSERT y devuelve 23505. El retry vuelve a ejecutar
+// el trigger, que ahora ve la primera venta ya commiteada y asigna
+// MAX+2. Tres intentos cubren con margen un escenario de 2-3 cajas
+// concurrentes — más que eso ya pediría advisory locks o sequence
+// per-comercio.
+const MAX_REINTENTOS_NUMERO_TICKET = 3
+
 export async function guardarVenta(venta: VentaInput): Promise<Venta | null> {
   const supabase = getBrowserClient()
   const comercioId = await getComercioId()
   if (!comercioId) return null
 
-  const { data: ventaData, error: ventaError } = await supabase
-    .from('ventas')
-    .insert({
-      comercio_id: comercioId,
-      subtotal: venta.subtotal,
-      descuento_porcentaje: venta.descuento_porcentaje,
-      descuento_monto: venta.descuento_monto,
-      recargo_porcentaje: venta.recargo_porcentaje,
-      recargo_monto: venta.recargo_monto,
-      total: venta.total,
-      metodo_pago: venta.metodo_pago,
-      estado: 'completada',
-    })
-    .select()
-    .single()
+  // Retry loop: solo reintenta ante el código 23505 (unique violation)
+  // sobre la constraint de numero_ticket. Cualquier otro error
+  // (validación, FK, etc.) corta de una.
+  let ventaData: Venta | null = null
+  for (let intento = 0; intento < MAX_REINTENTOS_NUMERO_TICKET; intento++) {
+    const { data, error } = await supabase
+      .from('ventas')
+      .insert({
+        comercio_id: comercioId,
+        subtotal: venta.subtotal,
+        descuento_porcentaje: venta.descuento_porcentaje,
+        descuento_monto: venta.descuento_monto,
+        recargo_porcentaje: venta.recargo_porcentaje,
+        recargo_monto: venta.recargo_monto,
+        total: venta.total,
+        metodo_pago: venta.metodo_pago,
+        estado: 'completada',
+      })
+      .select()
+      .single()
 
-  if (ventaError || !ventaData) {
-    console.error(ventaError)
+    if (!error && data) {
+      ventaData = data as Venta
+      break
+    }
+
+    // 23505 = unique_violation. Solo reintentamos si el conflicto es
+    // específicamente sobre numero_ticket; cualquier otra unique
+    // violation indica bug y debe fallar visible.
+    const esColisionNumeroTicket =
+      error?.code === '23505' &&
+      /numero_ticket/i.test(error.message ?? '')
+
+    if (!esColisionNumeroTicket) {
+      console.error(error)
+      return null
+    }
+
+    // Jitter chico para reducir probabilidad de re-colisión inmediata
+    // con otra sesión que esté en el mismo retry-loop.
+    await new Promise(r => setTimeout(r, 30 + Math.random() * 70))
+  }
+
+  if (!ventaData) {
+    console.error('[guardarVenta] No se pudo asignar numero_ticket tras', MAX_REINTENTOS_NUMERO_TICKET, 'intentos')
     return null
   }
 
@@ -78,7 +116,7 @@ export async function guardarVenta(venta: VentaInput): Promise<Venta | null> {
     })
   }))
 
-  return ventaData as Venta
+  return ventaData
 }
 
 interface GetVentasOpts {
