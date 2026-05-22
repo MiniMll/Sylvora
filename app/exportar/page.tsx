@@ -90,7 +90,7 @@ export default function ExportarPage() {
     try {
       await fn()
     } catch (e) {
-      toast.error('Error al generar el reporte')
+      toast.error('No pudimos generar el reporte. Probá de nuevo.')
     } finally {
       setCargando(null)
     }
@@ -247,7 +247,7 @@ export default function ExportarPage() {
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Ventas')
     XLSX.writeFile(wb, `ventas-${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.xlsx`)
-    toast.success('Stock Excel descargado')
+    toast.success('Listo, descargamos el Excel de ventas')
   }
 
   const exportarAlertasPDF = async () => {

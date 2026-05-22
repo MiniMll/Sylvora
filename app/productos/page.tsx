@@ -98,12 +98,12 @@ export default function ProductosPage() {
     if (resultado && 'error' in resultado) {
       if (resultado.error === 'codigo_duplicado') toast.error('Ya existe otro producto con ese código de barras')
       else if (resultado.error === 'sku_duplicado') toast.error('Ya existe otro producto con ese SKU')
-      else toast.error('No se pudo actualizar el producto')
+      else toast.error('No pudimos guardar los cambios. Probá de nuevo.')
       setGuardandoEdit(false)
       return
     }
     if (!resultado) {
-      toast.error('No se pudo actualizar el producto')
+      toast.error('No pudimos guardar los cambios. Probá de nuevo.')
       setGuardandoEdit(false)
       return
     }
@@ -120,7 +120,7 @@ export default function ProductosPage() {
       setProductos(prev => prev.filter(p => p.id !== confirmarBorrar.id))
       toast.success('Producto eliminado')
     } else {
-      toast.error('Error al eliminar el producto')
+      toast.error('No pudimos eliminar el producto. Probá de nuevo.')
     }
     if (detalle?.id === confirmarBorrar.id) setDetalle(null)
     setConfirmarBorrar(null)

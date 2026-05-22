@@ -165,7 +165,7 @@ export default function CajaPage() {
       const cierres = await getCierresCaja()
       setCierresAnteriores(cierres)
     } else {
-      toast.error('Error al cerrar la caja', { id: 'cerrar-caja' })
+      toast.error('No pudimos cerrar la caja. Probá de nuevo.', { id: 'cerrar-caja' })
     }
     setCerrando(false)
     setModalCierre(false)
@@ -181,7 +181,7 @@ export default function CajaPage() {
       setEfectivoContado('')
       setRetiroEfectivo('')
     } else {
-      toast.error('Error al reabrir la caja', { id: 'reabrir-caja' })
+      toast.error('No pudimos reabrir la caja. Probá de nuevo.', { id: 'reabrir-caja' })
     }
     setReabriendo(false)
     setModalReabrir(false)

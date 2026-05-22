@@ -72,7 +72,7 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
     // Cero resultados → feedback de error. Múltiples resultados → no
     // auto-agregamos (el cajero elige tocando un resultado de la lista).
     if (resultados.length === 0) {
-      toast.error(`No encontrado: ${buscado}`, { id: 'pos-input' })
+      toast.error(`No encontramos «${buscado}». Revisá el nombre o el código.`, { id: 'pos-input' })
     }
   }
 

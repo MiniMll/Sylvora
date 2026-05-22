@@ -77,9 +77,9 @@ export default function UsuariosPage() {
     } else if (result.reason === 'last_admin') {
       toast.error('No se puede dejar el comercio sin administradores')
     } else if (result.reason === 'rls') {
-      toast.error('Permiso denegado')
+      toast.error('No tenés permiso para hacer ese cambio.')
     } else {
-      toast.error(result.message || 'Error al cambiar el rol')
+      toast.error(result.message || 'No pudimos cambiar el rol. Probá de nuevo.')
     }
     setActualizando(null)
   }
@@ -113,7 +113,7 @@ export default function UsuariosPage() {
       }
     } catch (e) {
       console.error('[invitar]', e)
-      toast.error('Error de red al enviar la invitación')
+      toast.error('No pudimos enviar la invitación. Revisá tu conexión e intentá de nuevo.')
     } finally {
       setInvitando(false)
     }

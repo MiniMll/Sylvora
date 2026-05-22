@@ -202,7 +202,7 @@ function POSPaymentImpl() {
       // indefinidamente.
       setTimeout(() => setVentaParaTicket(null), 30_000)
     } catch {
-      toast.error('Error al guardar la venta. Probá de nuevo.', { id: 'pos-cobrar' })
+      toast.error('No pudimos guardar la venta. Probá de nuevo.', { id: 'pos-cobrar' })
       store.setCargandoVenta(false)
     }
   }
