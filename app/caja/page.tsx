@@ -5,8 +5,10 @@ import { formatPeso } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingDown, CheckCircle, AlertCircle, Banknote, Smartphone, CreditCard, RotateCcw, ShoppingCart } from 'lucide-react'
 import { toast } from 'sonner'
+import { Lightbulb } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Hint } from '@/components/ui/Hint'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
@@ -204,6 +206,11 @@ export default function CajaPage() {
     // colapsa secciones (sobre todo las que tienen overflow:hidden, que
     // pierden su min-height de contenido) cuando la página se hace larga.
     <div style={{ padding: 20, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      <Hint id="caja-primer-cierre" icon={<Lightbulb size={15} />} style={{ flexShrink: 0 }}>
+        Acá ves el resumen del día. Cuando cierres la caja vas a contar el
+        efectivo real y Sylvora te muestra si cuadra o hay diferencia.
+      </Hint>
 
       {/* Bloque de estado: el cierre de hoy ES estado, no historial.
           Reemplaza el header genérico + dos botones sueltos. Cambia

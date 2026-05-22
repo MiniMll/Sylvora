@@ -4,10 +4,11 @@ import { getProductos } from '@/lib/supabase/productos'
 import { getVentas } from '@/lib/supabase/ventas'
 import { getComercio } from '@/lib/supabase/_base'
 import { toast } from 'sonner'
-import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info, Package, ShoppingCart } from 'lucide-react'
+import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info, Package, ShoppingCart, Lightbulb } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
 import { Select } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Hint } from '@/components/ui/Hint'
 import type { Comercio } from '@/types/database'
 import type jsPDF from 'jspdf'
 
@@ -315,6 +316,10 @@ export default function ExportarPage() {
         </div>
       ) : (
       <>
+      <Hint id="exportar-primera" icon={<Lightbulb size={15} />} style={{ marginBottom: 16 }}>
+        Elegí el período y bajá el reporte. Los PDF se abren en el navegador
+        y los Excel se descargan — listos para mandarle a tu contador.
+      </Hint>
       <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, letterSpacing: '-0.2px', color: 'var(--text)' }}>⚙️ Opciones</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

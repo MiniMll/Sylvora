@@ -1,12 +1,13 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
-import { Scale, Beaker, Ruler, Package } from 'lucide-react'
+import { Scale, Beaker, Ruler, Package, Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 import { getProductos } from '@/lib/supabase/productos'
 import { usePOSStore } from '@/lib/store'
 import { formatPeso } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Hint } from '@/components/ui/Hint'
 import type { Producto } from '@/types/database'
 import { POSHeader } from './components/POSHeader'
 import { POSSearch } from './components/POSSearch'
@@ -160,6 +161,10 @@ export default function POSPage() {
       <div className="pos-search-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', ...cardStyle, margin: 16, marginRight: 8, overflow: 'hidden' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
           <POSHeader />
+          <Hint id="pos-primera-venta" icon={<Lightbulb size={15} />} style={{ marginBottom: 10 }}>
+            Buscá por nombre o escaneá el código de barras para agregar al ticket.
+            Para cobrar, tocá <b>Cobrar</b> o apretá <b>F8</b>.
+          </Hint>
           <POSSearch
             productos={productos}
             value={busqueda}
