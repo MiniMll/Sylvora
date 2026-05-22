@@ -55,6 +55,25 @@ body {
   transition: background 0.2s, color 0.2s;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Evita scroll horizontal accidental por algún hijo que se pase de
+     ancho en mobile. Usamos `clip` (no `hidden`) porque `clip` NO
+     crea un contexto de scroll → no rompe el position:sticky del nav
+     de la landing. Si el browser no soporta clip, degrada a visible. */
+  overflow-x: clip;
+}
+
+/* Saca el flash gris/azul al tocar botones y links en Android/Chrome
+   mobile — se siente más nativo y limpio. */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Mobile (≤768px): forzar font-size 16px en controles de formulario.
+   Por debajo de 16px, iOS Safari y Chrome Android hacen auto-zoom al
+   enfocar el input — molesto y desorienta. 16px lo evita sin cambiar
+   el diseño desktop. También sube un poco el tap target. */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
 /* Better scrollbar */
@@ -1449,6 +1468,29 @@ button:active { transform: scale(0.97); }
   background: var(--bg2) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
+}
+
+/* Login y registro son pantallas SIEMPRE claras (card blanca sobre
+   gradiente), independientes del theme global. Sus inputs deben
+   quedar claros aunque .dark esté activo (ej. el user cierra sesión
+   con dark mode puesto). Especificidad mayor que `.dark input` para
+   ganar sin depender del orden. -webkit-text-fill-color cubre el
+   caso de autofill/dark que pisa el color por otra vía. */
+.auth-light input,
+.dark .auth-light input {
+  background: #fafaf9 !important;
+  color: #1a1a1e !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  -webkit-text-fill-color: #1a1a1e !important;
+}
+
+/* MiniTicketPreview de la landing: el ticket es papel térmico — fondo
+   claro propio y texto oscuro SIEMPRE, sin importar el theme. Aislado
+   del dark mode (la landing puede heredar .dark al venir de la app). */
+.ticket-paper,
+.dark .ticket-paper {
+  background: #ffffff !important;
+  color: #1a1a1e !important;
 }
 
 /* Modales dark */

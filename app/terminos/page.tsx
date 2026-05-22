@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Brand } from '@/components/brand/Brand'
+import { BackLink } from '@/components/BackLink'
 
 export const metadata: Metadata = {
   title: 'Términos',
@@ -15,9 +16,9 @@ export default function TerminosPage() {
           <Link href="/" aria-label="Volver a Sylvora" style={{ color: 'inherit', textDecoration: 'none' }}>
             <Brand size={30} withText />
           </Link>
-          <Link href="/" className="landing-footer-link">
+          <BackLink className="landing-footer-link">
             Volver
-          </Link>
+          </BackLink>
         </header>
 
         <article style={{ display: 'grid', gap: 28 }}>

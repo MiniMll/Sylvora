@@ -76,7 +76,7 @@ export default function StockPage() {
       setNuevoLote({ numero_lote: siguiente, cantidad: '', fecha_vencimiento: '' })
       toast.success('Lote agregado correctamente')
     } else {
-      toast.error('Error al agregar el lote')
+      toast.error('No pudimos agregar el lote. Probá de nuevo.')
     }
     setGuardandoLote(false)
   }
@@ -113,7 +113,7 @@ export default function StockPage() {
       setModalProducto((prev: any) => ({ ...prev, stock_actual: Math.max(0, prev.stock_actual - lote.cantidad) }))
       toast.success('Lote eliminado')
     } else {
-      toast.error('Error al eliminar el lote')
+      toast.error('No pudimos eliminar el lote. Probá de nuevo.')
     }
     setBorrandoLote(null)
   }

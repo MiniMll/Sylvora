@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   LayoutDashboard, ShoppingCart, History, Package, ArchiveX,
   PlusCircle, Wallet, BarChart2, Download,
-  TrendingUp, Settings, Users,
+  TrendingUp, Settings, Users, BookOpen,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { invalidarCacheComercio } from '@/lib/supabase/_base'
@@ -26,6 +26,7 @@ const nav: NavItem[] = [
   { href: '/exportar',        label: 'Exportar',           icon: Download,        section: 'Finanzas' },
   { href: '/usuarios',        label: 'Usuarios',           icon: Users,           section: 'Cuenta',     requierePermiso: 'usuario.gestionar' },
   { href: '/configuracion',   label: 'Configuración',      icon: Settings,        section: 'Cuenta' },
+  { href: '/guia',            label: 'Guía rápida',        icon: BookOpen,        section: 'Cuenta' },
 ]
 
 const sections = ['Principal', 'Ventas', 'Inventario', 'Finanzas', 'Cuenta']

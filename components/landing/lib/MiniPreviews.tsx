@@ -426,9 +426,9 @@ export function MiniTicketPreview() {
         padding: '20px 12px',
         display: 'flex', justifyContent: 'center',
       }}>
-        <div style={{
+        <div className="ticket-paper" style={{
           width: '100%', maxWidth: 240,
-          background: 'white',
+          background: '#ffffff',
           padding: '18px 16px',
           borderRadius: 6,
           fontFamily: 'DM Mono, monospace',

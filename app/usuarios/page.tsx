@@ -5,6 +5,7 @@ import { Users, AlertTriangle, ShieldCheck, User, UserPlus } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 import { usePermissions } from '@/components/PermissionsProvider'
 import { listUsuariosComercio, cambiarRolUsuario } from '@/lib/supabase/usuarios'
@@ -76,9 +77,9 @@ export default function UsuariosPage() {
     } else if (result.reason === 'last_admin') {
       toast.error('No se puede dejar el comercio sin administradores')
     } else if (result.reason === 'rls') {
-      toast.error('Permiso denegado')
+      toast.error('No tenés permiso para hacer ese cambio.')
     } else {
-      toast.error(result.message || 'Error al cambiar el rol')
+      toast.error(result.message || 'No pudimos cambiar el rol. Probá de nuevo.')
     }
     setActualizando(null)
   }
@@ -112,7 +113,7 @@ export default function UsuariosPage() {
       }
     } catch (e) {
       console.error('[invitar]', e)
-      toast.error('Error de red al enviar la invitación')
+      toast.error('No pudimos enviar la invitación. Revisá tu conexión e intentá de nuevo.')
     } finally {
       setInvitando(false)
     }
@@ -129,10 +130,28 @@ export default function UsuariosPage() {
             {usuarios.length} {usuarios.length === 1 ? 'usuario' : 'usuarios'} · {cantAdmins} {cantAdmins === 1 ? 'admin' : 'admins'}
           </p>
         </div>
-        <Button variant="primary" size="sm" icon={<UserPlus size={14} />} onClick={() => setInvitarOpen(true)}>
-          Invitar usuario
-        </Button>
+        {/* Cuando sos el único usuario, el CTA vive en el empty state
+            de abajo — evitamos duplicar el botón. Reaparece arriba
+            cuando ya hay equipo. */}
+        {usuarios.length > 1 && (
+          <Button variant="primary" size="sm" icon={<UserPlus size={14} />} onClick={() => setInvitarOpen(true)}>
+            Invitar usuario
+          </Button>
+        )}
       </div>
+
+      {usuarios.length === 1 && (
+        <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
+          <EmptyState
+            accent
+            icon={<UserPlus size={20} color="var(--ac)" strokeWidth={2} />}
+            title="Sos el único en tu equipo."
+            description="Invitá a tus empleados para que cobren con su propia cuenta. Vos decidís qué puede tocar cada uno."
+            actions={[{ label: 'Invitar usuario', onClick: () => setInvitarOpen(true), variant: 'primary', icon: <UserPlus size={15} /> }]}
+            guiaHref="/guia"
+          />
+        </div>
+      )}
 
       <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
         <div className="table-scroll">

@@ -13,7 +13,8 @@ import { EditProductModal, type EditFormValues } from './components/EditProductM
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Trash2 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Trash2, Package, Plus } from 'lucide-react'
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -97,12 +98,12 @@ export default function ProductosPage() {
     if (resultado && 'error' in resultado) {
       if (resultado.error === 'codigo_duplicado') toast.error('Ya existe otro producto con ese código de barras')
       else if (resultado.error === 'sku_duplicado') toast.error('Ya existe otro producto con ese SKU')
-      else toast.error('No se pudo actualizar el producto')
+      else toast.error('No pudimos guardar los cambios. Probá de nuevo.')
       setGuardandoEdit(false)
       return
     }
     if (!resultado) {
-      toast.error('No se pudo actualizar el producto')
+      toast.error('No pudimos guardar los cambios. Probá de nuevo.')
       setGuardandoEdit(false)
       return
     }
@@ -119,7 +120,7 @@ export default function ProductosPage() {
       setProductos(prev => prev.filter(p => p.id !== confirmarBorrar.id))
       toast.success('Producto eliminado')
     } else {
-      toast.error('Error al eliminar el producto')
+      toast.error('No pudimos eliminar el producto. Probá de nuevo.')
     }
     if (detalle?.id === confirmarBorrar.id) setDetalle(null)
     setConfirmarBorrar(null)
@@ -216,6 +217,24 @@ export default function ProductosPage() {
       </div>
     </div>
   )
+
+  // Empty state de onboarding: el comercio todavía no cargó NINGÚN
+  // producto. Distinto del "sin resultados de búsqueda" (que maneja
+  // ProductGrid cuando hay productos pero el filtro no matchea).
+  if (productos.length === 0) {
+    return (
+      <div className="page-in" style={{ padding: 24, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <EmptyState
+          accent
+          icon={<Package size={20} color="var(--ac)" strokeWidth={2} />}
+          title="Todavía no cargaste productos."
+          description="Cargá tu primer producto para empezar a vender: nombre, precio y stock. Lo hacés una sola vez."
+          actions={[{ label: 'Agregar producto', href: '/productos/nuevo', variant: 'primary', icon: <Plus size={15} /> }]}
+          guiaHref="/guia"
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="page-in" style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
