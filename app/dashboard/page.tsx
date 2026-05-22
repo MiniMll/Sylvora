@@ -6,7 +6,7 @@ import { getVentas } from '@/lib/supabase/ventas'
 import { formatPeso } from '@/lib/utils'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { TrendingUp, ShoppingBag, AlertTriangle, Package, CheckCircle, Trophy } from 'lucide-react'
+import { TrendingUp, ShoppingBag, AlertTriangle, Package, CheckCircle, Trophy, ShoppingCart, Wallet, BookOpen, ArrowRight } from 'lucide-react'
 
 export default function DashboardPage() {
   const [ventas, setVentas] = useState<any[]>([])
@@ -131,6 +131,74 @@ export default function DashboardPage() {
       </div>
     </div>
   )
+
+  // Comercio nuevo: sin productos NI ventas. En vez de un panel lleno
+  // de ceros (desmotivante y confuso), mostramos "Primeros pasos" con
+  // las acciones recomendadas en el orden natural del onboarding.
+  const esComercioNuevo = productos.length === 0 && ventas.length === 0
+  if (esComercioNuevo) {
+    const pasos = [
+      { n: 1, Icon: Package, title: 'Cargá tus productos', desc: 'Empezá por lo que vendés: nombre, precio y stock. Lo hacés una vez.', href: '/productos/nuevo', destacado: true },
+      { n: 2, Icon: ShoppingCart, title: 'Cobrá en el POS', desc: 'Con productos cargados, cobrás tu primera venta en segundos.', href: '/pos' },
+      { n: 3, Icon: Wallet, title: 'Revisá tu caja', desc: 'Al final del día vas a ver acá cuánto vendiste y qué te quedó.', href: '/caja' },
+      { n: 4, Icon: BookOpen, title: 'Mirá la guía rápida', desc: 'Dos minutos para entender cómo funciona Sylvora de punta a punta.', href: '/guia' },
+    ]
+    return (
+      <div className="page-in" style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Bienvenido a Sylvora</h1>
+          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '6px 0 0', lineHeight: 1.5, maxWidth: 480 }}>
+            Tu comercio está listo. Seguí estos pasos para empezar a vender — te toma un par de minutos.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 14 }}>
+          {pasos.map(p => (
+            <Link
+              key={p.n}
+              href={p.href}
+              className="lift-hover"
+              style={{
+                display: 'flex', flexDirection: 'column', gap: 10,
+                background: 'var(--card)',
+                border: `1px solid ${p.destacado ? 'var(--ac)' : 'var(--border)'}`,
+                borderRadius: 'var(--radius-lg)',
+                padding: '18px 20px',
+                textDecoration: 'none',
+                boxShadow: 'var(--shadow-sm)',
+                position: 'relative',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 11,
+                  background: p.destacado ? 'var(--ac)' : 'var(--ac-light)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <p.Icon size={18} color={p.destacado ? '#fff' : 'var(--ac)'} strokeWidth={2} />
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: 'var(--text2)',
+                  fontFamily: 'DM Mono, monospace',
+                }}>
+                  {String(p.n).padStart(2, '0')}
+                </span>
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                {p.title}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.5, flex: 1 }}>
+                {p.desc}
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--ac)' }}>
+                Empezar <ArrowRight size={14} strokeWidth={2.2} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   // Color discipline: violeta como color de marca dominante. El único
   // color semántico que aparece es el rojo, y SOLO cuando comunica
