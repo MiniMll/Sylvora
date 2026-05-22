@@ -39,7 +39,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
+    <div className="auth-light" style={{
       minHeight: '100vh',
       background: 'linear-gradient(145deg, #f0eefc 0%, #f5f4f0 50%, #edf5f2 100%)',
       display: 'flex',

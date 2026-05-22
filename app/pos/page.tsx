@@ -146,8 +146,8 @@ export default function POSPage() {
           accent
           icon={<Package size={20} color="var(--ac)" strokeWidth={2} />}
           title="Necesitás productos para vender."
-          description="Cargá tus productos una vez y después cobrás en segundos desde acá."
-          actions={[{ label: 'Cargar productos', href: '/productos', variant: 'primary', icon: <Package size={15} /> }]}
+          description="Cargá tu primer producto y después cobrás en segundos desde acá."
+          actions={[{ label: 'Cargar primer producto', href: '/productos/nuevo', variant: 'primary', icon: <Package size={15} /> }]}
           guiaHref="/guia"
         />
       </div>

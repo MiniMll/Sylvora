@@ -130,9 +130,14 @@ export default function UsuariosPage() {
             {usuarios.length} {usuarios.length === 1 ? 'usuario' : 'usuarios'} · {cantAdmins} {cantAdmins === 1 ? 'admin' : 'admins'}
           </p>
         </div>
-        <Button variant="primary" size="sm" icon={<UserPlus size={14} />} onClick={() => setInvitarOpen(true)}>
-          Invitar usuario
-        </Button>
+        {/* Cuando sos el único usuario, el CTA vive en el empty state
+            de abajo — evitamos duplicar el botón. Reaparece arriba
+            cuando ya hay equipo. */}
+        {usuarios.length > 1 && (
+          <Button variant="primary" size="sm" icon={<UserPlus size={14} />} onClick={() => setInvitarOpen(true)}>
+            Invitar usuario
+          </Button>
+        )}
       </div>
 
       {usuarios.length === 1 && (

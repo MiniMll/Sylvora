@@ -1470,5 +1470,28 @@ button:active { transform: scale(0.97); }
   border-color: var(--border) !important;
 }
 
+/* Login y registro son pantallas SIEMPRE claras (card blanca sobre
+   gradiente), independientes del theme global. Sus inputs deben
+   quedar claros aunque .dark esté activo (ej. el user cierra sesión
+   con dark mode puesto). Especificidad mayor que `.dark input` para
+   ganar sin depender del orden. -webkit-text-fill-color cubre el
+   caso de autofill/dark que pisa el color por otra vía. */
+.auth-light input,
+.dark .auth-light input {
+  background: #fafaf9 !important;
+  color: #1a1a1e !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  -webkit-text-fill-color: #1a1a1e !important;
+}
+
+/* MiniTicketPreview de la landing: el ticket es papel térmico — fondo
+   claro propio y texto oscuro SIEMPRE, sin importar el theme. Aislado
+   del dark mode (la landing puede heredar .dark al venir de la app). */
+.ticket-paper,
+.dark .ticket-paper {
+  background: #ffffff !important;
+  color: #1a1a1e !important;
+}
+
 /* Modales dark */
 .dark .modal-dark { background: var(--card) !important; color: var(--text) !important; }
