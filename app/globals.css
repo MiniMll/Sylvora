@@ -55,6 +55,25 @@ body {
   transition: background 0.2s, color 0.2s;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Evita scroll horizontal accidental por algún hijo que se pase de
+     ancho en mobile. Usamos `clip` (no `hidden`) porque `clip` NO
+     crea un contexto de scroll → no rompe el position:sticky del nav
+     de la landing. Si el browser no soporta clip, degrada a visible. */
+  overflow-x: clip;
+}
+
+/* Saca el flash gris/azul al tocar botones y links en Android/Chrome
+   mobile — se siente más nativo y limpio. */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Mobile (≤768px): forzar font-size 16px en controles de formulario.
+   Por debajo de 16px, iOS Safari y Chrome Android hacen auto-zoom al
+   enfocar el input — molesto y desorienta. 16px lo evita sin cambiar
+   el diseño desktop. También sube un poco el tap target. */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
 /* Better scrollbar */
