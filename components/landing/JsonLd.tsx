@@ -24,7 +24,7 @@ export function JsonLd({ siteUrl }: JsonLdProps) {
     '@type': 'Organization',
     name: 'Sylvora',
     url: siteUrl,
-    logo: `${siteUrl}/icon`,
+    logo: `${siteUrl}/brand/sylvora-mark.png`,
     description:
       'Punto de venta y control de stock para kioscos, almacenes y minimarkets. Hecho en Argentina.',
     areaServed: 'AR',

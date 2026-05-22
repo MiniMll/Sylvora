@@ -1,9 +1,10 @@
 import { ImageResponse } from 'next/og'
-
-// Apple touch icon (180×180). Lo usa iOS para "Agregar a pantalla
-// de inicio" y también queda referenciado en el manifest para PWA.
-// Versión wordmark prototype: "s" minúscula bold blanca sobre
-// violeta brand, mismo lockup que el favicon escalado.
+import {
+  SYLVORA_ICON_RECT,
+  SYLVORA_MARK_PATH,
+  SYLVORA_VIOLET,
+  SYLVORA_VIOLET_LIGHT,
+} from '@/components/brand/mark'
 
 export const size = { width: 180, height: 180 }
 export const contentType = 'image/png'
@@ -11,24 +12,16 @@ export const contentType = 'image/png'
 export default function AppleIcon() {
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          background: '#5b4cff',
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 130,
-          fontWeight: 800,
-          borderRadius: 38,
-          letterSpacing: '-0.05em',
-          paddingBottom: 14,
-        }}
-      >
-        s
-      </div>
+      <svg width="180" height="180" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor={SYLVORA_VIOLET_LIGHT} />
+            <stop offset="1" stopColor={SYLVORA_VIOLET} />
+          </linearGradient>
+        </defs>
+        <rect {...SYLVORA_ICON_RECT} fill="url(#g)" />
+        <path d={SYLVORA_MARK_PATH} fill="white" />
+      </svg>
     ),
     size,
   )

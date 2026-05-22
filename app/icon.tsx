@@ -1,10 +1,10 @@
 import { ImageResponse } from 'next/og'
-
-// Favicon programático. Versión del prototipo wordmark:
-// "s" minúscula bold blanca sobre violeta brand.
-// Coherente con el nuevo lockup tipográfico (lowercase, tight
-// letter-spacing) — el favicon es el "s" del wordmark, no
-// iniciales separadas. Next.js lo usa automáticamente como /icon.
+import {
+  SYLVORA_ICON_RECT,
+  SYLVORA_MARK_PATH,
+  SYLVORA_VIOLET,
+  SYLVORA_VIOLET_LIGHT,
+} from '@/components/brand/mark'
 
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
@@ -12,28 +12,16 @@ export const contentType = 'image/png'
 export default function Icon() {
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          background: '#5b4cff',
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          // Bumpeado a 24px para que la "s" ocupe el favicon con
-          // peso visual. El cap-height de DM Sans 800 a 24px en un
-          // canvas 32×32 deja ~4px de margen — bien centrado.
-          fontSize: 24,
-          fontWeight: 800,
-          borderRadius: 7,
-          letterSpacing: '-0.04em',
-          paddingBottom: 2, // ajuste óptico — la baseline empuja
-                            // la "s" 2px hacia arriba sin esto
-        }}
-      >
-        s
-      </div>
+      <svg width="32" height="32" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor={SYLVORA_VIOLET_LIGHT} />
+            <stop offset="1" stopColor={SYLVORA_VIOLET} />
+          </linearGradient>
+        </defs>
+        <rect {...SYLVORA_ICON_RECT} fill="url(#g)" />
+        <path d={SYLVORA_MARK_PATH} fill="white" />
+      </svg>
     ),
     size,
   )

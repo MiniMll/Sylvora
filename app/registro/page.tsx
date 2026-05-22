@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Brand } from '@/components/Brand'
+import { Brand } from '@/components/brand/Brand'
 
 export default function RegistroPage() {
   const router = useRouter()
@@ -84,7 +84,7 @@ export default function RegistroPage() {
 
         {/* Brand */}
         <div style={{ marginBottom: 28 }}>
-          <Brand variant="wordmark" size={22} color="dark" />
+          <Brand size={34} withText style={{ color: '#1a1a1e' }} />
           <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 6 }}>Crear cuenta gratis</div>
         </div>
 

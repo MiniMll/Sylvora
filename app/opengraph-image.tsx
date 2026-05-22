@@ -1,4 +1,10 @@
 import { ImageResponse } from 'next/og'
+import {
+  SYLVORA_ICON_RECT,
+  SYLVORA_MARK_PATH,
+  SYLVORA_VIOLET,
+  SYLVORA_VIOLET_LIGHT,
+} from '@/components/brand/mark'
 
 // OG image generada por Next.js (sin asset estático). Se sirve en
 // /opengraph-image y la usa el meta og:image automáticamente.
@@ -26,25 +32,16 @@ export default function OpenGraphImage() {
       >
         {/* Columna izquierda: brand */}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-          {/* Logo Sy */}
-          <div
-            style={{
-              width: 88,
-              height: 88,
-              borderRadius: 20,
-              background: '#5b4cff',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 48,
-              fontWeight: 700,
-              letterSpacing: '-0.05em',
-              marginBottom: 40,
-            }}
-          >
-            Sy
-          </div>
+          <svg width="88" height="88" viewBox="0 0 100 100" style={{ marginBottom: 40 }}>
+            <defs>
+              <linearGradient id="og-g" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor={SYLVORA_VIOLET_LIGHT} />
+                <stop offset="1" stopColor={SYLVORA_VIOLET} />
+              </linearGradient>
+            </defs>
+            <rect {...SYLVORA_ICON_RECT} fill="url(#og-g)" />
+            <path d={SYLVORA_MARK_PATH} fill="white" />
+          </svg>
 
           {/* Título */}
           <div
@@ -57,7 +54,7 @@ export default function OpenGraphImage() {
               marginBottom: 20,
             }}
           >
-            Sylvora
+            sylvora
           </div>
 
           {/* Subtítulo */}

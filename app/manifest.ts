@@ -27,6 +27,8 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       { src: '/icon', sizes: '32x32', type: 'image/png' },
       { src: '/apple-icon', sizes: '180x180', type: 'image/png' },
+      { src: '/brand/sylvora-mark.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+      { src: '/brand/sylvora-mark.png', sizes: '180x180', type: 'image/png', purpose: 'maskable' },
     ],
   }
 }

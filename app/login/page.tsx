@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
-import { Brand } from '@/components/Brand'
+import { Brand } from '@/components/brand/Brand'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -67,7 +67,7 @@ export default function LoginPage() {
 
         {/* Brand */}
         <div style={{ marginBottom: 32 }}>
-          <Brand variant="wordmark" size={22} color="dark" />
+          <Brand size={34} withText style={{ color: '#1a1a1e' }} />
         </div>
 
         <div style={{ fontSize: 21, fontWeight: 700, color: '#1a1a1e', letterSpacing: '-0.4px', marginBottom: 6 }}>Iniciar sesión</div>

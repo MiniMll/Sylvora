@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Brand } from '@/components/Brand'
+import { Brand } from '@/components/brand/Brand'
 
 // Nav de la landing. Server component — el `isAuthenticated` viene
 // resuelto desde `app/page.tsx` que lee la cookie en el server, así
@@ -38,7 +38,7 @@ export function Nav({ isAuthenticated }: NavProps) {
           aria-label="Sylvora — inicio"
           className="landing-nav-brand"
         >
-          <Brand variant="wordmark" size={20} color="dark" />
+          <Brand size={30} withText style={{ color: 'var(--text)' }} />
         </Link>
 
         <nav className="landing-nav-links" aria-label="Navegación principal">

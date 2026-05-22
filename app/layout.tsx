@@ -41,8 +41,16 @@ export const metadata: Metadata = {
     images: ['/opengraph-image'],
   },
   icons: {
-    icon: '/icon',
-    apple: '/apple-icon',
+    icon: [
+      { url: '/icon', type: 'image/png', sizes: '32x32' },
+      { url: '/brand/sylvora-mark.svg', type: 'image/svg+xml' },
+      { url: '/brand/sylvora-mark.png', type: 'image/png', sizes: '180x180' },
+    ],
+    shortcut: ['/icon'],
+    apple: [
+      { url: '/apple-icon', type: 'image/png', sizes: '180x180' },
+      { url: '/brand/sylvora-mark.png', type: 'image/png', sizes: '180x180' },
+    ],
   },
   manifest: '/manifest.webmanifest',
   robots: {

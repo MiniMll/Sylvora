@@ -3,7 +3,7 @@ import { memo } from 'react'
 import Link from 'next/link'
 import { Sun, Moon, LogOut } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { Brand } from '@/components/Brand'
+import { Brand } from '@/components/brand/Brand'
 import { Notificaciones } from './Notificaciones'
 
 export interface NavItem {
@@ -52,7 +52,7 @@ function SidebarInnerImpl({
       {/* Logo */}
       <div style={{ padding: '16px 14px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Brand variant="wordmark" size={18} color="light" />
+          <Brand size={28} withText style={{ color: 'white' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Notificaciones />
             <button onClick={onToggleTheme}

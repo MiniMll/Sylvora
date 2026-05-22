@@ -463,6 +463,37 @@ button:active { transform: scale(0.97); }
 }
 .landing-nav-cta:hover { color: var(--text); }
 
+.landing-footer-link {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.landing-footer-link:hover {
+  color: var(--text);
+  background: rgba(0,0,0,0.035);
+}
+@media (max-width: 720px) {
+  .landing-footer-top {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  .landing-footer-links {
+    justify-content: flex-start !important;
+  }
+  .landing-footer-link {
+    padding-left: 0;
+    padding-right: 12px;
+  }
+  .landing-footer-link:hover {
+    background: transparent;
+  }
+}
+
 /* Tipografía responsive. Headlines crecen en desktop; sub se
    ajusta más sutilmente. */
 .landing-h1 {
