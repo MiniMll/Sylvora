@@ -1,11 +1,12 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
-import { Scale, Beaker, Ruler } from 'lucide-react'
+import { Scale, Beaker, Ruler, Package } from 'lucide-react'
 import { toast } from 'sonner'
 import { getProductos } from '@/lib/supabase/productos'
 import { usePOSStore } from '@/lib/store'
 import { formatPeso } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Spinner'
+import { EmptyState } from '@/components/ui/EmptyState'
 import type { Producto } from '@/types/database'
 import { POSHeader } from './components/POSHeader'
 import { POSSearch } from './components/POSSearch'
@@ -134,6 +135,23 @@ export default function POSPage() {
   }
 
   if (cargando) return <Spinner texto="Cargando productos..." />
+
+  // Sin productos cargados no se puede cobrar. En vez de mostrar un POS
+  // vacío y confuso, guiamos a cargar productos primero.
+  if (productos.length === 0) {
+    return (
+      <div className="page-in" style={{ flex: 1, height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--bg)' }}>
+        <EmptyState
+          accent
+          icon={<Package size={20} color="var(--ac)" strokeWidth={2} />}
+          title="Necesitás productos para vender."
+          description="Cargá tus productos una vez y después cobrás en segundos desde acá."
+          actions={[{ label: 'Cargar productos', href: '/productos', variant: 'primary', icon: <Package size={15} /> }]}
+          guiaHref="/guia"
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="pos-layout page-in" style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>

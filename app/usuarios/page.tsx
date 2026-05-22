@@ -5,6 +5,7 @@ import { Users, AlertTriangle, ShieldCheck, User, UserPlus } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 import { usePermissions } from '@/components/PermissionsProvider'
 import { listUsuariosComercio, cambiarRolUsuario } from '@/lib/supabase/usuarios'
@@ -133,6 +134,19 @@ export default function UsuariosPage() {
           Invitar usuario
         </Button>
       </div>
+
+      {usuarios.length === 1 && (
+        <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
+          <EmptyState
+            accent
+            icon={<UserPlus size={20} color="var(--ac)" strokeWidth={2} />}
+            title="Sos el único en tu equipo."
+            description="Invitá a tus empleados para que cobren con su propia cuenta. Vos decidís qué puede tocar cada uno."
+            actions={[{ label: 'Invitar usuario', onClick: () => setInvitarOpen(true), variant: 'primary', icon: <UserPlus size={15} /> }]}
+            guiaHref="/guia"
+          />
+        </div>
+      )}
 
       <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
         <div className="table-scroll">

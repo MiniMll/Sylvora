@@ -4,9 +4,10 @@ import { getProductos } from '@/lib/supabase/productos'
 import { getVentas } from '@/lib/supabase/ventas'
 import { getComercio } from '@/lib/supabase/_base'
 import { toast } from 'sonner'
-import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info } from 'lucide-react'
+import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info, Package, ShoppingCart } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
 import { Select } from '@/components/ui/Input'
+import { EmptyState } from '@/components/ui/EmptyState'
 import type { Comercio } from '@/types/database'
 import type jsPDF from 'jspdf'
 
@@ -67,9 +68,20 @@ export default function ExportarPage() {
   // Datos del comercio para el header de los PDFs. Cached por sesión
   // via getComercio. Se carga una vez al montar la página.
   const [comercio, setComercio] = useState<Comercio | null>(null)
+  // hayDatos: null mientras carga, false si no hay nada que exportar
+  // (sin productos NI ventas), true si hay algo. Una sola pasada al
+  // montar — necesaria porque la página no pre-carga datos (cada
+  // export los trae bajo demanda).
+  const [hayDatos, setHayDatos] = useState<boolean | null>(null)
 
   useEffect(() => {
     getComercio().then(setComercio)
+  }, [])
+
+  useEffect(() => {
+    Promise.all([getProductos(), getVentas()])
+      .then(([productos, ventas]) => setHayDatos(productos.length > 0 || ventas.length > 0))
+      .catch(() => setHayDatos(true)) // ante error, no bloqueamos la exportación
   }, [])
 
   const exportar = async (id: string, fn: () => Promise<void>) => {
@@ -287,6 +299,22 @@ export default function ExportarPage() {
         <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Descargá reportes con datos reales de tu comercio</p>
       </div>
 
+      {hayDatos === false ? (
+        <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)' }}>
+          <EmptyState
+            accent
+            icon={<FileText size={20} color="var(--ac)" strokeWidth={2} />}
+            title="Todavía no hay nada para exportar."
+            description="Cargá productos o hacé tu primera venta y vas a poder bajar reportes en PDF y Excel para tu contador."
+            actions={[
+              { label: 'Cargar productos', href: '/productos', variant: 'primary', icon: <Package size={15} /> },
+              { label: 'Ir al POS', href: '/pos', variant: 'ghost', icon: <ShoppingCart size={15} /> },
+            ]}
+            guiaHref="/guia"
+          />
+        </div>
+      ) : (
+      <>
       <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, letterSpacing: '-0.2px', color: 'var(--text)' }}>⚙️ Opciones</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -332,6 +360,8 @@ export default function ExportarPage() {
         <Info size={14} color="#5b4cff" style={{ flexShrink: 0, marginTop: 1 }} />
         <span><b style={{ color: 'var(--text)' }}>Tip:</b> Los archivos PDF se abren en el navegador. Los Excel se descargan automáticamente. Podés enviarlos directamente a tu contador.</span>
       </div>
+      </>
+      )}
     </div>
   )
 }

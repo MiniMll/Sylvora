@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react'
 import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja, reabrirCaja, getResponsableNombre } from '@/lib/supabase/caja'
 import { formatPeso } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingDown, CheckCircle, AlertCircle, Banknote, Smartphone, CreditCard, RotateCcw } from 'lucide-react'
+import { TrendingDown, CheckCircle, AlertCircle, Banknote, Smartphone, CreditCard, RotateCcw, ShoppingCart } from 'lucide-react'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/Spinner'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
@@ -290,6 +291,19 @@ export default function CajaPage() {
         </div>
       </div>
 
+      {ventas.length === 0 && movimientos.length === 0 ? (
+        <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
+          <EmptyState
+            accent
+            icon={<ShoppingCart size={20} color="var(--ac)" strokeWidth={2} />}
+            title="Todavía no registraste movimientos hoy."
+            description="Cobrá tu primera venta desde el POS y acá vas a ver el resumen del día: ventas, egresos y saldo neto."
+            actions={[{ label: 'Ir al POS', href: '/pos', variant: 'primary', icon: <ShoppingCart size={15} /> }]}
+            guiaHref="/guia"
+          />
+        </div>
+      ) : (
+      <>
       {/* KPIs */}
       <div className="kpi-grid" style={{ flexShrink: 0 }}>
         {[
@@ -409,6 +423,9 @@ export default function CajaPage() {
           )}
         </div>
       </div>
+
+      </>
+      )}
 
       {/* Historial de cierres anteriores. El de hoy NO aparece acá — está
           en el bloque de estado arriba. La lista muestra solo fechas pasadas. */}
