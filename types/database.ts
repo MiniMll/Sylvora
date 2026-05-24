@@ -120,8 +120,15 @@ export interface Comercio {
   telefono: string | null
   email: string | null
   direccion: string | null
-  /** 'trial' al registrarse desde la landing → 'pro' / 'expired' después. */
-  plan: string
+  /** Estado del plan. Constraint en DB: 'trial' | 'active' | 'expired'.
+   *  El estado "expirado efectivo" se deriva en lib/trial.ts según
+   *  plan + trial_ends_at (no es necesariamente igual a `plan`: un
+   *  comercio en plan='trial' con trial_ends_at en el pasado está
+   *  expirado aunque su columna `plan` diga 'trial'). */
+  plan: 'trial' | 'active' | 'expired'
+  /** Fin del período de prueba. Para `plan='trial'`, si now > trial_ends_at
+   *  el comercio queda en soft-lock (ver lib/trial.ts). */
+  trial_ends_at: string | null
   created_at: string
 }
 
