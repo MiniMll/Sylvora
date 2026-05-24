@@ -3,6 +3,7 @@
 
 import { getBrowserClient, getComercioId } from './_base'
 import type { Producto } from '@/types/database'
+import type { ParsedRow, ExistingProduct } from '@/lib/import'
 
 // Cap defensivo. Si un comercio supera este número, conviene migrar
 // a paginación o virtualización antes de subirlo. Hoy: render in-memory
@@ -163,4 +164,69 @@ export async function ajustarStock(id: string, nuevoStock: number): Promise<bool
     .update({ stock_actual: nuevoStock })
     .eq('id', id)
   return !error
+}
+
+/** Snapshot mínimo de productos del comercio para alimentar
+ *  validateImportRows (detección de duplicados). Trae SOLO los
+ *  campos que comparamos — más liviano que getProductos() y
+ *  sin límite (la dedup necesita ver TODO el catálogo). */
+export async function getProductosParaImport(): Promise<ExistingProduct[]> {
+  const supabase = getBrowserClient()
+  const comercioId = await getComercioId()
+  if (!comercioId) return []
+  const { data, error } = await supabase
+    .from('productos')
+    .select('nombre, sku, codigo_barras')
+    .eq('comercio_id', comercioId)
+    .eq('activo', true)
+  if (error) { console.error(error); return [] }
+  return (data ?? []) as ExistingProduct[]
+}
+
+export interface ImportResult {
+  inserted: number
+  error?: string
+}
+
+/** Bulk insert de productos validados (filas con status='ok').
+ *  Una sola query a Supabase — atómica desde la perspectiva del cliente.
+ *  RLS garantiza que comercio_id se respete; igual lo seteamos explícito.
+ *
+ *  Defaults aplicados acá (no en DB) para no depender del schema:
+ *    precio_costo = 0, stock_minimo = 0, stock_ideal = 0, unidad_venta = 'unidad'
+ *  Los nullables (precio_mayorista, precio_por_kg, ubicacion, imagen_url)
+ *  se omiten y la DB los deja en NULL. `activo` queda true por default DB. */
+export async function importarProductos(rows: ParsedRow[]): Promise<ImportResult> {
+  if (rows.length === 0) return { inserted: 0 }
+  const supabase = getBrowserClient()
+  const comercioId = await getComercioId()
+  if (!comercioId) return { inserted: 0, error: 'No se pudo identificar el comercio.' }
+
+  const payload = rows.map(r => ({
+    comercio_id: comercioId,
+    nombre: r.nombre,
+    precio_venta: r.precio,
+    precio_costo: 0,
+    stock_actual: r.stock,
+    stock_minimo: 0,
+    stock_ideal: 0,
+    unidad_venta: 'unidad',
+    categoria: r.categoria,
+    sku: r.sku,
+    codigo_barras: r.codigo_barras,
+  }))
+
+  const { data, error } = await supabase
+    .from('productos')
+    .insert(payload)
+    .select('id')
+
+  if (error) {
+    console.error(error)
+    return {
+      inserted: 0,
+      error: 'No se pudo importar. Verificá que no haya productos duplicados y volvé a intentar.',
+    }
+  }
+  return { inserted: data?.length ?? 0 }
 }
