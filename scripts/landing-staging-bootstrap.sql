@@ -34,27 +34,51 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- gen_random_uuid()
 -- ─────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS comercios (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nombre      TEXT NOT NULL,
-  tipo        TEXT,
-  telefono    TEXT,
-  email       TEXT,
-  direccion   TEXT,
-  plan        TEXT NOT NULL DEFAULT 'trial',
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre         TEXT NOT NULL,
+  tipo           TEXT,
+  telefono       TEXT,
+  email          TEXT,
+  direccion      TEXT,
+  plan           TEXT NOT NULL DEFAULT 'trial',
+  -- Trial de 30 días desde el INSERT. Se deriva al leer:
+  --   plan='trial' AND now > trial_ends_at  → expirado (soft-lock).
+  -- Cuando un comercio pague, UPDATE manual: plan='active'.
+  trial_ends_at  TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '30 days'),
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT comercios_plan_check CHECK (plan IN ('trial','active','expired'))
 );
 
 -- Migración defensiva: si la DB ya existía con la versión minimal
 -- (solo id/nombre/created_at), agregamos las columnas faltantes sin
--- romper datos existentes. Idempotente. Equivalente a
--- scripts/migration-comercios-extended.sql + scripts/migration-comercios-direccion.sql
--- aplicados al staging actual.
+-- romper datos existentes. Idempotente. Equivalente a aplicar todas
+-- las migraciones de comercios (extended, direccion, trial) al
+-- staging actual.
 ALTER TABLE comercios
-  ADD COLUMN IF NOT EXISTS tipo      TEXT,
-  ADD COLUMN IF NOT EXISTS telefono  TEXT,
-  ADD COLUMN IF NOT EXISTS email     TEXT,
-  ADD COLUMN IF NOT EXISTS direccion TEXT,
-  ADD COLUMN IF NOT EXISTS plan      TEXT NOT NULL DEFAULT 'trial';
+  ADD COLUMN IF NOT EXISTS tipo          TEXT,
+  ADD COLUMN IF NOT EXISTS telefono      TEXT,
+  ADD COLUMN IF NOT EXISTS email         TEXT,
+  ADD COLUMN IF NOT EXISTS direccion     TEXT,
+  ADD COLUMN IF NOT EXISTS plan          TEXT NOT NULL DEFAULT 'trial',
+  ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;
+
+-- Si trial_ends_at viene de la migración (sin default en filas
+-- viejas), backfilleamos con opción C: respetar created_at + 30d
+-- pero garantizar 7 días de gracia desde la migración. Solo afecta
+-- filas con NULL → idempotente.
+UPDATE comercios
+  SET trial_ends_at = GREATEST(created_at + interval '30 days', now() + interval '7 days')
+  WHERE trial_ends_at IS NULL;
+
+-- Después del backfill, fijamos el default para inserts nuevos.
+ALTER TABLE comercios
+  ALTER COLUMN trial_ends_at SET DEFAULT (now() + interval '30 days');
+
+-- CHECK sobre plan (idempotente DROP-and-recreate).
+ALTER TABLE comercios DROP CONSTRAINT IF EXISTS comercios_plan_check;
+ALTER TABLE comercios
+  ADD CONSTRAINT comercios_plan_check
+  CHECK (plan IN ('trial','active','expired'));
 
 CREATE TABLE IF NOT EXISTS perfiles (
   id           UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,

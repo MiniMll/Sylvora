@@ -8,6 +8,8 @@ import { formatPeso } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Hint } from '@/components/ui/Hint'
+import { TrialBlocked } from '@/components/ui/TrialBlocked'
+import { useTrial } from '@/lib/hooks/useTrial'
 import type { Producto } from '@/types/database'
 import { POSHeader } from './components/POSHeader'
 import { POSSearch } from './components/POSSearch'
@@ -31,6 +33,12 @@ export default function POSPage() {
   const [busqueda, setBusqueda] = useState('')
   const [modalCantidad, setModalCantidad] = useState<Producto | null>(null)
   const [cantidadIngresada, setCantidadIngresada] = useState('')
+  // Trial gating: si el comercio tiene el trial vencido, NO mostramos
+  // el POS — reemplazamos por TrialBlocked. Cualquier intento de
+  // cobrar pasaría por esta pantalla antes de tocar la DB. Defensa
+  // server-side (RLS) queda para un sprint posterior; en V1 alcanza
+  // el gating de UI para validar si los testers querrían pagar.
+  const trial = useTrial()
 
   useEffect(() => {
     getProductos().then(data => { setProductos(data); setCargando(false) })
@@ -135,7 +143,17 @@ export default function POSPage() {
     cerrarModalCantidad()
   }
 
-  if (cargando) return <Spinner texto="Cargando productos..." />
+  // Esperamos AMBOS loads (productos + trial) antes de decidir qué
+  // pantalla mostrar — evita flashear el POS un instante antes de
+  // mostrar el TrialBlocked cuando el comercio está expirado.
+  if (cargando || trial.loading) return <Spinner texto="Cargando productos..." />
+
+  // Trial vencido → reemplazamos toda la pantalla del POS. El comercio
+  // sigue viendo dashboard/productos/ventas en modo lectura desde
+  // sus respectivas pantallas; acá solo bloqueamos cobrar.
+  if (trial.expirado) {
+    return <TrialBlocked comercio={trial.comercio} />
+  }
 
   // Sin productos cargados no se puede cobrar. En vez de mostrar un POS
   // vacío y confuso, guiamos a cargar productos primero.

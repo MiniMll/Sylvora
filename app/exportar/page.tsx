@@ -9,6 +9,8 @@ import { formatPeso } from '@/lib/utils'
 import { Select } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Hint } from '@/components/ui/Hint'
+import { TrialBlocked } from '@/components/ui/TrialBlocked'
+import { useTrial } from '@/lib/hooks/useTrial'
 import type { Comercio } from '@/types/database'
 import type jsPDF from 'jspdf'
 
@@ -74,6 +76,9 @@ export default function ExportarPage() {
   // montar — necesaria porque la página no pre-carga datos (cada
   // export los trae bajo demanda).
   const [hayDatos, setHayDatos] = useState<boolean | null>(null)
+  // Trial gating — si el comercio expiró, bloqueamos la generación
+  // de reportes con el overlay TrialBlocked.
+  const trial = useTrial()
 
   useEffect(() => {
     getComercio().then(setComercio)
@@ -292,6 +297,14 @@ export default function ExportarPage() {
     { id: 'ventas-excel', titulo: 'Ventas Excel', desc: 'Datos de ventas para análisis o contador', fn: () => exportar('ventas-excel', exportarVentasExcel), Icon: BarChart2, color: '#ffd23f' },
     { id: 'alertas-pdf', titulo: 'Alertas de stock PDF', desc: 'Lista de productos a reponer con cantidades necesarias', fn: () => exportar('alertas-pdf', exportarAlertasPDF), Icon: AlertTriangle, color: '#ff4757' },
   ]
+
+  // Trial vencido → reemplazamos toda la pantalla. Nada de exportar
+  // ni opciones — el comercio sigue viendo sus datos en otras
+  // pantallas (dashboard/productos/ventas), solo bloqueamos generar
+  // reportes nuevos hasta que active el plan.
+  if (trial.expirado) {
+    return <TrialBlocked comercio={trial.comercio} />
+  }
 
   return (
     <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
