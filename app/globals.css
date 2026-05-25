@@ -1441,6 +1441,9 @@ button:active { transform: scale(0.97); }
 @media (max-width: 768px) {
   .desktop-sidebar { display: none !important; }
   .mobile-menu-btn { display: flex !important; }
+  /* TrialBanner: reservar espacio para el botón hamburguesa fijo
+     (38x38 en top:14 left:14) → no debe quedar tapado por el banner. */
+  .trial-banner-inner { padding-left: 62px !important; }
 }
 
 /* Dark mode overrides */

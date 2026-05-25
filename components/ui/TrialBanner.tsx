@@ -134,6 +134,7 @@ export function TrialBanner() {
       }}
     >
       <div
+        className="trial-banner-inner"
         style={{
           maxWidth: 1280,
           margin: '0 auto',
