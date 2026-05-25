@@ -202,12 +202,15 @@ export async function importarProductos(rows: ParsedRow[]): Promise<ImportResult
   const comercioId = await getComercioId()
   if (!comercioId) return { inserted: 0, error: 'No se pudo identificar el comercio.' }
 
+  // Defensa: stock_* en prod son INTEGER (schema original), así que
+  // redondeamos cualquier float que venga de parseStock. Para V1 el
+  // importador fija unidad_venta='unidad' → tiene sentido entero.
   const payload = rows.map(r => ({
     comercio_id: comercioId,
     nombre: r.nombre,
     precio_venta: r.precio,
     precio_costo: 0,
-    stock_actual: r.stock,
+    stock_actual: Math.max(0, Math.round(r.stock)),
     stock_minimo: 0,
     stock_ideal: 0,
     unidad_venta: 'unidad',
