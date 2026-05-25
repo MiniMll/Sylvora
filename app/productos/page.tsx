@@ -10,11 +10,12 @@ import { ProductFilters, type Vista } from './components/ProductFilters'
 import { ProductGrid } from './components/ProductGrid'
 import { ProductDetail } from './components/ProductDetail'
 import { EditProductModal, type EditFormValues } from './components/EditProductModal'
+import { ImportarProductosModal } from './components/ImportarProductosModal'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Trash2, Package, Plus } from 'lucide-react'
+import { Trash2, Package, Plus, Upload } from 'lucide-react'
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -36,6 +37,12 @@ export default function ProductosPage() {
   const [modalLote, setModalLote] = useState<Producto | null>(null)
   const [nuevoLote, setNuevoLote] = useState({ numero_lote: '', cantidad: '', fecha_vencimiento: '' })
   const [guardandoLote, setGuardandoLote] = useState(false)
+
+  const [importarAbierto, setImportarAbierto] = useState(false)
+
+  const recargarProductos = useCallback(() => {
+    getProductos().then(data => setProductos(data))
+  }, [])
 
   useEffect(() => {
     getProductos().then(data => { setProductos(data); setCargando(false) })
@@ -223,16 +230,29 @@ export default function ProductosPage() {
   // ProductGrid cuando hay productos pero el filtro no matchea).
   if (productos.length === 0) {
     return (
-      <div className="page-in" style={{ padding: 24, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <EmptyState
-          accent
-          icon={<Package size={20} color="var(--ac)" strokeWidth={2} />}
-          title="Todavía no cargaste productos."
-          description="Cargá tu primer producto para empezar a vender: nombre, precio y stock. Lo hacés una sola vez."
-          actions={[{ label: 'Agregar producto', href: '/productos/nuevo', variant: 'primary', icon: <Plus size={15} /> }]}
-          guiaHref="/guia"
+      <>
+        <div className="page-in" style={{ padding: 24, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <EmptyState
+            accent
+            icon={<Package size={20} color="var(--ac)" strokeWidth={2} />}
+            title="Todavía no cargaste productos."
+            description="Cargá tu primer producto para empezar a vender: nombre, precio y stock. Lo hacés una sola vez."
+            actions={[
+              { label: 'Agregar producto', href: '/productos/nuevo', variant: 'primary', icon: <Plus size={15} /> },
+              { label: 'Importar desde Excel', onClick: () => setImportarAbierto(true), variant: 'ghost', icon: <Upload size={15} /> },
+            ]}
+            guiaHref="/guia"
+          />
+        </div>
+        <ImportarProductosModal
+          open={importarAbierto}
+          onClose={() => setImportarAbierto(false)}
+          onImported={(n) => {
+            toast.success(`${n} producto${n === 1 ? '' : 's'} importado${n === 1 ? '' : 's'}`)
+            recargarProductos()
+          }}
         />
-      </div>
+      </>
     )
   }
 
@@ -242,6 +262,7 @@ export default function ProductosPage() {
         busqueda={busqueda} onBusquedaChange={setBusqueda}
         categoria={categoria} onCategoriaChange={setCategoria} categorias={categorias}
         vista={vista} onVistaChange={setVista}
+        onImportar={() => setImportarAbierto(true)}
       />
 
       <ProductGrid
@@ -321,6 +342,15 @@ export default function ProductosPage() {
           </>
         )}
       </Modal>
+
+      <ImportarProductosModal
+        open={importarAbierto}
+        onClose={() => setImportarAbierto(false)}
+        onImported={(n) => {
+          toast.success(`${n} producto${n === 1 ? '' : 's'} importado${n === 1 ? '' : 's'}`)
+          recargarProductos()
+        }}
+      />
 
       {/* Modal confirmar borrar */}
       <Modal

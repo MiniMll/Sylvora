@@ -1,5 +1,5 @@
 'use client'
-import { Plus, LayoutGrid, List } from 'lucide-react'
+import { Plus, LayoutGrid, List, Upload } from 'lucide-react'
 import { Input, Select } from '@/components/ui/Input'
 import { usePermissions } from '@/components/PermissionsProvider'
 
@@ -13,12 +13,14 @@ interface Props {
   categorias: string[]
   vista: Vista
   onVistaChange: (v: Vista) => void
+  onImportar?: () => void
 }
 
 export function ProductFilters({
   busqueda, onBusquedaChange,
   categoria, onCategoriaChange, categorias,
   vista, onVistaChange,
+  onImportar,
 }: Props) {
   const { has } = usePermissions()
   return (
@@ -39,6 +41,12 @@ export function ProductFilters({
           </button>
         ))}
       </div>
+      {has('producto.crear') && onImportar && (
+        <button onClick={onImportar} type="button"
+          style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--bg2)', color: 'var(--text)', fontSize: 12, fontWeight: 500, border: '1px solid var(--border)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <Upload size={13} /> Importar
+        </button>
+      )}
       {has('producto.crear') && (
         <a href="/productos/nuevo"
           style={{ padding: '8px 14px', borderRadius: 8, background: 'var(--ac)', color: 'white', fontSize: 12, fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
