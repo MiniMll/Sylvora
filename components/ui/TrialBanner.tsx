@@ -1,6 +1,12 @@
 'use client'
 import { Clock, MessageCircle, X } from 'lucide-react'
 import { useTrial } from '@/lib/hooks/useTrial'
+import { useDismissibleToday } from '@/lib/hooks/useDismissibleToday'
+
+/** localStorage key del mute por día. Si más adelante agregamos
+ *  más banners (mantenimiento, nueva versión), cada uno usa su
+ *  propia key — todas vivirán bajo el namespace sylvora.dismiss.* */
+const DISMISS_KEY = 'trial-banner'
 
 // Banner sticky discreto que avisa al comerciante cuántos días de
 // trial le quedan. Sin modal, sin bloqueo de navegación, sin
@@ -20,13 +26,13 @@ import { useTrial } from '@/lib/hooks/useTrial'
 //   - diasRestantes === null → null
 //   - diasRestantes > 7      → null (todavía no entra en zona caliente)
 //
-// El botón X dispara onDismiss del padre. Esta versión del componente
-// es PURA — no toca localStorage. La persistencia "ocultar hoy" se
-// agrega en el commit 2 con useDismissibleToday() arriba del banner.
+// El botón X persiste el mute por DÍA via useDismissibleToday (ver
+// lib/dismissible.ts). Mañana el banner reaparece automáticamente
+// sin cron ni TTL — el comparador es la fecha local del usuario.
 //
-// En día 0 NO se muestra el botón X (el componente ignora cualquier
-// onDismiss en ese nivel — es la última oportunidad y no debe
-// silenciarse).
+// En día 0 el botón X NO se renderiza — es el último día y no
+// queremos que se pueda silenciar. El mute existente de días
+// anteriores se ignora en este nivel (forceShow).
 //
 // El CTA abre WhatsApp con un mensaje que incluye el nombre del
 // comercio + días restantes. Si NEXT_PUBLIC_SOPORTE_WHATSAPP no está
@@ -86,14 +92,9 @@ function buildWhatsAppHref(numero: string | undefined, comercioNombre: string, d
   return `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`
 }
 
-interface TrialBannerProps {
-  /** Callback cuando el usuario clickea la X (solo niveles info/warn).
-   *  Si no se pasa, el botón X no se renderiza. */
-  onDismiss?: () => void
-}
-
-export function TrialBanner({ onDismiss }: TrialBannerProps) {
+export function TrialBanner() {
   const { comercio, estado, diasRestantes, loading } = useTrial()
+  const { dismissed, dismiss } = useDismissibleToday(DISMISS_KEY)
 
   // Returns silenciosos — el componente nunca "ocupa espacio" si no
   // debe mostrarse. Es importante para no shiftear el layout durante
@@ -105,6 +106,10 @@ export function TrialBanner({ onDismiss }: TrialBannerProps) {
   const nivel = nivelPorDias(diasRestantes)
   const style = NIVELES[nivel]
   const esUrgente = nivel === 'urgent'
+
+  // Día 0 es no-silenciable: ignoramos cualquier mute previo.
+  // El resto de los niveles respetan el "ocultar hoy".
+  if (!esUrgente && dismissed) return null
 
   const numero = process.env.NEXT_PUBLIC_SOPORTE_WHATSAPP
   const waHref = buildWhatsAppHref(numero, comercio?.nombre ?? '', diasRestantes)
@@ -190,11 +195,10 @@ export function TrialBanner({ onDismiss }: TrialBannerProps) {
           </a>
         ) : null}
 
-        {/* X para ocultar — solo si NO es urgente y el padre pasó
-            onDismiss. En día 0 el banner es no-dismissible por diseño. */}
-        {!esUrgente && onDismiss && (
+        {/* X para ocultar hoy — no se muestra en nivel urgent (día 0). */}
+        {!esUrgente && (
           <button
-            onClick={onDismiss}
+            onClick={dismiss}
             aria-label="Ocultar este aviso hoy"
             type="button"
             style={{
