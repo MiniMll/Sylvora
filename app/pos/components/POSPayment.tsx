@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner'
 import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
-import { guardarVenta } from '@/lib/supabase/ventas'
+import { guardarVenta, esErrorStockInsuficiente } from '@/lib/supabase/ventas'
 import { getComercio } from '@/lib/supabase/_base'
 import { TicketReceipt } from '@/components/TicketReceipt'
 import type { MetodoPago } from '@/types'
@@ -88,6 +88,20 @@ function POSPaymentImpl() {
         metodo_pago: store.metodoPago,
         items: itemsParaVenta,
       })
+
+      // Caso esperado: server-side detectó que algún ítem del ticket
+      // ya no tiene stock suficiente (otro cajero vendió mientras tanto,
+      // o el carrito tenía datos desactualizados). NO limpiamos el
+      // ticket — el cajero ajusta y reintenta. Mostramos qué producto
+      // falló y cuánto hay disponible.
+      if (esErrorStockInsuficiente(result)) {
+        toast.error(
+          `Sin stock de ${result.nombre}. Te quedan ${result.disponible}, pediste ${result.pedido}.`,
+          { id: 'pos-cobrar', duration: 6000 },
+        )
+        store.setCargandoVenta(false)
+        return
+      }
 
       if (!result) {
         toast.error('No se pudo guardar la venta. Probá de nuevo.', { id: 'pos-cobrar' })
@@ -207,7 +221,13 @@ function POSPaymentImpl() {
     }
   }
 
-  cobrarRef.current = cobrar
+  // Mantener el ref sincronizado con la última versión de `cobrar`
+  // para que el listener de F8/Ctrl+Enter siempre invoque la closure
+  // más reciente (evita stale closures). React 19 prohíbe actualizar
+  // refs durante render — el effect corre después y resuelve ambos.
+  useEffect(() => {
+    cobrarRef.current = cobrar
+  })
 
   // Atajos F8 / Ctrl+Enter para cobrar sin tocar el mouse.
   // Suprimidos si hay un modal abierto (data-modal-card en DOM).
