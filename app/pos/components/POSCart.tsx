@@ -1,6 +1,7 @@
 'use client'
 import { memo, useState } from 'react'
 import { ShoppingCart, X, Plus, Minus } from 'lucide-react'
+import { toast } from 'sonner'
 import { formatPeso } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
 
@@ -44,7 +45,14 @@ function POSCartImpl() {
             </div>
             <div>El ticket está vacío</div>
           </div>
-        ) : store.items.map((item, idx) => (
+        ) : store.items.map((item, idx) => {
+          // Stock conocido. undefined → carrito persistido de versión
+          // vieja sin stock_disponible; en ese caso no bloqueamos
+          // visualmente (la validación atómica server-side igual
+          // atrapa el caso al cobrar).
+          const stockDisp = item.stock_disponible
+          const sinMasStock = stockDisp !== undefined && item.cantidad >= stockDisp
+          return (
           <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.nombre}</div>
@@ -73,7 +81,18 @@ function POSCartImpl() {
                       onBlur={e => {
                         const v = parseInt(e.target.value, 10)
                         if (Number.isFinite(v) && v >= 1 && v <= 9999) {
-                          store.cambiarCantidad(item.producto_id, v)
+                          // Clamp al stock disponible — el store también
+                          // clampea como defensa, pero acá podemos avisar
+                          // al cajero por qué no entró su número.
+                          if (stockDisp !== undefined && v > stockDisp) {
+                            toast.error(
+                              `Solo hay ${stockDisp} de ${item.nombre}.`,
+                              { id: 'pos-edit-qty' },
+                            )
+                            store.cambiarCantidad(item.producto_id, stockDisp)
+                          } else {
+                            store.cambiarCantidad(item.producto_id, v)
+                          }
                         }
                         setEditingId(null)
                       }}
@@ -110,9 +129,29 @@ function POSCartImpl() {
                       }}
                     >{item.cantidad}</span>
                   )}
-                  <button onClick={() => store.cambiarCantidad(item.producto_id, item.cantidad + 1)}
+                  <button
+                    onClick={() => {
+                      if (sinMasStock) {
+                        toast.error(
+                          `Solo hay ${stockDisp} de ${item.nombre}.`,
+                          { id: 'pos-cart-plus' },
+                        )
+                        return
+                      }
+                      store.cambiarCantidad(item.producto_id, item.cantidad + 1)
+                    }}
+                    disabled={sinMasStock}
                     aria-label="Aumentar cantidad"
-                    style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
+                    title={sinMasStock ? `Sin más stock (quedan ${stockDisp})` : undefined}
+                    style={{
+                      width: 28, height: 28, borderRadius: 7,
+                      border: '1px solid var(--border)',
+                      background: sinMasStock ? 'var(--bg2)' : 'var(--bg3)',
+                      cursor: sinMasStock ? 'not-allowed' : 'pointer',
+                      opacity: sinMasStock ? 0.45 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--text)',
+                    }}>
                     <Plus size={13} strokeWidth={2.2} />
                   </button>
                 </div>
@@ -133,7 +172,8 @@ function POSCartImpl() {
               {formatPeso(item.subtotal)}
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Descuento / Recargo */}

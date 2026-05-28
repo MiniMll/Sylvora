@@ -32,7 +32,16 @@ const METODOS: { id: MetodoPago; label: string; Icon: LucideIcon }[] = [
 
 const COBRADO_FEEDBACK_MS = 800
 
-function POSPaymentImpl() {
+interface POSPaymentProps {
+  /** Callback para refrescar productos + sincronizar stock_disponible
+   *  del carrito. Se llama después de cobrar exitosamente (stocks
+   *  bajaron) y también después de un error stock_insuficiente
+   *  (el carrito tenía stocks viejos, hay que refrescar para que
+   *  POSCart bloquee los +). */
+  onStockSync: () => Promise<void> | void
+}
+
+function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
   const store = usePOSStore()
   const [cobrado, setCobrado] = useState(false)
   // Estado local del campo "monto recibido" para calcular vuelto.
@@ -100,6 +109,10 @@ function POSPaymentImpl() {
           { id: 'pos-cobrar', duration: 6000 },
         )
         store.setCargandoVenta(false)
+        // Refrescar productos: el carrito tenía stocks desactualizados.
+        // Tras esto POSCart bloquea los + de los items afectados, lo
+        // que ayuda al cajero a ajustar antes de re-intentar cobrar.
+        void onStockSync()
         return
       }
 
@@ -210,6 +223,10 @@ function POSPaymentImpl() {
         // Devuelve foco al input del scanner para la próxima venta.
         store.requestRefocus()
       }, COBRADO_FEEDBACK_MS)
+
+      // Refrescar productos para reflejar stocks bajados — la próxima
+      // búsqueda ve datos frescos. No bloquea el flujo de éxito.
+      void onStockSync()
 
       // Liberar la venta retenida después de la duración del toast,
       // para que el printable off-screen no quede colgado en DOM
