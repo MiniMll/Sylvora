@@ -21,6 +21,31 @@ interface VentaInput {
   items: ItemVentaInput[]
 }
 
+/** Resultado descriptivo cuando la venta no se puede registrar
+ *  porque algún ítem no tiene stock suficiente. Lo devuelve la
+ *  RPC server-side descontar_stock_validado vía DETAIL en JSON
+ *  (ver scripts/migration-stock-validado.sql). El frontend del POS
+ *  hace toast humano con el nombre del producto + cantidad
+ *  disponible vs pedida; el ticket NO se limpia para que el cajero
+ *  ajuste y reintente. */
+export interface StockInsuficienteError {
+  error: 'stock_insuficiente'
+  producto_id: string
+  nombre: string
+  disponible: number
+  pedido: number
+}
+
+export type GuardarVentaResult = Venta | StockInsuficienteError | null
+
+/** Type guard para discriminar el caso "stock insuficiente" del
+ *  caso éxito o error genérico. */
+export function esErrorStockInsuficiente(
+  r: GuardarVentaResult,
+): r is StockInsuficienteError {
+  return !!r && typeof r === 'object' && 'error' in r && r.error === 'stock_insuficiente'
+}
+
 // Cuántas veces reintentar el INSERT de venta si choca contra la
 // unique constraint (comercio_id, numero_ticket). Caso esperado:
 // dos cajeros del mismo comercio cobran al mismo tiempo, el trigger
@@ -32,14 +57,92 @@ interface VentaInput {
 // per-comercio.
 const MAX_REINTENTOS_NUMERO_TICKET = 3
 
-export async function guardarVenta(venta: VentaInput): Promise<Venta | null> {
+/** Cantidad real a descontar/restituir del stock para un ítem.
+ *  Productos por peso (kg/L/m) tienen `peso_kg` con el valor real
+ *  pesado/medido; el resto usa `cantidad` (unidades). */
+function cantidadParaStock(i: ItemVentaInput): number {
+  return (i.peso_kg !== undefined && i.peso_kg !== null)
+    ? Number(i.peso_kg)
+    : Number(i.cantidad)
+}
+
+/** Restituye stock de TODOS los items en paralelo. Se usa como
+ *  compensación cuando el descuento ya pasó pero el insert posterior
+ *  (venta o items_venta) falla. Best-effort: si alguna restitución
+ *  falla, logueamos pero no propagamos — peor escenario es stock
+ *  que quedó descontado y dueño ajusta a mano. Sin esto el bug
+ *  "stock fantasma" reaparece por un canal distinto. */
+async function compensarRestituirStock(
+  supabase: ReturnType<typeof getBrowserClient>,
+  items: ItemVentaInput[],
+): Promise<void> {
+  await Promise.all(items.map(async item => {
+    const { error } = await supabase.rpc('restituir_stock', {
+      p_producto_id: item.producto_id,
+      p_cantidad: cantidadParaStock(item),
+    })
+    if (error) {
+      console.error('[guardarVenta] compensación restituir_stock falló', {
+        producto_id: item.producto_id, error,
+      })
+    }
+  }))
+}
+
+export async function guardarVenta(venta: VentaInput): Promise<GuardarVentaResult> {
   const supabase = getBrowserClient()
   const comercioId = await getComercioId()
   if (!comercioId) return null
 
-  // Retry loop: solo reintenta ante el código 23505 (unique violation)
-  // sobre la constraint de numero_ticket. Cualquier otro error
-  // (validación, FK, etc.) corta de una.
+  // ──────────────────────────────────────────────────────────────────
+  // PASO 1 — Validar y descontar stock atómicamente.
+  // RPC descontar_stock_validado: lock pesimista FOR UPDATE + check
+  // de stock_actual >= cantidad + descuento, todo en una transacción.
+  // Si algún ítem no alcanza → RAISE EXCEPTION 'stock_insuficiente'
+  // con DETAIL en JSON. Postgres hace rollback automático del lock.
+  // Ningún stock se modifica si ALGÚN ítem falla.
+  // ──────────────────────────────────────────────────────────────────
+  const itemsParaRpc = venta.items.map(i => ({
+    producto_id: i.producto_id,
+    cantidad: cantidadParaStock(i),
+  }))
+
+  const { error: stockError } = await supabase.rpc('descontar_stock_validado', {
+    p_items: itemsParaRpc,
+  })
+
+  if (stockError) {
+    // Caso esperado: stock_insuficiente con DETAIL parseable.
+    if (stockError.message === 'stock_insuficiente' && stockError.details) {
+      try {
+        const detail = JSON.parse(stockError.details) as {
+          producto_id: string
+          nombre: string
+          disponible: number | string
+          pedido: number | string
+        }
+        return {
+          error: 'stock_insuficiente',
+          producto_id: detail.producto_id,
+          nombre: detail.nombre,
+          disponible: Number(detail.disponible),
+          pedido: Number(detail.pedido),
+        }
+      } catch (e) {
+        // DETAIL malformado — fallback a error genérico.
+        console.error('[guardarVenta] error.details no parseable', e, stockError)
+      }
+    }
+    // Cualquier otro error de la RPC (cantidad_invalida,
+    // producto_no_encontrado, red, etc.) → null genérico.
+    console.error('[guardarVenta] descontar_stock_validado falló', stockError)
+    return null
+  }
+
+  // ──────────────────────────────────────────────────────────────────
+  // PASO 2 — Insert de la venta con retry de numero_ticket.
+  // Si falla definitivamente → COMPENSAR (restituir stock).
+  // ──────────────────────────────────────────────────────────────────
   let ventaData: Venta | null = null
   for (let intento = 0; intento < MAX_REINTENTOS_NUMERO_TICKET; intento++) {
     const { data, error } = await supabase
@@ -72,6 +175,7 @@ export async function guardarVenta(venta: VentaInput): Promise<Venta | null> {
 
     if (!esColisionNumeroTicket) {
       console.error(error)
+      await compensarRestituirStock(supabase, venta.items)
       return null
     }
 
@@ -82,12 +186,14 @@ export async function guardarVenta(venta: VentaInput): Promise<Venta | null> {
 
   if (!ventaData) {
     console.error('[guardarVenta] No se pudo asignar numero_ticket tras', MAX_REINTENTOS_NUMERO_TICKET, 'intentos')
+    await compensarRestituirStock(supabase, venta.items)
     return null
   }
 
-  // Persistimos peso_kg para soportar anulación 100% exacta de ventas
-  // con productos por peso. Si la columna no existe todavía (schema sin
-  // migración aplicada), reintentamos sin esa key — backward-compat.
+  // ──────────────────────────────────────────────────────────────────
+  // PASO 3 — Insert de items_venta. Si falla → COMPENSAR (restituir
+  // stock + borrar la venta huérfana que ya tiene numero_ticket).
+  // ──────────────────────────────────────────────────────────────────
   const itemsConPeso = venta.items.map(i => ({
     venta_id: ventaData.id,
     producto_id: i.producto_id,
@@ -98,23 +204,37 @@ export async function guardarVenta(venta: VentaInput): Promise<Venta | null> {
     peso_kg: i.peso_kg ?? null,
   }))
 
-  const { error: itemsError } = await supabase.from('items_venta').insert(itemsConPeso)
-  if (itemsError && /peso_kg/i.test(itemsError.message)) {
-    // Fallback legacy: schema sin la columna. Re-insertamos sin peso_kg.
-    const itemsSinPeso = itemsConPeso.map(({ peso_kg: _, ...rest }) => rest)
-    await supabase.from('items_venta').insert(itemsSinPeso)
+  // Variante sin peso_kg para el fallback legacy (schema viejo sin la
+  // columna). La armamos siempre — es barato — y solo se usa si el
+  // primer insert falla por columna inexistente.
+  const itemsSinPeso = venta.items.map(i => ({
+    venta_id: ventaData.id,
+    producto_id: i.producto_id,
+    nombre_producto: i.nombre_producto,
+    precio_unitario: i.precio_unitario,
+    cantidad: i.cantidad,
+    subtotal: i.subtotal,
+  }))
+
+  let itemsError: { message?: string } | null = null
+  const r1 = await supabase.from('items_venta').insert(itemsConPeso)
+  if (r1.error) {
+    itemsError = r1.error
+    if (/peso_kg/i.test(r1.error.message ?? '')) {
+      const r2 = await supabase.from('items_venta').insert(itemsSinPeso)
+      itemsError = r2.error
+    }
   }
 
-  // Descontar stock atómicamente vía RPC.
-  await Promise.all(venta.items.map(item => {
-    const aDescontar = (item.peso_kg !== undefined && item.peso_kg !== null)
-      ? Number(item.peso_kg)
-      : Number(item.cantidad)
-    return supabase.rpc('descontar_stock', {
-      p_producto_id: item.producto_id,
-      p_cantidad: aDescontar,
-    })
-  }))
+  if (itemsError) {
+    console.error('[guardarVenta] insert items_venta falló', itemsError)
+    await compensarRestituirStock(supabase, venta.items)
+    // Borrar la venta huérfana para no dejar tickets sin items.
+    // Si el delete también falla, la venta queda en DB sin items —
+    // el dueño la puede ver y anular manualmente.
+    await supabase.from('ventas').delete().eq('id', ventaData.id)
+    return null
+  }
 
   return ventaData
 }

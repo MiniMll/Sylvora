@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Scale, Beaker, Ruler, Package, Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 import { getProductos } from '@/lib/supabase/productos'
@@ -40,9 +40,34 @@ export default function POSPage() {
   // el gating de UI para validar si los testers querrían pagar.
   const trial = useTrial()
 
+  // Selector estable de la action de zustand — usePOSStore() devuelve
+  // un nuevo objeto state en cada render, lo que rompería la memo de
+  // POSPayment si pasáramos refreshProductos como prop. Con un
+  // selector específico, sincronizarStock mantiene la misma referencia.
+  const sincronizarStock = usePOSStore(s => s.sincronizarStock)
+
+  // Refresh de productos. Se llama:
+  //  - al montar la pantalla
+  //  - después de cobrar exitosamente (los stocks bajaron)
+  //  - después de un stock_insuficiente al cobrar (carrito tenía
+  //    stocks viejos — refrescar para que POSCart bloquee el +)
+  const refreshProductos = useCallback(async () => {
+    const data = await getProductos()
+    setProductos(data)
+    // Sincronizar stock_disponible de los items del ticket vivo.
+    const stockMap = Object.fromEntries(data.map(p => [p.id, p.stock_actual]))
+    sincronizarStock(stockMap)
+  }, [sincronizarStock])
+
   useEffect(() => {
-    getProductos().then(data => { setProductos(data); setCargando(false) })
-  }, [])
+    // Fetch on mount — patrón estándar de Next + Supabase client.
+    // El lint react-hooks/set-state-in-effect prefiere useSyncExternalStore
+    // o data layer (SWR/react-query), pero acá el efecto sirve para
+    // hidratar productos y a la vez bajar el spinner. Caso legítimo
+    // documentado por React.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refreshProductos().finally(() => setCargando(false))
+  }, [refreshProductos])
 
   // Resultados filtrados (compartido entre POSSearch y POSProducts)
   const resultados = useMemo(() => {
@@ -68,14 +93,21 @@ export default function POSPage() {
     // BLOQUEO ESTRICTO para productos por unidad sin stock: evita
     // ventas que dejarían el inventario en negativo. El cajero ve un
     // toast claro y el item NO se agrega al ticket.
-    if (p.stock_actual === 0) {
+    if (p.stock_actual <= 0) {
       toast.error(`${p.nombre} no tiene stock`, { id: 'pos-input' })
       return
     }
     const enTicket = store.items.find(i => i.producto_id === p.id)
     const cantidadEnTicket = enTicket ? enTicket.cantidad : 0
+    // BLOQUEO si incrementar excedería el stock. Antes mostraba
+    // toast.warning pero igual agregaba — origen del bug del tester.
     if (cantidadEnTicket + 1 > p.stock_actual) {
-      toast.warning(`Solo quedan ${p.stock_actual} unidades de ${p.nombre}`, { id: 'pos-input' })
+      const unidades = p.stock_actual === 1 ? 'unidad' : 'unidades'
+      toast.error(
+        `No hay stock suficiente. Te quedan ${p.stock_actual} ${unidades} de ${p.nombre}.`,
+        { id: 'pos-input' },
+      )
+      return
     }
     store.agregarItem({
       producto_id: p.id,
@@ -83,6 +115,7 @@ export default function POSPage() {
       precio_unitario: p.precio_venta,
       cantidad: 1,
       codigo_barras: p.codigo_barras || '',
+      stock_disponible: p.stock_actual,
     })
   }
 
@@ -123,8 +156,19 @@ export default function POSPage() {
       return
     }
     const cant = Number(cantidadIngresada.replace(',', '.'))
+    // BLOQUEO: para productos por peso, no permitimos exceder el stock
+    // disponible. Antes mostraba toast.warning y agregaba igual —
+    // misma causa raíz que el bug del tester pero para kg/L/m.
+    if (modalCantidad.stock_actual <= 0) {
+      toast.error(`${modalCantidad.nombre} no tiene stock`, { id: 'pos-cantidad' })
+      return
+    }
     if (cant > modalCantidad.stock_actual) {
-      toast.warning(`Solo hay ${modalCantidad.stock_actual} ${modalCantidad.unidad_venta} disponibles`, { id: 'pos-cantidad' })
+      toast.error(
+        `Solo hay ${modalCantidad.stock_actual} ${modalCantidad.unidad_venta} de ${modalCantidad.nombre}.`,
+        { id: 'pos-cantidad' },
+      )
+      return
     }
     const unidad = modalCantidad.unidad_venta
     const precio = unidad === 'kg'
@@ -139,6 +183,10 @@ export default function POSPage() {
       cantidad: 1,
       codigo_barras: modalCantidad.codigo_barras || '',
       peso_kg: cant,
+      // Para productos por peso el stock_disponible es informativo —
+      // POSCart no tiene botón + para ellos. Lo guardamos igual por
+      // si futuras pantallas (ej. edit de línea) lo necesitan.
+      stock_disponible: modalCantidad.stock_actual,
     })
     cerrarModalCantidad()
   }
@@ -202,7 +250,7 @@ export default function POSPage() {
       <div className="pos-cart-panel" style={{ width: 320, display: 'flex', flexDirection: 'column', ...cardStyle, margin: 16, marginLeft: 8, overflow: 'hidden' }}>
         <POSCart />
         <div className="pos-payment-section">
-          <POSPayment />
+          <POSPayment onStockSync={refreshProductos} />
         </div>
       </div>
 

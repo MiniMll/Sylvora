@@ -10,6 +10,12 @@ interface POSItem {
   subtotal: number
   codigo_barras: string
   peso_kg?: number
+  /** Stock conocido al momento de agregar / al último sync con DB.
+   *  Usado por POSCart para bloquear el botón + y clampear edición
+   *  inline. Si está undefined (carrito persistido de una versión
+   *  vieja), el frontend NO bloquea — la validación atómica
+   *  server-side igualmente atrapa el caso al cobrar. */
+  stock_disponible?: number
 }
 
 interface POSStore {
@@ -31,6 +37,12 @@ interface POSStore {
   agregarItem: (item: Omit<POSItem, 'subtotal'>) => void
   cambiarCantidad: (producto_id: string, cantidad: number) => void
   quitarItem: (producto_id: string) => void
+  /** Refresca stock_disponible de los items del ticket a partir del
+   *  snapshot fresco de productos. Llamado al recargar productos
+   *  desde la DB (post-venta, post-error de stock_insuficiente, etc.).
+   *  Productos por peso usan producto_id compuesto "<realId>_<ts>" —
+   *  acá hacemos lookup contra realId para mantener el sync. */
+  sincronizarStock: (productosStock: Record<string, number>) => void
   setDescuento: (pct: number) => void
   setRecargo: (pct: number) => void
   setMetodoPago: (metodo: MetodoPago) => void
@@ -60,10 +72,26 @@ export const usePOSStore = create<POSStore>()(
         }
         const existe = state.items.find(i => i.producto_id === item.producto_id && !i.peso_kg)
         if (existe) {
+          const cantidadNueva = existe.cantidad + 1
+          // Defensa en profundidad: el caller (page.tsx) ya valida stock
+          // antes de llamar. Acá igual rechazamos silenciosamente si
+          // excede el stock conocido — no queremos que un bug futuro
+          // del UI permita inflar el carrito. La validación atómica
+          // server-side queda como tercera línea de defensa.
+          const stockDisp = existe.stock_disponible ?? item.stock_disponible
+          if (stockDisp !== undefined && cantidadNueva > stockDisp) {
+            return state
+          }
           return {
             items: state.items.map(i =>
               i.producto_id === item.producto_id && !i.peso_kg
-                ? { ...i, cantidad: i.cantidad + 1, subtotal: (i.cantidad + 1) * i.precio_unitario }
+                ? {
+                    ...i,
+                    cantidad: cantidadNueva,
+                    subtotal: cantidadNueva * i.precio_unitario,
+                    // Refrescar el stock si el caller pasó uno nuevo.
+                    stock_disponible: item.stock_disponible ?? i.stock_disponible,
+                  }
                 : i
             )
           }
@@ -74,13 +102,34 @@ export const usePOSStore = create<POSStore>()(
       cambiarCantidad: (producto_id, cantidad) => set(state => {
         if (cantidad <= 0) return { items: state.items.filter(i => i.producto_id !== producto_id) }
         return {
-          items: state.items.map(i =>
-            i.producto_id === producto_id
-              ? { ...i, cantidad, subtotal: cantidad * i.precio_unitario }
-              : i
-          )
+          items: state.items.map(i => {
+            if (i.producto_id !== producto_id) return i
+            // Clamp al stock disponible — defensa contra UI que olvide
+            // chequear (botón +, edición inline). Si stock_disponible
+            // es undefined (carrito legacy), no clampea.
+            const max = i.stock_disponible ?? Infinity
+            const clamped = Math.min(cantidad, max)
+            return { ...i, cantidad: clamped, subtotal: clamped * i.precio_unitario }
+          })
         }
       }),
+
+      sincronizarStock: (productosStock) => set(state => ({
+        items: state.items.map(i => {
+          // Productos por peso usan producto_id compuesto: extraer realId.
+          const realId = i.producto_id.includes('_')
+            ? i.producto_id.split('_')[0]
+            : i.producto_id
+          const stock = productosStock[realId]
+          if (stock === undefined) return i
+          // Si el stock fresco es menor a la cantidad en el ticket,
+          // dejamos la cantidad como está — la decisión de bajar el
+          // carrito la toma el usuario (no pisar input del cajero
+          // en mitad de la operación). El bloqueo igual aplica para
+          // futuros incrementos.
+          return { ...i, stock_disponible: stock }
+        })
+      })),
 
       quitarItem: (producto_id) => set(state => ({
         items: state.items.filter(i => i.producto_id !== producto_id)

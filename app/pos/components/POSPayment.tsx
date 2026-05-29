@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner'
 import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
-import { guardarVenta } from '@/lib/supabase/ventas'
+import { guardarVenta, esErrorStockInsuficiente } from '@/lib/supabase/ventas'
 import { getComercio } from '@/lib/supabase/_base'
 import { TicketReceipt } from '@/components/TicketReceipt'
 import type { MetodoPago } from '@/types'
@@ -32,7 +32,16 @@ const METODOS: { id: MetodoPago; label: string; Icon: LucideIcon }[] = [
 
 const COBRADO_FEEDBACK_MS = 800
 
-function POSPaymentImpl() {
+interface POSPaymentProps {
+  /** Callback para refrescar productos + sincronizar stock_disponible
+   *  del carrito. Se llama después de cobrar exitosamente (stocks
+   *  bajaron) y también después de un error stock_insuficiente
+   *  (el carrito tenía stocks viejos, hay que refrescar para que
+   *  POSCart bloquee los +). */
+  onStockSync: () => Promise<void> | void
+}
+
+function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
   const store = usePOSStore()
   const [cobrado, setCobrado] = useState(false)
   // Estado local del campo "monto recibido" para calcular vuelto.
@@ -88,6 +97,24 @@ function POSPaymentImpl() {
         metodo_pago: store.metodoPago,
         items: itemsParaVenta,
       })
+
+      // Caso esperado: server-side detectó que algún ítem del ticket
+      // ya no tiene stock suficiente (otro cajero vendió mientras tanto,
+      // o el carrito tenía datos desactualizados). NO limpiamos el
+      // ticket — el cajero ajusta y reintenta. Mostramos qué producto
+      // falló y cuánto hay disponible.
+      if (esErrorStockInsuficiente(result)) {
+        toast.error(
+          `Sin stock de ${result.nombre}. Te quedan ${result.disponible}, pediste ${result.pedido}.`,
+          { id: 'pos-cobrar', duration: 6000 },
+        )
+        store.setCargandoVenta(false)
+        // Refrescar productos: el carrito tenía stocks desactualizados.
+        // Tras esto POSCart bloquea los + de los items afectados, lo
+        // que ayuda al cajero a ajustar antes de re-intentar cobrar.
+        void onStockSync()
+        return
+      }
 
       if (!result) {
         toast.error('No se pudo guardar la venta. Probá de nuevo.', { id: 'pos-cobrar' })
@@ -197,6 +224,10 @@ function POSPaymentImpl() {
         store.requestRefocus()
       }, COBRADO_FEEDBACK_MS)
 
+      // Refrescar productos para reflejar stocks bajados — la próxima
+      // búsqueda ve datos frescos. No bloquea el flujo de éxito.
+      void onStockSync()
+
       // Liberar la venta retenida después de la duración del toast,
       // para que el printable off-screen no quede colgado en DOM
       // indefinidamente.
@@ -207,7 +238,13 @@ function POSPaymentImpl() {
     }
   }
 
-  cobrarRef.current = cobrar
+  // Mantener el ref sincronizado con la última versión de `cobrar`
+  // para que el listener de F8/Ctrl+Enter siempre invoque la closure
+  // más reciente (evita stale closures). React 19 prohíbe actualizar
+  // refs durante render — el effect corre después y resuelve ambos.
+  useEffect(() => {
+    cobrarRef.current = cobrar
+  })
 
   // Atajos F8 / Ctrl+Enter para cobrar sin tocar el mouse.
   // Suprimidos si hay un modal abierto (data-modal-card en DOM).
