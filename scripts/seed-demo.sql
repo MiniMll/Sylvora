@@ -19,20 +19,33 @@
 --
 -- ───── ANTES DE EJECUTAR ─────────────────────────────────────────────
 --
--- 1. Reemplazar 'CAMBIAR_PASSWORD' (línea con etiqueta DEMO_PASSWORD)
---    por la pass real. DEBE coincidir con el secret DEMO_PASSWORD
---    que vayas a configurar en Vercel para el server action del
---    botón "Ver demo".
+-- 1. Crear el usuario demo VÍA SUPABASE DASHBOARD (NO desde SQL).
+--    Auth.users / auth.identities son frágiles de seedear a mano —
+--    GoTrue agrega columnas y validadores entre versiones, y un
+--    INSERT directo que pasaba ayer puede dejar el user en estado
+--    inválido (500 al login). El Dashboard usa la API interna y
+--    siempre genera filas válidas.
 --
--- 2. Aplicar UNA VEZ por DB:
+--    Dashboard → Authentication → Users → Add user → Create new user:
+--      - Email: demo@sylvora.app
+--      - Password: la misma que vas a poner en DEMO_PASSWORD de Vercel
+--      - Auto Confirm User: SÍ (sin esto, login falla pidiendo verificación)
+--
+-- 2. Copiar el UID del usuario recién creado (panel lateral) y
+--    pegarlo abajo en USUARIO_DEMO_ID — reemplazar el placeholder.
+--
+-- 3. Aplicar:
 --      psql $DATABASE_URL -f scripts/seed-demo.sql
 --    o desde Supabase Dashboard → SQL Editor.
 --
--- 3. Verificación rápida post-run al final del archivo.
+-- 4. Verificación rápida post-run al final del archivo.
 --
 -- IDEMPOTENTE: el script es re-runnable. DELETE selectivo del
 -- comercio demo + INSERT fresh garantiza que repetir nunca duplica
--- ni deja basura.
+-- ni deja basura. Si rotás la password del user demo desde el
+-- Dashboard, NO hace falta re-correr este seed — la pass vive en
+-- auth.users (que no tocamos), y este script solo gestiona datos
+-- de aplicación.
 --
 -- DATOS ARGENTINOS:
 --   - Productos con marcas reales (Coca-Cola, Quilmes, Marlboro,
@@ -45,18 +58,49 @@
 --   - Ventas distribuidas en los últimos 7 días con timestamps
 --     relativos a now() → la demo siempre se ve reciente.
 
+-- ═══════════════════════════════════════════════════════════════════
+-- USUARIO DEMO — UUID a editar antes de aplicar
+-- ═══════════════════════════════════════════════════════════════════
+-- Pegá acá el UID que copiaste del Dashboard (paso 2 del header).
+-- Es el ÚNICO valor que cambia entre entornos. El UUID del comercio
+-- queda hardcodeado (lo referencia el frontend en lib/demo.ts).
+
+\set usuario_demo_id 'PEGAR_UID_DEL_DASHBOARD_ACA'
+
+-- Para Supabase SQL Editor (no admite \set), reemplazar a mano
+-- todas las ocurrencias de :'usuario_demo_id' por el UUID literal
+-- antes de pegar y ejecutar. Buscar y reemplazar funciona.
+
 BEGIN;
 
--- ───── Extensión requerida para hashing de password ─────────────────
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- pgcrypto NO se usa más (antes era para crypt() del password). Si
+-- la habías instalado por este seed, no hace falta dropearla — no
+-- molesta y otros usos futuros la pueden necesitar.
 
--- ───── UUIDs estables del comercio y usuario demo ───────────────────
--- Hardcodeados a propósito: el frontend los va a referenciar en
--- lib/demo.ts para detectar "modo demo". Si los cambiás acá,
--- cambiá también la constante allá.
+-- ───── Guard: el auth user debe existir ─────────────────────────────
+-- Si no existe (te olvidaste de crear el user en el Dashboard o de
+-- pegar el UID arriba), fallamos rápido con mensaje claro en lugar
+-- de fallar más adelante al insertar perfiles con FK rota.
+
+DO $$
+DECLARE
+  v_existe boolean;
+BEGIN
+  SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = :'usuario_demo_id'::uuid)
+    INTO v_existe;
+  IF NOT v_existe THEN
+    RAISE EXCEPTION
+      'auth.users no contiene el UUID demo. Pasos: 1) crear demo@sylvora.app en Supabase Dashboard → Authentication → Users (Auto Confirm = SÍ), 2) copiar el UID y reemplazarlo arriba en \set usuario_demo_id. UUID actual buscado: %',
+      :'usuario_demo_id';
+  END IF;
+END $$;
+
+-- ───── UUIDs estables del comercio demo ─────────────────────────────
+-- El UUID del COMERCIO sí queda hardcodeado: el frontend lo va a
+-- referenciar en lib/demo.ts para detectar "modo demo". Cambiarlo
+-- requiere cambiar también la constante allá.
 --
 --   COMERCIO_DEMO_ID = 'dddddddd-1111-1111-1111-111111111111'
---   USUARIO_DEMO_ID  = 'dddddddd-2222-2222-2222-222222222222'
 
 -- ═══════════════════════════════════════════════════════════════════
 -- 1. COMERCIO DEMO
@@ -85,65 +129,18 @@ ON CONFLICT (id) DO UPDATE
       trial_ends_at = EXCLUDED.trial_ends_at;
 
 -- ═══════════════════════════════════════════════════════════════════
--- 2. USUARIO AUTH (auth.users + auth.identities)
+-- 2. PERFIL (link comercio ←→ usuario auth creado vía Dashboard)
 -- ═══════════════════════════════════════════════════════════════════
--- Patrón Supabase para sembrar un usuario vía SQL: row en auth.users
--- con encrypted_password + email_confirmed_at, y identity en
--- auth.identities asociando el provider 'email' con el user.
+-- El usuario auth.users ya existe (creado vía Dashboard, pasos 1-2
+-- del header). Acá solo gestionamos el perfil que linkea ese user
+-- al comercio demo.
 --
--- crypt(<pass>, gen_salt('bf')) genera el hash bcrypt que espera GoTrue.
-
-INSERT INTO auth.users (
-  id, instance_id, aud, role, email, encrypted_password,
-  email_confirmed_at, created_at, updated_at,
-  raw_app_meta_data, raw_user_meta_data
-)
-VALUES (
-  'dddddddd-2222-2222-2222-222222222222',
-  '00000000-0000-0000-0000-000000000000',
-  'authenticated',
-  'authenticated',
-  'demo@sylvora.app',
-  -- DEMO_PASSWORD: reemplazar antes de ejecutar. Debe coincidir con
-  -- la env var DEMO_PASSWORD de Vercel.
-  crypt('CAMBIAR_PASSWORD', gen_salt('bf')),
-  now(),
-  now(),
-  now(),
-  '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"name":"Demo Sylvora"}'::jsonb
-)
-ON CONFLICT (id) DO UPDATE
-  SET encrypted_password  = EXCLUDED.encrypted_password,
-      email_confirmed_at  = EXCLUDED.email_confirmed_at,
-      updated_at          = now();
-
-INSERT INTO auth.identities (
-  id, user_id, identity_data, provider, provider_id,
-  last_sign_in_at, created_at, updated_at
-)
-VALUES (
-  'dddddddd-2222-2222-2222-222222222223',
-  'dddddddd-2222-2222-2222-222222222222',
-  jsonb_build_object(
-    'sub',   'dddddddd-2222-2222-2222-222222222222',
-    'email', 'demo@sylvora.app'
-  ),
-  'email',
-  'dddddddd-2222-2222-2222-222222222222',
-  now(),
-  now(),
-  now()
-)
-ON CONFLICT (provider, provider_id) DO NOTHING;
-
--- ═══════════════════════════════════════════════════════════════════
--- 3. PERFIL (link comercio ←→ usuario)
--- ═══════════════════════════════════════════════════════════════════
+-- Nota: si el perfil quedó borrado por ON DELETE CASCADE al re-crear
+-- el user demo en el Dashboard, este INSERT lo recrea limpio.
 
 INSERT INTO perfiles (id, comercio_id, nombre, rol)
 VALUES (
-  'dddddddd-2222-2222-2222-222222222222',
+  :'usuario_demo_id'::uuid,
   'dddddddd-1111-1111-1111-111111111111',
   'Demo Sylvora',
   'admin'
@@ -154,7 +151,7 @@ ON CONFLICT (id) DO UPDATE
       rol         = 'admin';
 
 -- ═══════════════════════════════════════════════════════════════════
--- 4. LIMPIEZA — borrar datos del comercio demo antes del re-seed
+-- 3. LIMPIEZA — borrar datos del comercio demo antes del re-seed
 -- ═══════════════════════════════════════════════════════════════════
 -- ON DELETE CASCADE en ventas → items_venta → no hace falta tocar
 -- items_venta a mano. Borramos en orden de dependencia.
@@ -170,7 +167,7 @@ DELETE FROM lotes             WHERE producto_id IN (
 DELETE FROM productos         WHERE comercio_id = 'dddddddd-1111-1111-1111-111111111111';
 
 -- ═══════════════════════════════════════════════════════════════════
--- 5. PRODUCTOS — catálogo realista de almacén argentino
+-- 4. PRODUCTOS — catálogo realista de almacén argentino
 -- ═══════════════════════════════════════════════════════════════════
 -- 36 productos. Mix de categorías. 5 con stock crítico (1-5) para que
 -- el dashboard de stock bajo y los hints de reposición tengan señal.
@@ -303,7 +300,7 @@ INSERT INTO productos (
     6500, 0, 10500, 1.8, 1, 4, 'kg', true);
 
 -- ═══════════════════════════════════════════════════════════════════
--- 6. VENTAS HISTÓRICAS (últimos 7 días)
+-- 5. VENTAS HISTÓRICAS (últimos 7 días)
 -- ═══════════════════════════════════════════════════════════════════
 -- 20 ventas con timestamps relativos a now() → siempre se ven recientes.
 -- Distribución: más ventas en tardes, mix de métodos de pago,
@@ -533,7 +530,7 @@ INSERT INTO items_venta (id, venta_id, producto_id, nombre_producto, cantidad, p
 END $$;
 
 -- ═══════════════════════════════════════════════════════════════════
--- 7. MOVIMIENTOS DE CAJA — hoy
+-- 6. MOVIMIENTOS DE CAJA — hoy
 -- ═══════════════════════════════════════════════════════════════════
 
 INSERT INTO movimientos_caja (id, comercio_id, tipo, monto, descripcion, metodo_pago, created_at) VALUES
@@ -555,7 +552,7 @@ INSERT INTO movimientos_caja (id, comercio_id, tipo, monto, descripcion, metodo_
     date_trunc('day', now()) + interval '15 hours' + interval '40 minutes');
 
 -- ═══════════════════════════════════════════════════════════════════
--- 8. CIERRES DE CAJA — históricos
+-- 7. CIERRES DE CAJA — históricos
 -- ═══════════════════════════════════════════════════════════════════
 -- 2 cierres recientes para que /caja tenga historial. Los montos se
 -- estiman a partir de las ventas históricas (no necesitan cuadrar
@@ -616,10 +613,14 @@ COMMIT;
 --     AND v.subtotal != (SELECT sum(subtotal) FROM items_venta WHERE venta_id = v.id);
 --   → 0 filas
 --
---   SELECT email FROM auth.users
---     WHERE id = 'dddddddd-2222-2222-2222-222222222222';
---   → demo@sylvora.app
+-- Perfil linkeado al user del Dashboard:
+--   SELECT u.email, p.comercio_id, p.rol
+--   FROM auth.users u
+--   JOIN perfiles p ON p.id = u.id
+--   WHERE u.email = 'demo@sylvora.app';
+--   → 1 fila: demo@sylvora.app | dddddddd-1111-... | admin
 --
 -- Test de login (en el navegador, NO en SQL):
---   Ir a /login, email demo@sylvora.app + password que pusiste arriba
---   → debe entrar y ver el dashboard con datos.
+--   Ir a /login, email demo@sylvora.app + password que pusiste en el
+--   Dashboard al crear el user → debe entrar y ver el dashboard con
+--   datos.
