@@ -31,12 +31,13 @@
 --      - Password: la misma que vas a poner en DEMO_PASSWORD de Vercel
 --      - Auto Confirm User: SÍ (sin esto, login falla pidiendo verificación)
 --
--- 2. Copiar el UID del usuario recién creado (panel lateral) y
---    pegarlo abajo en USUARIO_DEMO_ID — reemplazar el placeholder.
+-- 2. Verificar que el UID generado coincide con el hardcodeado abajo
+--    (673d3398-9581-4744-8bfd-5ec472ec3a84). Si Supabase generó otro,
+--    hacer find-and-replace de ese UUID en todo este archivo (3
+--    ocurrencias) antes de aplicar.
 --
--- 3. Aplicar:
---      psql $DATABASE_URL -f scripts/seed-demo.sql
---    o desde Supabase Dashboard → SQL Editor.
+-- 3. Aplicar pegando el contenido completo en Supabase Dashboard →
+--    SQL Editor → Run. NO usa variables psql, corre tal cual.
 --
 -- 4. Verificación rápida post-run al final del archivo.
 --
@@ -59,17 +60,20 @@
 --     relativos a now() → la demo siempre se ve reciente.
 
 -- ═══════════════════════════════════════════════════════════════════
--- USUARIO DEMO — UUID a editar antes de aplicar
+-- UUIDs hardcodeados — editar SOLO si cambia el comercio o usuario
 -- ═══════════════════════════════════════════════════════════════════
--- Pegá acá el UID que copiaste del Dashboard (paso 2 del header).
--- Es el ÚNICO valor que cambia entre entornos. El UUID del comercio
--- queda hardcodeado (lo referencia el frontend en lib/demo.ts).
-
-\set usuario_demo_id 'PEGAR_UID_DEL_DASHBOARD_ACA'
-
--- Para Supabase SQL Editor (no admite \set), reemplazar a mano
--- todas las ocurrencias de :'usuario_demo_id' por el UUID literal
--- antes de pegar y ejecutar. Buscar y reemplazar funciona.
+-- USUARIO_DEMO_ID = '673d3398-9581-4744-8bfd-5ec472ec3a84'
+--   UID del user auth demo@sylvora.app (creado vía Dashboard).
+--   Si rotás el user en otra DB, reemplazá todas las apariciones
+--   del UUID con find-and-replace (3 ocurrencias).
+--
+-- COMERCIO_DEMO_ID = 'dddddddd-1111-1111-1111-111111111111'
+--   Lo referencia el frontend en lib/demo.ts para detectar
+--   "modo demo". Si lo cambiás, actualizá también esa constante.
+--
+-- NOTA: este archivo NO usa variables psql (\set) — corre tal cual
+-- en Supabase SQL Editor. Si querés generalizarlo, hacé find-and-
+-- replace de los UUIDs antes de pegar.
 
 BEGIN;
 
@@ -86,21 +90,13 @@ DO $$
 DECLARE
   v_existe boolean;
 BEGIN
-  SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = :'usuario_demo_id'::uuid)
+  SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = '673d3398-9581-4744-8bfd-5ec472ec3a84'::uuid)
     INTO v_existe;
   IF NOT v_existe THEN
     RAISE EXCEPTION
-      'auth.users no contiene el UUID demo. Pasos: 1) crear demo@sylvora.app en Supabase Dashboard → Authentication → Users (Auto Confirm = SÍ), 2) copiar el UID y reemplazarlo arriba en \set usuario_demo_id. UUID actual buscado: %',
-      :'usuario_demo_id';
+      'auth.users no contiene el UUID demo (673d3398-9581-4744-8bfd-5ec472ec3a84). Crear demo@sylvora.app en Supabase Dashboard → Authentication → Users (Auto Confirm = SÍ) y luego reemplazar el UUID literal en este script si el dashboard generó uno distinto.';
   END IF;
 END $$;
-
--- ───── UUIDs estables del comercio demo ─────────────────────────────
--- El UUID del COMERCIO sí queda hardcodeado: el frontend lo va a
--- referenciar en lib/demo.ts para detectar "modo demo". Cambiarlo
--- requiere cambiar también la constante allá.
---
---   COMERCIO_DEMO_ID = 'dddddddd-1111-1111-1111-111111111111'
 
 -- ═══════════════════════════════════════════════════════════════════
 -- 1. COMERCIO DEMO
@@ -140,7 +136,7 @@ ON CONFLICT (id) DO UPDATE
 
 INSERT INTO perfiles (id, comercio_id, nombre, rol)
 VALUES (
-  :'usuario_demo_id'::uuid,
+  '673d3398-9581-4744-8bfd-5ec472ec3a84'::uuid,
   'dddddddd-1111-1111-1111-111111111111',
   'Demo Sylvora',
   'admin'
