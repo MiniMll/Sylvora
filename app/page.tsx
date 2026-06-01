@@ -65,8 +65,17 @@ async function resolverAuth(): Promise<boolean> {
   }
 }
 
-export default async function HomePage() {
+interface HomePageProps {
+  // En Next 16, searchParams es una Promise en server components.
+  searchParams: Promise<{ demo_error?: string }>
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
   const isAuthenticated = await resolverAuth()
+  const { demo_error } = await searchParams
+  // Whitelist los valores válidos — cualquier otro string se ignora.
+  const demoError: 'config' | 'auth' | null =
+    demo_error === 'config' || demo_error === 'auth' ? demo_error : null
 
   // Preload del screenshot del hero para acelerar el LCP.
   // ReactDOM.preload inyecta <link rel="preload"> en el head del HTML
@@ -82,7 +91,7 @@ export default async function HomePage() {
       <JsonLd siteUrl={APP_URL} />
       <Nav isAuthenticated={isAuthenticated} />
       <main>
-        <Hero isAuthenticated={isAuthenticated} />
+        <Hero isAuthenticated={isAuthenticated} demoError={demoError} />
         <Problema />
         <ComoFunciona />
         <ParaQuien />

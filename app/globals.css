@@ -847,6 +847,52 @@ button:active { transform: scale(0.97); }
   outline-offset: 3px;
 }
 
+/* CTA secundario "Ver demo". Estilo ghost/link — visualmente menos
+   prominente que el primario para no competir con el CTA principal.
+   Es un <button> dentro de un <form action=serverAction>, así que
+   conserva los estilos focus/hover de botón. */
+.hero-cta-demo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: transparent;
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.hero-cta-demo:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--bg2);
+}
+.hero-cta-demo:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+}
+
+/* Banner de error de demo — aparece sobre la fila de CTAs cuando
+   el visitante intentó "Ver demo" pero falló (config o auth). */
+.hero-demo-error {
+  margin-bottom: 14px;
+  padding: 8px 14px;
+  background: rgba(255,71,87,0.08);
+  border: 1px solid rgba(255,71,87,0.22);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--r);
+  line-height: 1.4;
+  text-align: left;
+  max-width: 480px;
+}
+
 /* Micro-trust debajo del CTA. */
 .hero-micro {
   margin: 0;
