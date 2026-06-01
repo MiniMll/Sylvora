@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { invalidarCacheComercio } from '@/lib/supabase/_base'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
+import { DemoLockNotice } from '@/components/ui/DemoLockNotice'
 import type { Comercio } from '@/types/database'
 
 // Tab "Comercio" — datos del negocio que aparecen en tickets, PDFs
@@ -18,9 +19,14 @@ import type { Comercio } from '@/types/database'
 interface Props {
   comercio: Comercio
   onSaved: () => void
+  /** Si true, el form se muestra en modo lectura — inputs disabled y
+   *  el botón Guardar se reemplaza por un DemoLockNotice. Para la
+   *  cuenta demo compartida (evita que un visitante cambie nombre
+   *  del comercio y rompa la demo para los siguientes). */
+  bloqueado?: boolean
 }
 
-export function TabComercio({ comercio, onSaved }: Props) {
+export function TabComercio({ comercio, onSaved, bloqueado = false }: Props) {
   const [form, setForm] = useState({
     nombre:    comercio.nombre || '',
     tipo:      comercio.tipo || 'almacen',
@@ -73,12 +79,12 @@ export function TabComercio({ comercio, onSaved }: Props) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 20 }}>
         <Field label="Nombre del comercio" full>
-          <Input size="md" value={form.nombre}
+          <Input size="md" value={form.nombre} disabled={bloqueado}
             onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
             placeholder="Almacén Don Juan" />
         </Field>
         <Field label="Tipo de comercio">
-          <Select size="md" value={form.tipo}
+          <Select size="md" value={form.tipo} disabled={bloqueado}
             onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}>
             <option value="kiosco">Kiosco</option>
             <option value="almacen">Almacén</option>
@@ -88,31 +94,38 @@ export function TabComercio({ comercio, onSaved }: Props) {
           </Select>
         </Field>
         <Field label="Teléfono">
-          <Input size="md" value={form.telefono}
+          <Input size="md" value={form.telefono} disabled={bloqueado}
             onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
             placeholder="+54 11 1234-5678" />
         </Field>
         <Field label="Email del comercio">
-          <Input size="md" type="email" value={form.email}
+          <Input size="md" type="email" value={form.email} disabled={bloqueado}
             onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
             placeholder="contacto@micomercio.com" />
         </Field>
         <Field label="Dirección" full>
-          <Input size="md" value={form.direccion}
+          <Input size="md" value={form.direccion} disabled={bloqueado}
             onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))}
             placeholder="Av. Corrientes 1234, CABA" />
         </Field>
       </div>
 
       <div style={{ marginTop: 24 }}>
-        <Button
-          variant="primary"
-          onClick={guardar}
-          loading={guardando}
-          icon={!guardando ? <Save size={14} /> : undefined}
-        >
-          {guardando ? 'Guardando…' : 'Guardar cambios'}
-        </Button>
+        {bloqueado ? (
+          <DemoLockNotice
+            texto="Editar los datos del comercio está deshabilitado en la demo."
+            detalle="Creá tu cuenta para personalizar nombre, dirección y datos que aparecen en tickets y PDFs."
+          />
+        ) : (
+          <Button
+            variant="primary"
+            onClick={guardar}
+            loading={guardando}
+            icon={!guardando ? <Save size={14} /> : undefined}
+          >
+            {guardando ? 'Guardando…' : 'Guardar cambios'}
+          </Button>
+        )}
       </div>
     </div>
   )

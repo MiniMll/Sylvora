@@ -7,7 +7,10 @@ import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
+import { DemoLockNotice } from '@/components/ui/DemoLockNotice'
 import { usePermissions } from '@/components/PermissionsProvider'
+import { useTrial } from '@/lib/hooks/useTrial'
+import { esComercioDemo } from '@/lib/demo'
 import { listUsuariosComercio, cambiarRolUsuario } from '@/lib/supabase/usuarios'
 import { labelRol } from '@/lib/permissions'
 import type { Perfil, Rol } from '@/types/database'
@@ -24,6 +27,12 @@ import type { Perfil, Rol } from '@/types/database'
 
 export default function UsuariosPage() {
   const { has, loading: permsLoading } = usePermissions()
+  // Modo demo: el flujo de invitar usuarios queda bloqueado porque
+  // mandaría emails reales con SMTP del comercio demo a direcciones
+  // que el visitante pondría caprichosamente. La lista de usuarios
+  // (solo el demo) sigue visible para mostrar el layout.
+  const { comercio } = useTrial()
+  const esDemo = esComercioDemo(comercio)
   const [usuarios, setUsuarios] = useState<Perfil[]>([])
   const [cargando, setCargando] = useState(true)
   const [actualizando, setActualizando] = useState<string | null>(null)
@@ -132,15 +141,16 @@ export default function UsuariosPage() {
         </div>
         {/* Cuando sos el único usuario, el CTA vive en el empty state
             de abajo — evitamos duplicar el botón. Reaparece arriba
-            cuando ya hay equipo. */}
-        {usuarios.length > 1 && (
+            cuando ya hay equipo. En demo el botón nunca aparece
+            (visitantes no deben mandar invitaciones por mail). */}
+        {usuarios.length > 1 && !esDemo && (
           <Button variant="primary" size="sm" icon={<UserPlus size={14} />} onClick={() => setInvitarOpen(true)}>
             Invitar usuario
           </Button>
         )}
       </div>
 
-      {usuarios.length === 1 && (
+      {usuarios.length === 1 && !esDemo && (
         <div style={{ flexShrink: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
           <EmptyState
             accent
@@ -149,6 +159,15 @@ export default function UsuariosPage() {
             description="Invitá a tus empleados para que cobren con su propia cuenta. Vos decidís qué puede tocar cada uno."
             actions={[{ label: 'Invitar usuario', onClick: () => setInvitarOpen(true), variant: 'primary', icon: <UserPlus size={15} /> }]}
             guiaHref="/guia"
+          />
+        </div>
+      )}
+
+      {esDemo && (
+        <div style={{ flexShrink: 0 }}>
+          <DemoLockNotice
+            texto="Invitar usuarios está deshabilitado en la demo."
+            detalle="En tu propio comercio podés sumar empleados y asignarles permisos diferenciados (cobrar, ver reportes, etc.)."
           />
         </div>
       )}

@@ -5,6 +5,7 @@ import { Building2, User, CreditCard, Users, type LucideIcon } from 'lucide-reac
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
+import { esComercioDemo } from '@/lib/demo'
 import type { Comercio } from '@/types/database'
 
 import { TabComercio } from './components/TabComercio'
@@ -99,7 +100,14 @@ function ConfiguracionShell() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { cargar() }, [cargar])
+  useEffect(() => {
+    // Fetch-on-mount estándar (Next + Supabase client). El lint
+    // react-hooks/set-state-in-effect prefiere useSyncExternalStore
+    // o SWR/react-query, pero acá el effect dispara cargar() que
+    // setea data + loading. Caso legítimo documentado por React.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    cargar()
+  }, [cargar])
 
   // Cambio de tab — `replace` evita inflar el history (no querés
   // que el botón "atrás" del browser navegue tab-por-tab dentro
@@ -184,9 +192,19 @@ function ConfiguracionShell() {
 
       {/* Contenido del tab — max-width 720 para que los forms no se
           estiren absurdamente en monitores anchos. */}
+      {/* Si el comercio activo es el demo compartido, pasamos el flag
+          a las tabs sensibles. Cada tab decide cómo presentar el
+          bloqueo (inputs disabled + DemoLockNotice en vez de Guardar).
+          NO ocultamos las tabs en sí — el visitante puede explorar
+          el layout completo de Configuración para entender qué
+          ofrece el producto real. */}
       <div style={{ maxWidth: 720 }}>
         {tabActivo === 'comercio' && data.comercio && (
-          <TabComercio comercio={data.comercio} onSaved={cargar} />
+          <TabComercio
+            comercio={data.comercio}
+            onSaved={cargar}
+            bloqueado={esComercioDemo(data.comercio)}
+          />
         )}
         {tabActivo === 'comercio' && !data.comercio && (
           <div style={{ color: 'var(--text2)', fontSize: 13 }}>
@@ -199,6 +217,7 @@ function ConfiguracionShell() {
             perfilNombre={data.perfilNombre}
             email={data.userEmail}
             onSaved={cargar}
+            bloqueado={esComercioDemo(data.comercio)}
           />
         )}
         {tabActivo === 'plan' && (
