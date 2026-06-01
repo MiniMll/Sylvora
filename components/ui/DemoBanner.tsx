@@ -1,8 +1,10 @@
 'use client'
-import Link from 'next/link'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Sparkles, ArrowRight } from 'lucide-react'
 import { useTrial } from '@/lib/hooks/useTrial'
 import { esComercioDemo } from '@/lib/demo'
+import { createClient } from '@/lib/supabase/client'
 
 // Banner sticky que aparece SOLO cuando la sesión actual está usando
 // el comercio demo compartido. Cumple dos roles:
@@ -31,12 +33,38 @@ import { esComercioDemo } from '@/lib/demo'
 // necesitamos (comercio.id) está en `trial.comercio`.
 
 export function DemoBanner() {
+  const router = useRouter()
   const { comercio, loading } = useTrial()
+  const [saliendo, setSaliendo] = useState(false)
 
   // No flashear durante el primer render mientras se resuelve la
   // sesión. Mejor 1 frame sin banner que un parpadeo del banner.
   if (loading) return null
   if (!esComercioDemo(comercio)) return null
+
+  // CTA → /registro. Cerramos la sesión demo PRIMERO. Sin esto, el
+  // visitante llega a /registro con cookies de demo@sylvora.app vivas;
+  // al registrarse, el flujo arma una sesión nueva por encima de la
+  // vieja y dejaba estados raros (ej. router.push bounce-back, página
+  // que parece no cargar). Con signOut explícito empezamos desde
+  // estado limpio.
+  async function irARegistro() {
+    if (saliendo) return
+    setSaliendo(true)
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    } catch (e) {
+      // signOut puede fallar si la red está caída, pero igual queremos
+      // que el visitante llegue al registro (la página pública es
+      // accesible sin sesión válida). Log pero no bloquea.
+      console.error('[DemoBanner] signOut falló', e)
+    }
+    // router.push respeta el client routing; usamos push (no replace)
+    // para que el back del navegador devuelva al demo si el visitante
+    // se arrepiente.
+    router.push('/registro')
+  }
 
   return (
     <div
@@ -85,8 +113,10 @@ export function DemoBanner() {
           </span>
         </span>
 
-        <Link
-          href="/registro"
+        <button
+          onClick={irARegistro}
+          disabled={saliendo}
+          type="button"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -95,17 +125,20 @@ export function DemoBanner() {
             minHeight: 28,
             background: 'var(--ac)',
             color: '#fff',
+            border: 'none',
             borderRadius: 7,
             fontSize: 12,
             fontWeight: 600,
-            textDecoration: 'none',
+            fontFamily: 'inherit',
+            cursor: saliendo ? 'progress' : 'pointer',
+            opacity: saliendo ? 0.7 : 1,
             whiteSpace: 'nowrap',
             flexShrink: 0,
           }}
         >
-          Crear mi cuenta
-          <ArrowRight size={12} strokeWidth={2.4} />
-        </Link>
+          {saliendo ? 'Saliendo...' : 'Crear mi cuenta'}
+          {!saliendo && <ArrowRight size={12} strokeWidth={2.4} />}
+        </button>
       </div>
     </div>
   )
