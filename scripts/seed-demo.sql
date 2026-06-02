@@ -585,7 +585,7 @@ COMMIT;
 -- Esperás (sobre el comercio demo):
 --   SELECT count(*) FROM productos
 --     WHERE comercio_id = 'dddddddd-1111-1111-1111-111111111111';
---   → 35
+--   → 36
 --
 --   SELECT count(*) FROM ventas
 --     WHERE comercio_id = 'dddddddd-1111-1111-1111-111111111111';

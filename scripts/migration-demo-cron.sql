@@ -86,7 +86,7 @@ BEGIN
   WHERE id = v_comercio;
 
   -- ──────────────────────────────────────────────────────────────────
-  -- 2. PRODUCTOS (35 items — debe matchear seed-demo.sql)
+  -- 2. PRODUCTOS (36 items — debe matchear seed-demo.sql)
   -- ──────────────────────────────────────────────────────────────────
   INSERT INTO productos (
     id, comercio_id, nombre, sku, codigo_barras, categoria,
@@ -305,6 +305,37 @@ BEGIN
     ('dddddddd-7777-7777-7777-000000000001', v_comercio, (now() - interval '2 days')::date, 12860, 0, 12860, 2, 3470, 0, 0,    0, 9390, 3500, 30, 0),
     ('dddddddd-7777-7777-7777-000000000002', v_comercio, (now() - interval '1 day')::date,   7900, 0,  7900, 2, 2760, 0, 5140, 0,    0, 2780, 20, 0);
 
+  -- ──────────────────────────────────────────────────────────────────
+  -- 6. ASSERT — guard contra truncamiento del script
+  -- ──────────────────────────────────────────────────────────────────
+  -- Si la función se aplicó parcialmente (paste cortado en el SQL
+  -- Editor, etc.), los conteos no van a matchear y queremos fallar
+  -- visible en lugar de dejar la demo a medias. Cada número refleja
+  -- lo que realmente declara este script — si lo editás, actualizá
+  -- también los esperados.
+  DECLARE
+    v_count_productos integer;
+    v_count_ventas    integer;
+    v_count_items     integer;
+    v_count_mov       integer;
+    v_count_cierres   integer;
+  BEGIN
+    SELECT count(*) INTO v_count_productos FROM productos WHERE comercio_id = v_comercio;
+    SELECT count(*) INTO v_count_ventas    FROM ventas    WHERE comercio_id = v_comercio;
+    SELECT count(*) INTO v_count_items     FROM items_venta WHERE venta_id IN (SELECT id FROM ventas WHERE comercio_id = v_comercio);
+    SELECT count(*) INTO v_count_mov       FROM movimientos_caja WHERE comercio_id = v_comercio;
+    SELECT count(*) INTO v_count_cierres   FROM cierres_caja WHERE comercio_id = v_comercio;
+
+    RAISE NOTICE 'reset_demo_data: productos=%, ventas=%, items=%, mov_caja=%, cierres=%',
+      v_count_productos, v_count_ventas, v_count_items, v_count_mov, v_count_cierres;
+
+    IF v_count_productos <> 36 OR v_count_ventas <> 18 OR v_count_mov <> 4 OR v_count_cierres <> 2 THEN
+      RAISE EXCEPTION
+        'reset_demo_data: conteos inesperados (productos=% esperado 36, ventas=% esperado 18, mov=% esperado 4, cierres=% esperado 2). El cuerpo de la función puede estar truncado — reapliquen scripts/migration-demo-cron.sql completo.',
+        v_count_productos, v_count_ventas, v_count_mov, v_count_cierres;
+    END IF;
+  END;
+
 END;
 $$;
 
@@ -349,14 +380,27 @@ COMMIT;
 --    FROM cron.job WHERE jobname = 'reset-demo-data-daily';
 --    → 1 fila con schedule='0 7 * * *' y active=true
 --
--- 3. Test manual del reset (cuidado: BORRA y RE-INSERTA datos demo):
+-- 3. Test manual del reset (cuidado: BORRA y RE-INSERTA datos demo).
+--    El propio reset_demo_data() emite RAISE NOTICE con los conteos
+--    y RAISE EXCEPTION si no matchean — así detectamos truncamiento
+--    silencioso si el script se pegó incompleto.
+--
 --    BEGIN;
 --      SELECT reset_demo_data();
---      SELECT count(*) FROM productos WHERE comercio_id = 'dddddddd-1111-1111-1111-111111111111';
---      -- → 35
---      SELECT count(*) FROM ventas WHERE comercio_id = 'dddddddd-1111-1111-1111-111111111111';
---      -- → 18
+--      -- NOTICE esperado:
+--      --   reset_demo_data: productos=36, ventas=18, items=58, mov_caja=4, cierres=2
+--      SELECT count(*) FROM productos WHERE comercio_id = 'dddddddd-1111-1111-1111-111111111111'; -- → 36
+--      SELECT count(*) FROM ventas    WHERE comercio_id = 'dddddddd-1111-1111-1111-111111111111'; -- → 18
 --    ROLLBACK;  -- evita aplicar el reset hasta el próximo fire del cron
+--
+-- 3b. Diagnóstico del cuerpo de la función (útil si los conteos fallan):
+--    SELECT
+--      length(prosrc) AS chars_funcion,
+--      (length(prosrc) - length(replace(prosrc, 'dddddddd-3333-3333-3333', '')))
+--        / length('dddddddd-3333-3333-3333') AS refs_productos_en_funcion
+--    FROM pg_proc WHERE proname = 'reset_demo_data';
+--    Esperado: chars_funcion ~17000, refs_productos_en_funcion = 94.
+--    Si refs < 94 → el cuerpo está truncado, reaplicar el script entero.
 --
 -- 4. Inspeccionar últimas ejecuciones del cron (después de algunos días):
 --    SELECT jobname, status, return_message, start_time, end_time
