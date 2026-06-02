@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { Smartphone, Users, MessageCircle, Zap } from 'lucide-react'
+import { Smartphone, Users, MessageCircle, Zap, Sparkles } from 'lucide-react'
 import { Section } from './lib/Section'
 import { Container } from './lib/Container'
 import { ScreenshotCard } from './lib/ScreenshotCard'
+import { loginDemoAction } from '@/lib/actions/demo-login'
 
 // Hero de la landing. Server component (cero JS).
 //
@@ -39,9 +40,18 @@ const BENEFITS = [
 interface HeroProps {
   /** Cambia el destino del CTA según si el visitante ya tiene cuenta. */
   isAuthenticated: boolean
+  /** Tipo de error si el botón "Ver demo" falló. Pasado desde page.tsx
+   *  que lee searchParams. Si está presente, mostramos un banner
+   *  inline en lugar del botón demo. */
+  demoError?: 'config' | 'auth' | null
 }
 
-export function Hero({ isAuthenticated }: HeroProps) {
+const DEMO_ERROR_COPY: Record<'config' | 'auth', string> = {
+  config: 'La demo no está disponible ahora. Probá entrar directamente con tu cuenta.',
+  auth: 'No pudimos abrir la demo. Probá de nuevo en unos minutos o creá tu cuenta.',
+}
+
+export function Hero({ isAuthenticated, demoError = null }: HeroProps) {
   const ctaHref = isAuthenticated ? '/dashboard' : '/registro'
   const ctaLabel = isAuthenticated ? 'Ir al dashboard' : 'Probar 30 días gratis'
 
@@ -79,6 +89,12 @@ export function Hero({ isAuthenticated }: HeroProps) {
               {' '}Empezás gratis en 2 minutos.
             </p>
 
+            {demoError && (
+              <div className="hero-demo-error hero-stagger hero-stagger-4" role="alert">
+                {DEMO_ERROR_COPY[demoError]}
+              </div>
+            )}
+
             <div className="hero-cta-row hero-cta-gap hero-stagger hero-stagger-4">
               <Link
                 href={ctaHref}
@@ -88,6 +104,26 @@ export function Hero({ isAuthenticated }: HeroProps) {
                 <span>{ctaLabel}</span>
                 <span aria-hidden="true" style={{ marginLeft: 8 }}>→</span>
               </Link>
+
+              {/* "Ver demo" — solo para visitantes no autenticados. Si
+                  el visitante ya tiene cuenta no tiene sentido ofrecerle
+                  la demo (puede ver su propio comercio). El botón es un
+                  <form action=serverAction> para que el handler corra
+                  100% server-side y la DEMO_PASSWORD nunca llegue al
+                  cliente. */}
+              {!isAuthenticated && (
+                <form action={loginDemoAction}>
+                  <button
+                    type="submit"
+                    className="hero-cta-demo"
+                    aria-label="Ver una demo del producto"
+                  >
+                    <Sparkles size={14} strokeWidth={2.2} aria-hidden="true" />
+                    Ver demo
+                  </button>
+                </form>
+              )}
+
               <span className="hero-micro">Sin tarjeta · 2 minutos</span>
             </div>
           </div>

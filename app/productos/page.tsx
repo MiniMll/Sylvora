@@ -11,6 +11,8 @@ import { ProductGrid } from './components/ProductGrid'
 import { ProductDetail } from './components/ProductDetail'
 import { EditProductModal, type EditFormValues } from './components/EditProductModal'
 import { ImportarProductosModal } from './components/ImportarProductosModal'
+import { useTrial } from '@/lib/hooks/useTrial'
+import { esComercioDemo } from '@/lib/demo'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -39,6 +41,12 @@ export default function ProductosPage() {
   const [guardandoLote, setGuardandoLote] = useState(false)
 
   const [importarAbierto, setImportarAbierto] = useState(false)
+  // Modo demo: ocultamos el botón Importar Excel — un visitante
+  // podría subir 500 SKUs basura y romper la demo para los demás
+  // hasta el reset cron. Carga manual por /productos/nuevo queda
+  // habilitada (es parte del valor que se ve).
+  const { comercio: comercioActivo } = useTrial()
+  const esDemo = esComercioDemo(comercioActivo)
 
   const recargarProductos = useCallback(() => {
     getProductos().then(data => setProductos(data))
@@ -262,7 +270,7 @@ export default function ProductosPage() {
         busqueda={busqueda} onBusquedaChange={setBusqueda}
         categoria={categoria} onCategoriaChange={setCategoria} categorias={categorias}
         vista={vista} onVistaChange={setVista}
-        onImportar={() => setImportarAbierto(true)}
+        onImportar={esDemo ? undefined : () => setImportarAbierto(true)}
       />
 
       <ProductGrid

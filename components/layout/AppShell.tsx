@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Sidebar } from './Sidebar'
 import { TrialBanner } from '@/components/ui/TrialBanner'
+import { DemoBanner } from '@/components/ui/DemoBanner'
 
 // Shell único para las pantallas autenticadas. Antes había 9 layouts
 // copia-pegada con el mismo div+sidebar+main; este componente
@@ -54,6 +55,12 @@ export function AppShell({ children }: AppShellProps) {
           background: 'var(--bg)',
         }}
       >
+        {/* Banners globales — mutuamente exclusivos en la práctica:
+            DemoBanner solo renderiza si el comercio actual es el demo
+            (plan='active' por seed), y TrialBanner solo si plan='trial'
+            con días restantes <= 7. Ambos returns son null en su caso
+            negativo así que no ocupan espacio si no aplican. */}
+        <DemoBanner />
         <TrialBanner />
         {children}
       </main>
