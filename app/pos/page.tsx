@@ -16,8 +16,11 @@ import { POSSearch } from './components/POSSearch'
 import { POSProducts } from './components/POSProducts'
 import { POSCart } from './components/POSCart'
 import { POSPayment } from './components/POSPayment'
+import { ScannerModal } from './components/ScannerModal'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { getDetectorStrategy } from '@/lib/scanner/detector'
+import { beep } from '@/lib/scanner/audio'
 
 const necesitaModal = (p: Producto) => ['kg', 'litro', 'metro'].includes(p.unidad_venta)
 
@@ -33,6 +36,17 @@ export default function POSPage() {
   const [busqueda, setBusqueda] = useState('')
   const [modalCantidad, setModalCantidad] = useState<Producto | null>(null)
   const [cantidadIngresada, setCantidadIngresada] = useState('')
+
+  // Scanner por cámara — abierto sólo al apretar el botón. Feature
+  // detect síncrono después de mount; default a false para no
+  // mostrar el botón antes de saber si el browser lo soporta
+  // (evita el flash "aparece y desaparece").
+  const [scannerAbierto, setScannerAbierto] = useState(false)
+  const [scannerSoportado, setScannerSoportado] = useState(false)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setScannerSoportado(getDetectorStrategy() !== 'none')
+  }, [])
   // Trial gating: si el comercio tiene el trial vencido, NO mostramos
   // el POS — reemplazamos por TrialBlocked. Cualquier intento de
   // cobrar pasaría por esta pantalla antes de tocar la DB. Defensa
@@ -118,6 +132,76 @@ export default function POSPage() {
       stock_disponible: p.stock_actual,
     })
   }
+
+  // Procesador único de "llegó un código de barras" — usado por el
+  // scanner por cámara (ScannerModal → onCodigo) y, en el commit
+  // siguiente, también por el detector USB-HID global. Mantiene la
+  // misma validación de stock que `seleccionar` y agrega beeps +
+  // toasts compactos pensados para feedback rápido durante una
+  // ráfaga de scans. NO cierra el modal — el cajero sigue escaneando.
+  const procesarCodigo = useCallback((codigo: string) => {
+    const buscado = codigo.trim()
+    if (!buscado) return
+
+    const producto = productos.find(p => p.codigo_barras === buscado)
+
+    // 1. Código no registrado en el catálogo.
+    if (!producto) {
+      beep('not-found')
+      toast.error(
+        `Código ${buscado} no encontrado en el catálogo.`,
+        { id: 'pos-scan', duration: 2500 },
+      )
+      return
+    }
+
+    // 2. Productos por peso/volumen necesitan input de cantidad.
+    //    Desde un scan no podemos saber el peso — guiamos al cajero
+    //    a usar la búsqueda manual que abre el modal de cantidad.
+    if (necesitaModal(producto)) {
+      beep('not-found')
+      toast.error(
+        `${producto.nombre} se vende por ${producto.unidad_venta}. Buscalo a mano para ingresar la cantidad.`,
+        { id: 'pos-scan', duration: 3500 },
+      )
+      return
+    }
+
+    // 3. Sin stock.
+    if (producto.stock_actual <= 0) {
+      beep('error')
+      toast.error(`${producto.nombre} no tiene stock.`, { id: 'pos-scan' })
+      return
+    }
+
+    // 4. Incrementar excedería el stock disponible.
+    const enTicket = store.items.find(i => i.producto_id === producto.id)
+    const cantidadEnTicket = enTicket?.cantidad ?? 0
+    if (cantidadEnTicket + 1 > producto.stock_actual) {
+      beep('error')
+      const unidades = producto.stock_actual === 1 ? 'unidad' : 'unidades'
+      toast.error(
+        `Solo quedan ${producto.stock_actual} ${unidades} de ${producto.nombre}.`,
+        { id: 'pos-scan' },
+      )
+      return
+    }
+
+    // 5. OK — agregar al carrito + feedback compacto.
+    beep('ok')
+    store.agregarItem({
+      producto_id: producto.id,
+      nombre: producto.nombre,
+      precio_unitario: producto.precio_venta,
+      cantidad: 1,
+      codigo_barras: producto.codigo_barras || '',
+      stock_disponible: producto.stock_actual,
+    })
+    toast.success(
+      `${producto.nombre} · ${formatPeso(producto.precio_venta)}`,
+      { id: 'pos-scan', duration: 1500 },
+    )
+  }, [productos, store])
 
   // Detecta input que parece un barcode escaneado por accidente:
   // muchos dígitos enteros sin parte decimal. Casos legítimos como
@@ -237,6 +321,7 @@ export default function POSPage() {
             onChange={setBusqueda}
             onSelect={seleccionar}
             resultados={resultados}
+            onScannerOpen={scannerSoportado ? () => setScannerAbierto(true) : undefined}
           />
         </div>
         <POSProducts busqueda={busqueda} resultados={resultados} onSelect={seleccionar} />
@@ -253,6 +338,22 @@ export default function POSPage() {
           <POSPayment onStockSync={refreshProductos} />
         </div>
       </div>
+
+      {/* Scanner por cámara — montado siempre que el browser lo soporte,
+          pero solo arranca el stream cuando scannerAbierto=true (lifecycle
+          en useScannerCamara). El cleanup al cerrar libera la cámara. */}
+      {scannerSoportado && (
+        <ScannerModal
+          open={scannerAbierto}
+          onClose={() => {
+            setScannerAbierto(false)
+            // Devolver foco al input para que el cajero pueda seguir
+            // buscando manualmente sin tocar nada.
+            store.requestRefocus()
+          }}
+          onCodigo={procesarCodigo}
+        />
+      )}
 
       {/* Modal cantidad variable (kg/litro/metro) */}
       <Modal

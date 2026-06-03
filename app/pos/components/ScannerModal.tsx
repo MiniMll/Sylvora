@@ -133,6 +133,10 @@ export function ScannerModal({ open, onClose, onCodigo }: ScannerModalProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Escanear código de barras"
+        // data-modal-card hace que el refocus del input del POSSearch
+        // detecte que hay un modal abierto y no robe el foco mientras
+        // el cajero está en el flow del scanner.
+        data-modal-card
         className="scanner-modal-card"
         style={{
           background: '#0a0a0e',

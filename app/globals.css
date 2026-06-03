@@ -1492,6 +1492,12 @@ button:active { transform: scale(0.97); }
   .trial-banner-inner { padding-left: 62px !important; }
 }
 
+/* Scanner button label — solo icon en pantallas chicas para no
+   apretar el input de búsqueda del POS. */
+@media (max-width: 480px) {
+  .scanner-btn-label { display: none; }
+}
+
 /* Dark mode overrides */
 .dark body { background: var(--bg); color: var(--text); }
 .dark [style*="background: white"],
