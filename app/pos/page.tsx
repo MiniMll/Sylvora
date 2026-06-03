@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Scale, Beaker, Ruler, Package, Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 import { getProductos } from '@/lib/supabase/productos'
@@ -31,6 +32,7 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function POSPage() {
+  const router = useRouter()
   const store = usePOSStore()
   const [productos, setProductos] = useState<Producto[]>([])
   const [cargando, setCargando] = useState(true)
@@ -146,12 +148,21 @@ export default function POSPage() {
 
     const producto = productos.find(p => p.codigo_barras === buscado)
 
-    // 1. Código no registrado en el catálogo.
+    // 1. Código no registrado en el catálogo. Toast con CTA que
+    //    lleva a /productos/nuevo con el código pre-cargado — el
+    //    cajero puede dar de alta el item sin perder el contexto.
     if (!producto) {
       beep('not-found')
       toast.error(
         `Código ${buscado} no encontrado en el catálogo.`,
-        { id: 'pos-scan', duration: 2500 },
+        {
+          id: 'pos-scan',
+          duration: 5000,
+          action: {
+            label: 'Cargarlo',
+            onClick: () => router.push(`/productos/nuevo?codigo_barras=${encodeURIComponent(buscado)}`),
+          },
+        },
       )
       return
     }
@@ -202,7 +213,7 @@ export default function POSPage() {
       `${producto.nombre} · ${formatPeso(producto.precio_venta)}`,
       { id: 'pos-scan', duration: 1500 },
     )
-  }, [productos, store])
+  }, [productos, store, router])
 
   // Detector USB-HID global. Captura pistolas físicas que emulan
   // teclado y disparan sin necesidad de tener el input focado —

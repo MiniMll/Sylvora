@@ -1,8 +1,12 @@
 'use client'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { X, Volume2, VolumeX, Keyboard, AlertCircle, Camera } from 'lucide-react'
+import { X, Volume2, VolumeX, Keyboard, AlertCircle, Camera, Lightbulb, ExternalLink } from 'lucide-react'
 import { useScannerCamara } from '@/lib/scanner/useScannerCamara'
 import { isScannerMuted, setScannerMuted } from '@/lib/scanner/audio'
+import { esWebviewSocial } from '@/lib/scanner/webview'
+import { isHintSeen, markHintSeen } from '@/lib/oneTimeHint'
+
+const HINT_KEY = 'scanner-pos-first-use'
 
 // Modal del scanner por cámara. Diseñado standalone (no reusa Modal
 // genérico) porque tiene requisitos específicos:
@@ -44,6 +48,14 @@ export function ScannerModal({ open, onClose, onCodigo }: ScannerModalProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [codigoManual, setCodigoManual] = useState('')
   const [modoManual, setModoManual] = useState(false)
+  // Hint "primera vez" — se muestra encima del video la primera vez
+  // que el cajero abre el modal. localStorage permanente: una vez
+  // marcado como visto, no vuelve a aparecer.
+  const [mostrarHint, setMostrarHint] = useState(false)
+  // Detección de webview de apps sociales — si la cámara falla en
+  // ese contexto, mostramos un mensaje accionable ("abrí en Chrome")
+  // en lugar del genérico.
+  const [enWebview, setEnWebview] = useState(false)
 
   const muted = useSyncExternalStore(
     subscribeMute,
@@ -101,6 +113,20 @@ export function ScannerModal({ open, onClose, onCodigo }: ScannerModalProps) {
       setCodigoManual('')
     }
   }, [open])
+
+  // Inicialización al abrir: chequear hint + webview. Solo cuando
+  // open transiciona a true para no re-leer localStorage en cada render.
+  useEffect(() => {
+    if (!open) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMostrarHint(!isHintSeen(HINT_KEY))
+    setEnWebview(esWebviewSocial())
+  }, [open])
+
+  const cerrarHint = useCallback(() => {
+    markHintSeen(HINT_KEY)
+    setMostrarHint(false)
+  }, [])
 
   const enviarManual = useCallback(() => {
     const trim = codigoManual.trim()
@@ -237,52 +263,117 @@ export function ScannerModal({ open, onClose, onCodigo }: ScannerModalProps) {
                   </div>
                 </div>
               )}
+
+              {/* Hint primera vez — chip flotante arriba sobre el video.
+                  Se cierra al tocar el botón "Entendido". */}
+              {mostrarHint && status === 'scanning' && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 14,
+                    left: 14,
+                    right: 14,
+                    background: 'rgba(0,0,0,0.78)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                    zIndex: 3,
+                  }}
+                >
+                  <Lightbulb size={16} color="#ffd84a" strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'rgba(255,255,255,0.92)', lineHeight: 1.45 }}>
+                    Apuntá al código de barras del producto y mantené firme.
+                    Si no detecta, acercá un poco más o mejorá la luz.
+                  </div>
+                  <button
+                    onClick={cerrarHint}
+                    aria-label="Cerrar hint"
+                    style={{
+                      flexShrink: 0,
+                      background: 'rgba(255,255,255,0.12)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 7,
+                      padding: '5px 10px',
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      fontFamily: 'inherit',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Entendido
+                  </button>
+                </div>
+              )}
             </>
           )}
 
-          {/* Permiso denegado */}
-          {status === 'denied' && (
+          {/* Permiso denegado o error genérico, modificado si estamos
+              en un webview social (Instagram/FB/WhatsApp/etc.) — en
+              ese caso el mensaje accionable es "abrí en Chrome",
+              no "habilitá permisos". */}
+          {(status === 'denied' || status === 'error' || status === 'unsupported') && (
             <div style={errorPanelStyle}>
               <AlertCircle size={32} color="#ff6b35" strokeWidth={2} />
-              <h3 style={errorTitleStyle}>Cámara bloqueada</h3>
-              <p style={errorTextStyle}>
-                Diste &quot;No permitir&quot; cuando te pidieron acceso a la cámara.
-                Para activarla, abrí los permisos del sitio en tu navegador y
-                cambiá &quot;Cámara&quot; a Permitir.
-              </p>
-              <button onClick={() => setModoManual(true)} style={primaryBtnStyle}>
-                <Keyboard size={14} /> Ingresar código a mano
-              </button>
-            </div>
-          )}
-
-          {/* Browser sin soporte (no debería pasar — el botón ya estaba
-              oculto en el POS — pero defendemos). */}
-          {status === 'unsupported' && (
-            <div style={errorPanelStyle}>
-              <AlertCircle size={32} color="#ff6b35" strokeWidth={2} />
-              <h3 style={errorTitleStyle}>Cámara no disponible</h3>
-              <p style={errorTextStyle}>
-                Este navegador no permite usar la cámara. Probá con Chrome
-                en Android o Safari en iPhone, o ingresá el código a mano.
-              </p>
-              <button onClick={() => setModoManual(true)} style={primaryBtnStyle}>
-                <Keyboard size={14} /> Ingresar código a mano
-              </button>
-            </div>
-          )}
-
-          {/* Error genérico */}
-          {status === 'error' && (
-            <div style={errorPanelStyle}>
-              <AlertCircle size={32} color="#ff6b35" strokeWidth={2} />
-              <h3 style={errorTitleStyle}>No pudimos abrir la cámara</h3>
-              <p style={errorTextStyle}>
-                {errorMsg ?? 'Probá cerrar otras apps que la usen y volvé a intentar.'}
-              </p>
-              <button onClick={() => setModoManual(true)} style={primaryBtnStyle}>
-                <Keyboard size={14} /> Ingresar código a mano
-              </button>
+              {enWebview ? (
+                <>
+                  <h3 style={errorTitleStyle}>Abrí Sylvora en tu navegador</h3>
+                  <p style={errorTextStyle}>
+                    Estás viendo Sylvora desde una app (Instagram, WhatsApp,
+                    Facebook…). Esas vistas no permiten usar la cámara. Tocá
+                    los tres puntos arriba y elegí <b>&quot;Abrir en Chrome&quot;</b>
+                    {' '}o <b>&quot;Abrir en Safari&quot;</b>.
+                  </p>
+                  <a
+                    href={typeof window !== 'undefined' ? window.location.href : '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ ...primaryBtnStyle, textDecoration: 'none' }}
+                  >
+                    <ExternalLink size={14} /> Abrir en otra app
+                  </a>
+                  <button onClick={() => setModoManual(true)} style={ghostBtnStyle}>
+                    <Keyboard size={13} /> Ingresar código a mano
+                  </button>
+                </>
+              ) : status === 'denied' ? (
+                <>
+                  <h3 style={errorTitleStyle}>Cámara bloqueada</h3>
+                  <p style={errorTextStyle}>
+                    Diste &quot;No permitir&quot; cuando te pidieron acceso a la cámara.
+                    Para activarla, abrí los permisos del sitio en tu navegador y
+                    cambiá &quot;Cámara&quot; a Permitir.
+                  </p>
+                  <button onClick={() => setModoManual(true)} style={primaryBtnStyle}>
+                    <Keyboard size={14} /> Ingresar código a mano
+                  </button>
+                </>
+              ) : status === 'unsupported' ? (
+                <>
+                  <h3 style={errorTitleStyle}>Cámara no disponible</h3>
+                  <p style={errorTextStyle}>
+                    Este navegador no permite usar la cámara. Probá con Chrome
+                    en Android o Safari en iPhone, o ingresá el código a mano.
+                  </p>
+                  <button onClick={() => setModoManual(true)} style={primaryBtnStyle}>
+                    <Keyboard size={14} /> Ingresar código a mano
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3 style={errorTitleStyle}>No pudimos abrir la cámara</h3>
+                  <p style={errorTextStyle}>
+                    {errorMsg ?? 'Probá cerrar otras apps que la usen y volvé a intentar.'}
+                  </p>
+                  <button onClick={() => setModoManual(true)} style={primaryBtnStyle}>
+                    <Keyboard size={14} /> Ingresar código a mano
+                  </button>
+                </>
+              )}
             </div>
           )}
 
