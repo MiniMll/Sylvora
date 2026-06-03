@@ -21,6 +21,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { getDetectorStrategy } from '@/lib/scanner/detector'
 import { beep } from '@/lib/scanner/audio'
+import { useScannerHID } from '@/lib/scanner/useScannerHID'
 
 const necesitaModal = (p: Producto) => ['kg', 'litro', 'metro'].includes(p.unidad_venta)
 
@@ -202,6 +203,17 @@ export default function POSPage() {
       { id: 'pos-scan', duration: 1500 },
     )
   }, [productos, store])
+
+  // Detector USB-HID global. Captura pistolas físicas que emulan
+  // teclado y disparan sin necesidad de tener el input focado —
+  // crítico cuando el cajero está leyendo el ticket o tocó algún
+  // botón. Reusa procesarCodigo, mismo flow que el scanner por
+  // cámara. Skip cuando todavía carga o el trial está vencido para
+  // no procesar fantasma mientras no debería haber operación.
+  useScannerHID({
+    active: !cargando && !trial.expirado && productos.length > 0,
+    onScan: procesarCodigo,
+  })
 
   // Detecta input que parece un barcode escaneado por accidente:
   // muchos dígitos enteros sin parte decimal. Casos legítimos como
