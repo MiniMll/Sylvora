@@ -104,7 +104,7 @@ export default function StockPage() {
 
   const borrarLote = async (lote: any) => {
     setBorrandoLote(lote.id)
-    const ok = await eliminarLote(lote.id, modalProducto.id, lote.cantidad)
+    const ok = await eliminarLote(lote.id)
     if (ok) {
       setLotesModal(prev => prev.filter(l => l.id !== lote.id))
       setProductos(prev => prev.map(p =>

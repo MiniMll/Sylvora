@@ -1,6 +1,23 @@
 import { getBrowserClient } from './_base'
 import type { Lote } from '@/types/database'
 
+// Capa cliente sobre lotes.
+//
+// V1 hasta el sprint fix/stock-lotes-integrity-v1 hacía 2-3 UPDATEs
+// sueltos por operación (lotes + productos.stock_actual). Ahora cada
+// mutación pasa por una RPC plpgsql atómica con FOR UPDATE + assert
+// de invariante SUM(lotes) == stock_actual. Ver
+// scripts/migration-lotes-integrity.sql para los contratos.
+//
+// Errores conocidos de las RPCs (PostgREST los expone como
+// error.message, con DETAIL en error.details):
+//   - 'cantidad_invalida'
+//   - 'producto_no_encontrado'
+//   - 'lote_no_encontrado'
+//   - 'invariante_violada' (no debería pasar — bug si lo ves)
+// Los mapeamos a boolean para mantener la API actual; los callers
+// muestran toast genérico. Detalle al console.error para debug.
+
 export async function getLotes(productoId: string): Promise<Lote[]> {
   const supabase = getBrowserClient()
   const { data, error } = await supabase
@@ -19,45 +36,27 @@ interface AgregarLoteInput {
   fecha_vencimiento?: string
 }
 
+/** Agrega un lote y actualiza stock atómicamente vía RPC
+ *  agregar_lote_atomico. La RPC se encarga de:
+ *   - Mergear si existe (numero_lote, fecha_vencimiento) idéntico.
+ *   - Auto-backfill "L-INICIAL" si el producto venía en modo
+ *     legacy (stock > 0 sin lotes).
+ *   - Incrementar productos.stock_actual.
+ *   - Assert SUM(lotes) == stock_actual al final.
+ *
+ *  Devuelve true si OK, false si la RPC falló. El detalle del error
+ *  va al console para inspección — la UI muestra toast genérico. */
 export async function agregarLote(lote: AgregarLoteInput): Promise<boolean> {
   const supabase = getBrowserClient()
-
-  // Fusión solo si coincide numero_lote + fecha_vencimiento. Dos lotes
-  // con el mismo numero pero distinta fecha son lotes distintos (mismo
-  // proveedor, mismo packaging, distinta tanda). fecha null se trata
-  // como su propia clase: dos lotes sin fecha y mismo numero sí fusionan.
-  let query = supabase
-    .from('lotes')
-    .select('*')
-    .eq('producto_id', lote.producto_id)
-    .eq('numero_lote', lote.numero_lote)
-  query = lote.fecha_vencimiento
-    ? query.eq('fecha_vencimiento', lote.fecha_vencimiento)
-    : query.is('fecha_vencimiento', null)
-  const { data: existente } = await query.maybeSingle()
-
-  if (existente) {
-    const { error } = await supabase
-      .from('lotes')
-      .update({ cantidad: existente.cantidad + lote.cantidad })
-      .eq('id', existente.id)
-    if (error) { console.error(error); return false }
-  } else {
-    const { error } = await supabase.from('lotes').insert(lote)
-    if (error) { console.error(error); return false }
-  }
-
-  // Sumar al stock del producto.
-  const { data: prod } = await supabase
-    .from('productos')
-    .select('stock_actual')
-    .eq('id', lote.producto_id)
-    .single()
-  if (prod) {
-    await supabase
-      .from('productos')
-      .update({ stock_actual: prod.stock_actual + lote.cantidad })
-      .eq('id', lote.producto_id)
+  const { error } = await supabase.rpc('agregar_lote_atomico', {
+    p_producto_id:       lote.producto_id,
+    p_numero_lote:       lote.numero_lote,
+    p_cantidad:          lote.cantidad,
+    p_fecha_vencimiento: lote.fecha_vencimiento ?? null,
+  })
+  if (error) {
+    console.error('[agregarLote] RPC agregar_lote_atomico falló:', error)
+    return false
   }
   return true
 }
@@ -88,16 +87,21 @@ export async function getSiguienteNumeroLote(productoId: string): Promise<string
   return `${base}-${String(siguiente).padStart(3, '0')}`
 }
 
-export async function eliminarLote(loteId: string, productoId: string, cantidad: number): Promise<boolean> {
+/** Elimina un lote y descuenta stock atómicamente vía RPC
+ *  eliminar_lote_atomico. La RPC obtiene cantidad y producto_id del
+ *  lote internamente — no hace falta pasarlos.
+ *
+ *  Firma simplificada respecto a la versión anterior (que pedía
+ *  productoId y cantidad por la lógica no-atómica). Los callers se
+ *  actualizan en este mismo commit. */
+export async function eliminarLote(loteId: string): Promise<boolean> {
   const supabase = getBrowserClient()
-  const { error } = await supabase.from('lotes').delete().eq('id', loteId)
-  if (error) { console.error(error); return false }
-  const { data: prod } = await supabase
-    .from('productos').select('stock_actual').eq('id', productoId).single()
-  if (prod) {
-    await supabase.from('productos')
-      .update({ stock_actual: Math.max(0, prod.stock_actual - cantidad) })
-      .eq('id', productoId)
+  const { error } = await supabase.rpc('eliminar_lote_atomico', {
+    p_lote_id: loteId,
+  })
+  if (error) {
+    console.error('[eliminarLote] RPC eliminar_lote_atomico falló:', error)
+    return false
   }
   return true
 }
