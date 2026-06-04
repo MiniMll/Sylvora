@@ -20,6 +20,25 @@ export interface Producto {
   precio_venta: number
   precio_mayorista: number | null
   precio_por_kg: number | null
+  /** Master numérico del stock vendible. Sincronizado con
+   *  SUM(lotes.cantidad) cuando el producto tiene lotes; única
+   *  fuente cuando no los tiene (modo legacy).
+   *
+   *  ⚠️ REGLA DE ORO: NUNCA UPDATE directo desde el cliente
+   *  (`supabase.from('productos').update({ stock_actual: ... })`).
+   *  Las mutaciones DEBEN pasar por las RPCs:
+   *    - descontar_stock_validado(items)  → ventas
+   *    - restituir_stock(producto, cant)  → anular venta
+   *    - agregar_lote_atomico(...)        → alta de lote
+   *    - eliminar_lote_atomico(lote_id)   → baja de lote
+   *  Las RPCs validan + asertan SUM(lotes) == stock_actual.
+   *  Saltarse esta regla introduce drift de lotes silencioso —
+   *  ya nos pasó una vez, ver scripts/audit-lotes-drift.sql.
+   *
+   *  Único UPDATE directo legítimo: el de ajuste manual desde
+   *  /productos (actualizarProducto). Ese caso está documentado
+   *  como gap conocido en lib/supabase/productos.ts y solo
+   *  aplica al producto sin lotes. */
   stock_actual: number
   stock_minimo: number
   stock_ideal: number
@@ -34,6 +53,13 @@ export interface Lote {
   id: string
   producto_id: string
   numero_lote: string
+  /** Cantidad del lote. En DB es NUMERIC (soporta decimales para
+   *  productos por peso — kg/L/m). Migrado de INTEGER en
+   *  scripts/migration-lotes-cantidad-numeric.sql.
+   *
+   *  ⚠️ NUNCA UPDATE directo desde el cliente. Mutar vía RPCs
+   *  agregar_lote_atomico / eliminar_lote_atomico, o
+   *  indirectamente via descontar_stock_validado en ventas. */
   cantidad: number
   fecha_vencimiento: string | null
   fecha_ingreso: string
