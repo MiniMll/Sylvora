@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
-import { Search } from 'lucide-react'
+import { Search, ScanLine } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePOSStore } from '@/lib/store'
 import type { Producto } from '@/types/database'
@@ -13,6 +13,11 @@ interface Props {
   onSelect: (p: Producto) => void
   /** Resultados ya filtrados — habilitan el atajo "Enter cuando hay 1 sólo resultado". */
   resultados: Producto[]
+  /** Si está presente, renderiza el botón "Escanear" al lado del
+   *  input. El padre lo pasa solo cuando el browser soporta cámara
+   *  (getDetectorStrategy !== 'none') — sin esto el botón no
+   *  aparece y la búsqueda funciona normal. */
+  onScannerOpen?: () => void
 }
 
 /**
@@ -23,10 +28,11 @@ interface Props {
  *   tipean rápidamente el código y emiten Enter al final. La lógica
  *   de Enter intenta primero match exacto contra codigo_barras y SKU
  *   (caso scanner) y cae a "único resultado" si no hay exacto.
- *
- * No hay scanner por cámara — eliminado por inestabilidad de ZXing.
+ * - Scanner por cámara: botón "Escanear" cuando el browser soporta
+ *   getUserMedia + BarcodeDetector (nativo o ZXing fallback). Ver
+ *   lib/scanner/detector.ts y ScannerModal.
  */
-export function POSSearch({ productos, value, onChange, onSelect, resultados }: Props) {
+export function POSSearch({ productos, value, onChange, onSelect, resultados, onScannerOpen }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const cargandoVenta = usePOSStore(s => s.cargandoVenta)
   const refocusToken = usePOSStore(s => s.refocusToken)
@@ -77,57 +83,88 @@ export function POSSearch({ productos, value, onChange, onSelect, resultados }: 
   }
 
   return (
-    <div style={{ position: 'relative' }}>
-      <Search
-        size={14}
-        color="var(--text2)"
-        style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}
-      />
-      <input
-        ref={inputRef}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            handleEnter()
-          }
-          if (e.key === 'Escape') onChange('')
-        }}
-        // Refocus auto si el cajero pierde foco accidentalmente (click
-        // fuera). Skip si hay un modal abierto, si la pestaña pasó a
-        // background, o si la venta se está guardando (input disabled).
-        onBlur={() => {
-          setTimeout(() => {
-            if (document.hidden) return
-            if (document.querySelector('[data-modal-card]')) return
-            if (usePOSStore.getState().cargandoVenta) return
-            // Si el usuario foco'ó deliberadamente otro input/select/button,
-            // respetar esa elección.
-            const active = document.activeElement
-            const isInteractive = active && ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(active.tagName)
-            if (isInteractive && active !== inputRef.current) return
-            inputRef.current?.focus()
-          }, 120)
-        }}
-        disabled={cargandoVenta}
-        placeholder="Buscar producto, código o SKU..."
-        autoFocus
-        style={{
-          width: '100%',
-          border: '1px solid var(--border)',
-          borderRadius: 8,
-          padding: '9px 12px 9px 32px',
-          fontSize: 13,
-          outline: 'none',
-          fontFamily: 'inherit',
-          background: cargandoVenta ? 'var(--bg3)' : 'var(--bg2)',
-          color: 'var(--text)',
-          opacity: cargandoVenta ? 0.65 : 1,
-          cursor: cargandoVenta ? 'not-allowed' : 'text',
-          transition: 'background 0.15s ease, opacity 0.15s ease',
-        }}
-      />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ flex: 1, position: 'relative' }}>
+        <Search
+          size={14}
+          color="var(--text2)"
+          style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}
+        />
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              handleEnter()
+            }
+            if (e.key === 'Escape') onChange('')
+          }}
+          // Refocus auto si el cajero pierde foco accidentalmente (click
+          // fuera). Skip si hay un modal abierto, si la pestaña pasó a
+          // background, o si la venta se está guardando (input disabled).
+          onBlur={() => {
+            setTimeout(() => {
+              if (document.hidden) return
+              if (document.querySelector('[data-modal-card]')) return
+              if (usePOSStore.getState().cargandoVenta) return
+              // Si el usuario foco'ó deliberadamente otro input/select/button,
+              // respetar esa elección.
+              const active = document.activeElement
+              const isInteractive = active && ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(active.tagName)
+              if (isInteractive && active !== inputRef.current) return
+              inputRef.current?.focus()
+            }, 120)
+          }}
+          disabled={cargandoVenta}
+          placeholder="Buscar producto, código o SKU..."
+          autoFocus
+          style={{
+            width: '100%',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: '9px 12px 9px 32px',
+            fontSize: 13,
+            outline: 'none',
+            fontFamily: 'inherit',
+            background: cargandoVenta ? 'var(--bg3)' : 'var(--bg2)',
+            color: 'var(--text)',
+            opacity: cargandoVenta ? 0.65 : 1,
+            cursor: cargandoVenta ? 'not-allowed' : 'text',
+            transition: 'background 0.15s ease, opacity 0.15s ease',
+          }}
+        />
+      </div>
+      {onScannerOpen && (
+        <button
+          type="button"
+          onClick={onScannerOpen}
+          disabled={cargandoVenta}
+          aria-label="Escanear código de barras"
+          title="Escanear con cámara"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '9px 12px',
+            background: 'var(--bg2)',
+            color: 'var(--text)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            fontSize: 12.5,
+            fontWeight: 500,
+            fontFamily: 'inherit',
+            cursor: cargandoVenta ? 'not-allowed' : 'pointer',
+            opacity: cargandoVenta ? 0.5 : 1,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          <ScanLine size={14} strokeWidth={2.2} />
+          <span className="scanner-btn-label">Escanear</span>
+        </button>
+      )}
     </div>
   )
 }

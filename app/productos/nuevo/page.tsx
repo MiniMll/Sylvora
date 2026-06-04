@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { guardarProducto } from '@/lib/supabase/productos'
 import { agregarLote } from '@/lib/supabase/stock'
 import { toast } from 'sonner'
@@ -20,14 +20,32 @@ function generarNumeroLoteLocal(idx: number): string {
   return `L-${f.getFullYear()}-${mes}-${String(idx + 1).padStart(3, '0')}`
 }
 
+// Wrapper con Suspense por useSearchParams (Next 16 requirement).
+// El form se renderiza inmediato en el cliente; el Suspense es
+// para el render inicial server-side donde useSearchParams suspende.
 export default function NuevoProductoPage() {
+  return (
+    <Suspense fallback={null}>
+      <NuevoProductoForm />
+    </Suspense>
+  )
+}
+
+function NuevoProductoForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // Pre-fill desde el query param. El POS lleva al cajero acá
+  // cuando escanea un código no registrado — ver procesarCodigo()
+  // en /pos/page.tsx. encodeURIComponent del lado del POS y decode
+  // automático del searchParams.get().
+  const codigoInicial = searchParams.get('codigo_barras') ?? ''
+
   const [guardando, setGuardando] = useState(false)
   const [imgPreview, setImgPreview] = useState<string | null>(null)
   const [imgFile, setImgFile] = useState<File | null>(null)
   const [lotes, setLotes] = useState<Lote[]>([{ id: '1', numero: generarNumeroLoteLocal(0), cantidad: '', vencimiento: '' }])
   const [form, setForm] = useState({
-    nombre: '', codigo_barras: '', sku: '', categoria: '',
+    nombre: '', codigo_barras: codigoInicial, sku: '', categoria: '',
     unidad_venta: 'unidad', precio_costo: '', precio_venta: '',
     precio_mayorista: '', precio_por_kg: '',
     stock_minimo: '10', stock_ideal: '50', ubicacion: '',
