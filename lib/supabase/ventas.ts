@@ -59,7 +59,14 @@ const MAX_REINTENTOS_NUMERO_TICKET = 3
 
 /** Cantidad real a descontar/restituir del stock para un ítem.
  *  Productos por peso (kg/L/m) tienen `peso_kg` con el valor real
- *  pesado/medido; el resto usa `cantidad` (unidades). */
+ *  pesado/medido; el resto usa `cantidad` (unidades).
+ *
+ *  Nota: desde el sprint fix/stock-lotes-integrity-v1, las RPCs
+ *  descontar_stock_validado y restituir_stock son LOTES-AWARE:
+ *  para productos con lotes hacen FIFO + sincronizan SUM(lotes)
+ *  con stock_actual atómicamente. Productos sin lotes (modo legacy)
+ *  siguen funcionando como antes. Este código cliente no necesita
+ *  saber del modo — la RPC decide internamente. */
 function cantidadParaStock(i: ItemVentaInput): number {
   return (i.peso_kg !== undefined && i.peso_kg !== null)
     ? Number(i.peso_kg)

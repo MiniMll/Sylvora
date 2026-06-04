@@ -74,6 +74,28 @@ export async function guardarProducto(producto: GuardarProductoInput): Promise<P
   return data as Producto
 }
 
+/** Edita un producto. Acepta cualquier subset de campos.
+ *
+ *  ⚠️ GAP CONOCIDO — STOCK_ACTUAL Y LOTES:
+ *  Este UPDATE puede recibir `stock_actual` en `cambios` y modificarlo
+ *  directamente, lo cual SALTEA las RPCs de lotes (descontar_stock_
+ *  validado / restituir_stock / agregar_lote_atomico). Para productos
+ *  EN MODO LEGACY (sin lotes) eso está bien — stock_actual es la
+ *  única fuente. Para productos CON LOTES, modificar stock_actual
+ *  acá rompe el invariante SUM(lotes) == stock_actual y deja drift
+ *  silencioso (lo detectaría la próxima venta vía RAISE 'invariante_
+ *  violada').
+ *
+ *  V1 acepta este gap porque el form de edit en /productos hoy NO
+ *  expone el campo stock_actual al cajero (solo se modifica vía
+ *  ventas y alta de lotes). Si en un futuro sprint se agrega un
+ *  "Ajustar stock" desde la UI, habrá que: o filtrar stock_actual
+ *  acá y crear una RPC ajustar_stock_atomico que valide el modo
+ *  del producto, o bloquear la edición de stock_actual cuando
+ *  productos.lotes > 0.
+ *
+ *  Por ahora: documentado y monitoreable vía scripts/audit-lotes-
+ *  drift.sql. */
 export async function actualizarProducto(
   id: string,
   cambios: Partial<Producto>,

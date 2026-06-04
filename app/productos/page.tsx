@@ -181,7 +181,7 @@ export default function ProductosPage() {
   const borrarLoteDetalle = async (lote: Lote) => {
     if (!detalle) return
     setBorrandoLote(lote.id)
-    const ok = await eliminarLote(lote.id, detalle.id, lote.cantidad)
+    const ok = await eliminarLote(lote.id)
     if (ok) {
       setLotesDetalle(prev => prev.filter(l => l.id !== lote.id))
       setDetalle(prev => prev ? { ...prev, stock_actual: Math.max(0, prev.stock_actual - lote.cantidad) } : prev)
