@@ -1,236 +1,440 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { getProductos } from '@/lib/supabase/productos'
-import { getVentas } from '@/lib/supabase/ventas'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingUp, DollarSign, Receipt, Package, Medal } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  TrendingUp, Receipt, Wallet, Calendar,
+  Trophy, AlertTriangle, Package,
+  type LucideIcon,
+} from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { formatPeso } from '@/lib/utils'
+import {
+  getReporteDashboard,
+  RANGOS,
+  type RangoReporte,
+  type ReporteDashboard,
+} from '@/lib/supabase/reportes'
+
+// /reportes V1 — dashboard de información accionable.
+//
+// Filosofía declarada en el sprint feat/reportes-v1: NO enterprise,
+// NO gráficos, NO comparativas. Solo lo que el dueño de un kiosco/
+// almacén AR mira con frecuencia:
+//   - 4 KPIs principales (ventas hoy, mes, tickets hoy, ticket promedio)
+//   - Top 10 productos por facturación del rango seleccionado
+//   - Stock crítico (productos debajo de su mínimo configurado)
+//
+// Decisiones del sprint que se reflejan en este código:
+//   - KPIs hoy/mes son FIJOS (no dependen del rango). El rango afecta
+//     solo "Productos más vendidos".
+//   - Top ordenado por facturación DESC.
+//   - Stock crítico excluye productos con stock_minimo = 0 (server-side).
+//
+// Toda la lógica pesada está en la RPC get_reporte_dashboard (commit
+// anterior). Acá solo render + filtro de rango.
 
 export default function ReportesPage() {
-  const [ventas, setVentas] = useState<any[]>([])
-  const [productos, setProductos] = useState<any[]>([])
+  const [rango, setRango] = useState<RangoReporte>('semana')
+  const [data, setData] = useState<ReporteDashboard | null>(null)
   const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
-    Promise.all([getVentas(), getProductos()]).then(([v, p]) => {
-      setVentas(v)
-      setProductos(p)
+  const cargar = useCallback(async (r: RangoReporte) => {
+    setCargando(true)
+    setError(false)
+    const res = await getReporteDashboard(r)
+    if (!res) {
+      setError(true)
       setCargando(false)
-    })
+      return
+    }
+    setData(res)
+    setCargando(false)
   }, [])
 
-  const totalMes = ventas.reduce((s, v) => s + Number(v.total), 0)
-  const ticketProm = ventas.length ? Math.round(totalMes / ventas.length) : 0
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    cargar(rango)
+  }, [cargar, rango])
 
-  // Ganancia estimada (ventas - costos de items vendidos)
-  const costoTotal = ventas.reduce((s, v) => {
-    return s + (v.items_venta || []).reduce((ss: number, item: any) => {
-      const prod = productos.find(p => p.id === item.producto_id)
-      return ss + (prod ? Number(prod.precio_costo) * Number(item.cantidad) : 0)
-    }, 0)
-  }, 0)
-  const ganancia = totalMes - costoTotal
-  const margenProm = totalMes > 0 ? Math.round((ganancia / totalMes) * 100) : 0
+  // ── Loading inicial — todavía no hay data ──
+  if (cargando && !data) {
+    return (
+      <div style={{ padding: 24, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Spinner texto="Cargando reportes..." />
+      </div>
+    )
+  }
 
-  // Ventas por mes (últimos 6 meses)
-  const ultimos6 = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date()
-    d.setMonth(d.getMonth() - (5 - i))
-    const mes = d.toLocaleDateString('es-AR', { month: 'short' })
-    const total = ventas
-      .filter(v => {
-        const vd = new Date(v.created_at)
-        return vd.getMonth() === d.getMonth() && vd.getFullYear() === d.getFullYear()
-      })
-      .reduce((s, v) => s + Number(v.total), 0)
-    return { mes, total }
-  })
+  // ── Error de la RPC ──
+  if (error && !data) {
+    return (
+      <div style={{ padding: 24, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <EmptyState
+          icon={<AlertTriangle size={20} color="var(--r)" strokeWidth={2} />}
+          title="No pudimos cargar los reportes."
+          description="Revisá tu conexión y volvé a intentarlo."
+          actions={[{ label: 'Reintentar', onClick: () => cargar(rango), variant: 'primary' }]}
+        />
+      </div>
+    )
+  }
 
-  // Ventas por método
-  const porMetodo: Record<string, number> = {}
-  ventas.forEach(v => { porMetodo[v.metodo_pago] = (porMetodo[v.metodo_pago] || 0) + Number(v.total) })
+  if (!data) return null
 
-  // Top productos
-  const itemsCount: Record<string, { nombre: string; cantidad: number; total: number; costo: number }> = {}
-  ventas.forEach(v => {
-    v.items_venta?.forEach((item: any) => {
-      const prod = productos.find(p => p.id === item.producto_id)
-      if (!itemsCount[item.nombre_producto]) {
-        itemsCount[item.nombre_producto] = { nombre: item.nombre_producto, cantidad: 0, total: 0, costo: 0 }
-      }
-      itemsCount[item.nombre_producto].cantidad += Number(item.cantidad)
-      itemsCount[item.nombre_producto].total += Number(item.subtotal)
-      itemsCount[item.nombre_producto].costo += (prod ? Number(prod.precio_costo) : 0) * Number(item.cantidad)
-    })
-  })
-  const topProductos = Object.values(itemsCount).sort((a, b) => b.total - a.total).slice(0, 6)
-
-  if (cargando) return <Spinner texto="Cargando reportes..." />
+  const { kpis, top_productos, stock_critico } = data
+  const sinDatosRango = top_productos.length === 0 && kpis.tickets_total === 0
 
   return (
-    <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: 'var(--text)' }}>Reportes</h1>
-        <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>Análisis de performance y rentabilidad</p>
+    <div className="page-in" style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+            Reportes
+          </h1>
+          <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>
+            Lo que está pasando en tu comercio
+          </p>
+        </div>
+
+        <RangoSelector rango={rango} onChange={setRango} disabled={cargando} />
       </div>
 
-      {/* KPIs */}
-      <div className="kpi-grid" style={{ marginBottom: 16 }}>
-        {[
-          { label: 'Ventas totales', value: formatPeso(totalMes), sub: `${ventas.length} transacciones`, color: '#5b4cff', icon: TrendingUp },
-          { label: 'Ganancia estimada', value: formatPeso(ganancia), sub: `Margen ${margenProm}%`, color: '#00c896', icon: DollarSign },
-          { label: 'Ticket promedio', value: formatPeso(ticketProm), sub: 'Por transacción', color: '#ff6b35', icon: Receipt },
-          { label: 'Productos activos', value: productos.length.toString(), sub: 'En catálogo', color: '#ffd23f', icon: Package },
-        ].map(k => {
-          const Icon = k.icon
-          return (
-            <div key={k.label} style={{ background: 'var(--card)', borderRadius: 16, padding: '14px 16px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: k.color }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', marginBottom: 6 }}>{k.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'DM Mono, monospace', marginBottom: 3, color: 'var(--text)' }}>{k.value}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text2)' }}>{k.sub}</div>
-                </div>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon size={15} color={k.color} />
-                </div>
-              </div>
-            </div>
-          )
-        })}
-    </div>
-
-
-      {/* Gráfico ventas por mes */}
-      <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)', marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.2px', color: 'var(--text)' }}>Ventas por mes — últimos 6 meses</div>
-        <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Total recaudado por mes</div>
-        {ventas.length === 0 ? (
-          <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', fontSize: 12 }}>
-            Sin datos de ventas todavía
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={ultimos6}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
-              <XAxis dataKey="mes" tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} tickFormatter={v => v === 0 ? '0' : '$' + Math.round(v / 1000) + 'k'} />
-              <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 10, fontSize: 11, border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontFamily: 'DM Sans, sans-serif' }} />
-              <Line dataKey="total" name="Ventas" stroke="#5b4cff" strokeWidth={2.5} dot={{ r: 4, fill: '#5b4cff' }} />
-            </LineChart>
-          </ResponsiveContainer>
-        )}
+      {/* KPIs — siempre visibles, no dependen del rango. */}
+      <div
+        className="reportes-kpis"
+        style={{
+          display: 'grid',
+          gap: 12,
+          marginBottom: 24,
+        }}
+      >
+        <KpiCard
+          icon={Wallet}
+          label="Ventas hoy"
+          value={formatPeso(kpis.ventas_hoy)}
+          accent="var(--g)"
+        />
+        <KpiCard
+          icon={Calendar}
+          label="Ventas este mes"
+          value={formatPeso(kpis.ventas_mes)}
+          accent="var(--ac)"
+        />
+        <KpiCard
+          icon={Receipt}
+          label="Tickets hoy"
+          value={String(kpis.tickets_hoy)}
+          accent="var(--o)"
+        />
+        <KpiCard
+          icon={TrendingUp}
+          label="Ticket promedio hoy"
+          value={kpis.ticket_promedio_hoy != null ? formatPeso(kpis.ticket_promedio_hoy) : '—'}
+          accent="var(--w)"
+          subtle={kpis.ticket_promedio_hoy == null ? 'Sin ventas hoy todavía' : undefined}
+        />
       </div>
 
+      {/* Dos columnas en desktop, stack en mobile */}
+      <div
+        className="reportes-grid"
+        style={{
+          display: 'grid',
+          gap: 16,
+        }}
+      >
+        {/* ── Top productos ── */}
+        <Card>
+          <SectionHeader
+            icon={Trophy}
+            title="Productos más vendidos"
+            subtitle={`Por facturación · ${RANGOS.find(r => r.id === rango)?.label.toLowerCase()}`}
+          />
 
-
-      <div className="split-2" style={{ marginBottom: 16 }}>
-        {/* Top productos */}
-        <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)'
-
- }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.2px', color: 'var(--text)' }}>Rentabilidad por producto</div>
-          <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 12 }}>Ventas vs costo</div>
-          {topProductos.length === 0 ? (
-            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', fontSize: 12 }}>
-              Sin ventas registradas
-            </div>
+          {top_productos.length === 0 ? (
+            <EmptyMini
+              icon={Trophy}
+              text={
+                sinDatosRango
+                  ? 'No hubo ventas en este período. Probá un rango más amplio.'
+                  : 'Sin datos para este rango.'
+              }
+            />
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={topProductos.map(p => ({ name: p.nombre.split(' ')[0], ventas: p.total, costo: p.costo }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#6b6b72' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#6b6b72' }} axisLine={false} tickLine={false} tickFormatter={v => v === 0 ? '0' : '$' + Math.round(v / 1000) + 'k'} />
-                <Tooltip formatter={(v: any) => formatPeso(v)} contentStyle={{ borderRadius: 10, fontSize: 11, border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontFamily: 'DM Sans, sans-serif' }} />
-                <Bar dataKey="ventas" name="Ventas" fill="#5b4cff" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="costo" name="Costo" fill="rgba(255,107,53,0.5)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-
-
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Por método */}
-        <div style={{ background: 'var(--card)', borderRadius: 16, padding: 18, border: '1px solid var(--border)'
-
- }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14, letterSpacing: '-0.2px', color: 'var(--text)' }}>Por método de pago</div>
-          {Object.entries(porMetodo).length === 0 ? (
-            <div style={{ color: 'var(--text2)', fontSize: 12 }}>Sin datos</div>
-          ) : Object.entries(porMetodo).map(([metodo, total]) => {
-            const pct = Math.round(((total as number) / totalMes) * 100)
-            return (
-              <div key={metodo} style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                  <span style={{ fontWeight: 500, textTransform: 'capitalize' }}>{metodo}</span>
-                  <span style={{ fontFamily: 'DM Mono, monospace', fontWeight: 600 }}>{pct}%</span>
-                </div>
-                <div style={{ height: 6, background: 'var(--bg3)', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: 'var(--ac)', borderRadius: 3 }} />
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--text2)', border: '1px solid var(--border)',}}></div>
-            </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Tabla top productos */}
-      <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Medal size={15} color="#ffd23f" /> Ranking de productos más vendidos
-        </div>
-        {topProductos.length === 0 ? (
-          <div className="empty-state empty-state-sm">
-            <div className="empty-icon"><Medal size={18} color="var(--text2)" strokeWidth={1.8} /></div>
-            <div className="empty-sub">Sin ventas registradas todavía</div>
-          </div>
-        ) : (
-          <div className="table-scroll">
-          <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: 'var(--bg3)' }}>
-                {['#', 'Producto', 'Unidades', 'Total vendido', 'Costo', 'Ganancia', 'Margen'].map((h, i) => (
-                  <th key={h} className={i === 0 ? 'sticky-col' : undefined} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 10, color: 'var(--text2)', textTransform: 'uppercase', fontWeight: 500, background: 'var(--bg3)' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {topProductos.map((p, i) => {
-                const gan = p.total - p.costo
-                const mg = p.total > 0 ? Math.round((gan / p.total) * 100) : 0
-                return (
-                  <tr key={i} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
-                    <td className="sticky-col" style={{ padding: '9px 12px', fontWeight: 700, color: i === 0 ? '#ffd23f' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--text2)' }}>
-                      {i < 3 ? (
-                        <Medal
-                          size={16}
-                          color={i === 0 ? '#ffd23f' : i === 1 ? '#c0c0c0' : '#cd7f32'}
-                          strokeWidth={1.8}
-                        />
-                      ) : `#${i + 1}`}
-                    </td>
-                    <td style={{ padding: '9px 12px', fontWeight: 500 }}>{p.nombre}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace' }}>{p.cantidad}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--ac)', fontWeight: 600 }}>{formatPeso(p.total)}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--text2)' }}>{formatPeso(p.costo)}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'DM Mono, monospace', color: 'var(--g)', fontWeight: 600 }}>{formatPeso(gan)}</td>
-                    <td style={{ padding: '9px 12px' }}>
-                      <span style={{ background: mg >= 35 ? 'rgba(0,200,150,0.1)' : 'rgba(255,184,0,0.1)', color: mg >= 35 ? 'var(--g)' : 'var(--w)', padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 500 }}>
-                        {mg}%
-                      </span>
-                    </td>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <th style={thStyle}>Producto</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Cantidad</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Facturación</th>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {top_productos.map((p, idx) => (
+                    <tr key={`${p.producto_id ?? 'unknown'}-${idx}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ ...tdStyle, color: 'var(--text)', fontWeight: 500 }}>
+                        {p.nombre}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'DM Mono, monospace', color: 'var(--text2)' }}>
+                        {Number(p.cantidad).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'DM Mono, monospace', fontWeight: 600, color: 'var(--text)' }}>
+                        {formatPeso(p.facturacion)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        {/* ── Stock crítico ── */}
+        <Card>
+          <SectionHeader
+            icon={AlertTriangle}
+            title="Stock crítico"
+            subtitle="Productos debajo del mínimo configurado"
+          />
+
+          {stock_critico.length === 0 ? (
+            <EmptyMini
+              icon={Package}
+              text="No hay productos por debajo del mínimo. 👍"
+              positive
+            />
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <th style={thStyle}>Producto</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Stock</th>
+                    <th style={{ ...thStyle, textAlign: 'right' }}>Mínimo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stock_critico.map(p => {
+                    const ratio = p.stock_minimo > 0 ? p.stock_actual / p.stock_minimo : 1
+                    const nivel: 'agotado' | 'critico' | 'bajo' =
+                      p.stock_actual <= 0 ? 'agotado'
+                      : ratio <= 0.5 ? 'critico'
+                      : 'bajo'
+                    const colorBadge =
+                      nivel === 'agotado' ? 'var(--r)'
+                      : nivel === 'critico' ? 'var(--o)'
+                      : 'var(--w)'
+                    return (
+                      <tr key={p.producto_id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ ...tdStyle, color: 'var(--text)', fontWeight: 500 }}>
+                          {p.nombre}
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: 'right' }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '2px 8px',
+                            borderRadius: 999,
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            fontFamily: 'DM Mono, monospace',
+                            background: colorBadge,
+                            color: '#fff',
+                            minWidth: 32,
+                            justifyContent: 'center',
+                          }}>
+                            {Number(p.stock_actual).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+                          </span>
+                        </td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'DM Mono, monospace', color: 'var(--text2)' }}>
+                          {Number(p.stock_minimo).toLocaleString('es-AR', { maximumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   )
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Sub-componentes locales
+// ─────────────────────────────────────────────────────────────────────
+
+interface KpiCardProps {
+  icon: LucideIcon
+  label: string
+  value: string
+  accent: string
+  subtle?: string
+}
+
+function KpiCard({ icon: Icon, label, value, accent, subtle }: KpiCardProps) {
+  return (
+    <div
+      style={{
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11.5, color: 'var(--text2)', fontWeight: 600, letterSpacing: '0.01em', textTransform: 'uppercase' }}>
+          {label}
+        </span>
+        <div style={{
+          width: 28, height: 28,
+          borderRadius: 8,
+          background: `color-mix(in srgb, ${accent} 12%, transparent)`,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon size={14} color={accent} strokeWidth={2.2} />
+        </div>
+      </div>
+      <div style={{
+        fontSize: 22,
+        fontWeight: 700,
+        color: 'var(--text)',
+        letterSpacing: '-0.015em',
+        fontFamily: 'DM Mono, monospace',
+        lineHeight: 1.1,
+      }}>
+        {value}
+      </div>
+      {subtle && (
+        <div style={{ fontSize: 11, color: 'var(--text2)' }}>{subtle}</div>
+      )}
+    </div>
+  )
+}
+
+interface RangoSelectorProps {
+  rango: RangoReporte
+  onChange: (r: RangoReporte) => void
+  disabled?: boolean
+}
+
+function RangoSelector({ rango, onChange, disabled }: RangoSelectorProps) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Rango del reporte"
+      style={{
+        display: 'inline-flex',
+        background: 'var(--bg2)',
+        border: '1px solid var(--border)',
+        borderRadius: 10,
+        padding: 3,
+        gap: 2,
+      }}
+    >
+      {RANGOS.map(r => {
+        const active = r.id === rango
+        return (
+          <button
+            key={r.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(r.id)}
+            disabled={disabled}
+            style={{
+              padding: '6px 12px',
+              fontSize: 12.5,
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              border: 'none',
+              background: active ? 'var(--card)' : 'transparent',
+              color: active ? 'var(--text)' : 'var(--text2)',
+              borderRadius: 8,
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              boxShadow: active ? 'var(--shadow-sm)' : 'none',
+              opacity: disabled ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {r.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: 18,
+        boxShadow: 'var(--shadow-sm)',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function SectionHeader({ icon: Icon, title, subtitle }: { icon: LucideIcon; title: string; subtitle?: string }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Icon size={15} color="var(--ac)" strokeWidth={2.2} />
+        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+          {title}
+        </h3>
+      </div>
+      {subtitle && (
+        <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>{subtitle}</div>
+      )}
+    </div>
+  )
+}
+
+function EmptyMini({ icon: Icon, text, positive }: { icon: LucideIcon; text: string; positive?: boolean }) {
+  return (
+    <div style={{
+      padding: '24px 16px',
+      textAlign: 'center',
+      color: positive ? 'var(--g)' : 'var(--text2)',
+      fontSize: 13,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 8,
+    }}>
+      <Icon size={20} strokeWidth={1.8} color={positive ? 'var(--g)' : 'var(--text2)'} />
+      <span>{text}</span>
+    </div>
+  )
+}
+
+const thStyle: React.CSSProperties = {
+  textAlign: 'left',
+  padding: '8px 10px',
+  fontSize: 11,
+  fontWeight: 600,
+  color: 'var(--text2)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.03em',
+}
+
+const tdStyle: React.CSSProperties = {
+  padding: '10px 10px',
+  verticalAlign: 'middle',
 }

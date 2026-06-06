@@ -212,6 +212,23 @@ button:active { transform: scale(0.97); }
   }
 }
 
+/* Reportes V1 — grids responsive.
+   KPIs: 4 cols desktop, 2 cols tablet, stack mobile (auto-fit min 140px).
+   Secciones (top productos + stock crítico): 2 cols desktop, stack mobile.
+   Sin breakpoints intermedios para mantener la complejidad baja — si la
+   pantalla es chica (<720px), todo apila. */
+.reportes-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+.reportes-grid {
+  grid-template-columns: 1fr;
+}
+@media (min-width: 960px) {
+  .reportes-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* Print rules para tickets.
    Estrategia: el ticket vive off-screen (.print-only) en el DOM,
    y @media print lo trae al frente cancelando todos los offsets +
