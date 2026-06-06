@@ -3,9 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   TrendingUp, Receipt, Wallet, ShoppingBag,
   Trophy, AlertTriangle, Package, RefreshCw,
+  BarChart3,
   type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip,
+} from 'recharts'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatPeso } from '@/lib/utils'
@@ -14,7 +19,19 @@ import {
   RANGOS,
   type RangoReporte,
   type ReporteDashboard,
+  type ReporteVentaDia,
 } from '@/lib/supabase/reportes'
+
+// Helpers para labels adaptativos según rango.
+const SUFIJO_RANGO: Record<RangoReporte, string> = {
+  hoy:    'hoy',
+  semana: '(7 días)',
+  mes:    '(30 días)',
+}
+
+function labelKpi(base: string, rango: RangoReporte): string {
+  return `${base} ${SUFIJO_RANGO[rango]}`
+}
 
 // /reportes V1 — dashboard de información accionable.
 //
@@ -200,9 +217,8 @@ export default function ReportesPage() {
           transition: 'opacity 0.18s ease',
         }}
       >
-      {/* KPIs — ahora dependen del rango. Labels temporales (sin
-          adaptación dinámica todavía). El Commit 5 los hace
-          adaptativos según el rango activo. */}
+      {/* KPIs — todos dependen del rango. Labels adaptativos:
+          "Ventas hoy" / "Ventas (7 días)" / "Ventas (30 días)" etc. */}
       <div
         className="reportes-kpis"
         style={{
@@ -213,30 +229,45 @@ export default function ReportesPage() {
       >
         <KpiCard
           icon={Wallet}
-          label="Ventas"
+          label={labelKpi('Ventas', rango)}
           value={formatPeso(kpis.ventas_total)}
           accent="var(--g)"
         />
         <KpiCard
           icon={Receipt}
-          label="Tickets"
+          label={labelKpi('Tickets', rango)}
           value={String(kpis.tickets_total)}
           accent="var(--ac)"
         />
         <KpiCard
           icon={TrendingUp}
-          label="Ticket promedio"
+          label={labelKpi('Ticket promedio', rango)}
           value={kpis.ticket_promedio != null ? formatPeso(kpis.ticket_promedio) : '—'}
           accent="var(--o)"
           subtle={kpis.ticket_promedio == null ? 'Sin ventas en el período' : undefined}
         />
         <KpiCard
           icon={ShoppingBag}
-          label="Ítems vendidos"
+          label={labelKpi('Ítems vendidos', rango)}
           value={String(kpis.unidades_total)}
           accent="var(--w)"
         />
       </div>
+
+      {/* Gráfico de ventas por día — escondido cuando rango='hoy'
+          (1 sola barra queda raro). 7 días = 7 barras, 30 días = 30. */}
+      {rango !== 'hoy' && (
+        <div style={{ marginBottom: 24 }}>
+          <Card>
+            <SectionHeader
+              icon={BarChart3}
+              title="Ventas por día"
+              subtitle={`Total facturado · ${RANGOS.find(r => r.id === rango)?.label.toLowerCase()}`}
+            />
+            <VentasPorDiaChart data={data.ventas_por_dia} rango={rango} />
+          </Card>
+        </div>
+      )}
 
       {/* Dos columnas en desktop, stack en mobile */}
       <div
@@ -439,6 +470,134 @@ function KpiCard({ icon: Icon, label, value, accent, subtle }: KpiCardProps) {
       )}
     </div>
   )
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// VentasPorDiaChart — gráfico de barras con recharts.
+//
+// Formato del eje X:
+//   - rango='semana' → "Lun", "Mar", ... (3 chars, cabe holgado).
+//   - rango='mes'    → "DD/MM" (más compacto que el día). Mostramos un
+//     tick cada 5 días para no apilar labels.
+// Eje Y: total en $K para que no satura.
+// Tooltip: fecha completa + total + tickets.
+// Altura: 200 desktop / 160 mobile. ResponsiveContainer adapta width.
+// Empty state: si todas las barras son 0, mostramos texto en vez
+// de un gráfico plano feo.
+// ─────────────────────────────────────────────────────────────────────
+
+interface VentasPorDiaChartProps {
+  data: ReporteVentaDia[]
+  rango: RangoReporte
+}
+
+function VentasPorDiaChart({ data, rango }: VentasPorDiaChartProps) {
+  const totalRango = data.reduce((s, d) => s + Number(d.total), 0)
+
+  if (totalRango === 0) {
+    return (
+      <div style={{
+        height: 200,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--text2)',
+        fontSize: 13,
+      }}>
+        Sin ventas en este período.
+      </div>
+    )
+  }
+
+  // Precomputar las labels del eje X una vez por render.
+  const chartData = data.map(d => ({
+    ...d,
+    // Force a numeric for recharts.
+    total: Number(d.total),
+    tickets: Number(d.tickets),
+    label: formatFechaEjeX(d.fecha, rango),
+  }))
+
+  // Para rango='mes' (30 puntos), mostramos 1 cada 5 ticks para que no
+  // se apilen los labels.
+  const intervalTicks = rango === 'mes' ? 4 : 0
+
+  return (
+    <div style={{ width: '100%', height: 200 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 10.5, fill: 'var(--text2)' }}
+            axisLine={false}
+            tickLine={false}
+            interval={intervalTicks}
+          />
+          <YAxis
+            tick={{ fontSize: 10.5, fill: 'var(--text2)' }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(v: number) =>
+              v === 0 ? '0' : v >= 1000 ? `$${Math.round(v / 1000)}k` : `$${v}`
+            }
+          />
+          <Tooltip
+            cursor={{ fill: 'rgba(91,76,255,0.06)' }}
+            contentStyle={{
+              borderRadius: 10,
+              fontSize: 12,
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-md)',
+              fontFamily: 'DM Sans, sans-serif',
+              background: 'var(--card)',
+              color: 'var(--text)',
+              padding: '8px 12px',
+            }}
+            labelFormatter={(_label, payload) => {
+              const row = payload?.[0]?.payload as (ReporteVentaDia & { label: string }) | undefined
+              return row ? formatFechaTooltip(row.fecha) : ''
+            }}
+            formatter={(value, name) => {
+              if (name === 'total') return [formatPeso(Number(value)), 'Ventas']
+              return [String(value), String(name)]
+            }}
+          />
+          <Bar
+            dataKey="total"
+            fill="var(--ac)"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={32}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+const DIAS_SEMANA_ABR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const MESES_ABR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+/** Para semana muestra "Lun"/"Mar"/etc., para mes "DD/MM". */
+function formatFechaEjeX(fechaYmd: string, rango: RangoReporte): string {
+  // fechaYmd llega como YYYY-MM-DD desde la RPC. Parseamos manual
+  // para evitar problemas de TZ del Date constructor con strings.
+  const [y, m, d] = fechaYmd.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  if (rango === 'semana') {
+    return DIAS_SEMANA_ABR[date.getDay()]
+  }
+  // mes: DD/MM
+  return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`
+}
+
+/** Para el tooltip: "Lunes 15 de junio". */
+function formatFechaTooltip(fechaYmd: string): string {
+  const [y, m, d] = fechaYmd.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const dia = DIAS_SEMANA_ABR[date.getDay()]
+  const mes = MESES_ABR[m - 1]
+  return `${dia} ${d} de ${mes}`
 }
 
 interface RangoSelectorProps {
