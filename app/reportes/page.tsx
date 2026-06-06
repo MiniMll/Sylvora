@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  TrendingUp, Receipt, Wallet, Calendar,
+  TrendingUp, Receipt, Wallet, ShoppingBag,
   Trophy, AlertTriangle, Package, RefreshCw,
   type LucideIcon,
 } from 'lucide-react'
@@ -200,7 +200,9 @@ export default function ReportesPage() {
           transition: 'opacity 0.18s ease',
         }}
       >
-      {/* KPIs — siempre visibles, no dependen del rango. */}
+      {/* KPIs — ahora dependen del rango. Labels temporales (sin
+          adaptación dinámica todavía). El Commit 5 los hace
+          adaptativos según el rango activo. */}
       <div
         className="reportes-kpis"
         style={{
@@ -211,28 +213,28 @@ export default function ReportesPage() {
       >
         <KpiCard
           icon={Wallet}
-          label="Ventas hoy"
-          value={formatPeso(kpis.ventas_hoy)}
+          label="Ventas"
+          value={formatPeso(kpis.ventas_total)}
           accent="var(--g)"
         />
         <KpiCard
-          icon={Calendar}
-          label="Ventas este mes"
-          value={formatPeso(kpis.ventas_mes)}
+          icon={Receipt}
+          label="Tickets"
+          value={String(kpis.tickets_total)}
           accent="var(--ac)"
         />
         <KpiCard
-          icon={Receipt}
-          label="Tickets hoy"
-          value={String(kpis.tickets_hoy)}
+          icon={TrendingUp}
+          label="Ticket promedio"
+          value={kpis.ticket_promedio != null ? formatPeso(kpis.ticket_promedio) : '—'}
           accent="var(--o)"
+          subtle={kpis.ticket_promedio == null ? 'Sin ventas en el período' : undefined}
         />
         <KpiCard
-          icon={TrendingUp}
-          label="Ticket promedio hoy"
-          value={kpis.ticket_promedio_hoy != null ? formatPeso(kpis.ticket_promedio_hoy) : '—'}
+          icon={ShoppingBag}
+          label="Ítems vendidos"
+          value={String(kpis.unidades_total)}
           accent="var(--w)"
-          subtle={kpis.ticket_promedio_hoy == null ? 'Sin ventas hoy todavía' : undefined}
         />
       </div>
 

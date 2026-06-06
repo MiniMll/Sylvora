@@ -29,18 +29,27 @@ export const RANGOS: { id: RangoReporte; label: string }[] = [
 export interface ReporteKpis {
   /** SUM(total) de ventas completadas EN EL RANGO. */
   ventas_total: number
-  /** SUM(total) ventas completadas HOY (en TZ del comercio). Fijo,
-   *  independiente del rango. */
-  ventas_hoy: number
-  /** SUM(total) ventas completadas en el mes calendario actual.
-   *  Fijo, independiente del rango. */
-  ventas_mes: number
   /** COUNT de ventas completadas EN EL RANGO. */
   tickets_total: number
-  /** COUNT de ventas completadas HOY. Fijo. */
-  tickets_hoy: number
-  /** ventas_hoy / tickets_hoy. NULL si tickets_hoy = 0. */
-  ticket_promedio_hoy: number | null
+  /** ventas_total / tickets_total. NULL si tickets_total = 0. */
+  ticket_promedio: number | null
+  /** SUM(items_venta.cantidad) en el rango.
+   *  Para productos por unidad cuenta unidades exactas. Para productos
+   *  por peso (kg/L/m), cantidad típicamente es 1 (el peso real va en
+   *  peso_kg), así que para esos casos la métrica representa "líneas
+   *  en tickets". Para kioscos AR (95% por unidad) es preciso —
+   *  trade-off documentado para V1. */
+  unidades_total: number
+}
+
+/** Una fila de la serie temporal "ventas por día" del rango.
+ *  Días sin ventas vienen con total=0 y tickets=0 (zero-filled
+ *  server-side con generate_series). */
+export interface ReporteVentaDia {
+  /** Fecha en formato YYYY-MM-DD en la TZ del comercio. */
+  fecha: string
+  total: number
+  tickets: number
 }
 
 export interface ReporteTopProducto {
@@ -76,6 +85,12 @@ export interface ReporteRango {
 export interface ReporteDashboard {
   rango: ReporteRango
   kpis: ReporteKpis
+  /** Serie diaria de ventas del rango. Longitud:
+   *    rango='hoy'    → 1
+   *    rango='semana' → 7
+   *    rango='mes'    → 30
+   *  Días sin ventas vienen en 0 (zero-filled). */
+  ventas_por_dia: ReporteVentaDia[]
   top_productos: ReporteTopProducto[]
   stock_critico: ReporteStockCritico[]
 }
