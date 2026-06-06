@@ -1,10 +1,11 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   TrendingUp, Receipt, Wallet, Calendar,
-  Trophy, AlertTriangle, Package,
+  Trophy, AlertTriangle, Package, RefreshCw,
   type LucideIcon,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatPeso } from '@/lib/utils'
@@ -36,26 +37,76 @@ import {
 export default function ReportesPage() {
   const [rango, setRango] = useState<RangoReporte>('semana')
   const [data, setData] = useState<ReporteDashboard | null>(null)
+  // cargando = initial full-page spinner; solo true antes del primer
+  // fetch exitoso. Una vez que tenemos data, NUNCA volvemos a poner
+  // cargando=true → el contenido viejo queda visible mientras refresca.
   const [cargando, setCargando] = useState(true)
+  // refreshing = refresh "background". El indicador es sutil: icon
+  // gira en el botón + opacity 0.7 en el contenido. No blanquea pantalla.
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(false)
+  // Timestamp del último fetch exitoso. Usado para el "Hace X min"
+  // del header.
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  // Tick contador que se incrementa cada minuto — solo sirve para
+  // forzar re-render del timestamp relativo (sino "Justo ahora" nunca
+  // se actualizaría a "Hace 5 min" si el usuario deja la página abierta).
+  const [, setTick] = useState(0)
 
-  const cargar = useCallback(async (r: RangoReporte) => {
-    setCargando(true)
+  // Distinguimos initial load vs refresh por un ref (no por estado).
+  // El primer useEffect que dispara cargar() debe ser modo "initial"
+  // (spinner). Los siguientes (cambio de rango, click en Actualizar)
+  // son "refresh" (overlay sutil).
+  const isFirstLoad = useRef(true)
+
+  const cargar = useCallback(async (r: RangoReporte, refresh: boolean) => {
+    if (refresh) setRefreshing(true)
+    else setCargando(true)
     setError(false)
+
     const res = await getReporteDashboard(r)
+
     if (!res) {
-      setError(true)
-      setCargando(false)
+      if (refresh) {
+        // Mantener los datos viejos visibles + toast humano. El user
+        // ve qué pasó pero no pierde la pantalla.
+        toast.error('No pudimos actualizar el reporte. Probá de nuevo en unos segundos.', { id: 'reportes-refresh' })
+        setRefreshing(false)
+      } else {
+        // Error en el initial load — sin data que mostrar.
+        setError(true)
+        setCargando(false)
+      }
       return
     }
+
     setData(res)
-    setCargando(false)
+    setLastUpdated(new Date())
+    if (refresh) setRefreshing(false)
+    else setCargando(false)
   }, [])
 
+  // Trigger inicial + cuando cambia el rango. El ref marca si fue
+  // initial o refresh. Sin esto, cambiar rango también lanzaría
+  // el spinner full-page que decidimos evitar.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    cargar(rango)
+    const refresh = !isFirstLoad.current
+    isFirstLoad.current = false
+    cargar(rango, refresh)
   }, [cargar, rango])
+
+  // Re-render del timestamp cada 60s. Solo activo cuando hay data —
+  // si la página está en estado loading/error no hace falta.
+  useEffect(() => {
+    if (!lastUpdated) return
+    const id = setInterval(() => setTick(t => t + 1), 60_000)
+    return () => clearInterval(id)
+  }, [lastUpdated])
+
+  const refrescarManual = useCallback(() => {
+    if (refreshing || cargando) return
+    cargar(rango, true)
+  }, [cargar, rango, refreshing, cargando])
 
   // ── Loading inicial — todavía no hay data ──
   if (cargando && !data) {
@@ -74,7 +125,7 @@ export default function ReportesPage() {
           icon={<AlertTriangle size={20} color="var(--r)" strokeWidth={2} />}
           title="No pudimos cargar los reportes."
           description="Revisá tu conexión y volvé a intentarlo."
-          actions={[{ label: 'Reintentar', onClick: () => cargar(rango), variant: 'primary' }]}
+          actions={[{ label: 'Reintentar', onClick: () => cargar(rango, false), variant: 'primary' }]}
         />
       </div>
     )
@@ -94,13 +145,61 @@ export default function ReportesPage() {
             Reportes
           </h1>
           <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>
-            Lo que está pasando en tu comercio
+            {lastUpdated
+              ? `Actualizado · ${formatTimestampRelative(lastUpdated)}`
+              : 'Lo que está pasando en tu comercio'}
           </p>
         </div>
 
-        <RangoSelector rango={rango} onChange={setRango} disabled={cargando} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={refrescarManual}
+            disabled={refreshing || cargando}
+            aria-label="Actualizar reportes"
+            title="Actualizar"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 12px',
+              fontSize: 12.5,
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              border: '1px solid var(--border)',
+              background: 'var(--bg2)',
+              color: 'var(--text)',
+              borderRadius: 8,
+              cursor: refreshing || cargando ? 'not-allowed' : 'pointer',
+              opacity: refreshing || cargando ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <RefreshCw
+              size={13}
+              strokeWidth={2.2}
+              style={{
+                animation: refreshing ? 'spin 0.9s linear infinite' : undefined,
+              }}
+            />
+            <span>Actualizar</span>
+          </button>
+          <RangoSelector rango={rango} onChange={setRango} disabled={cargando || refreshing} />
+        </div>
       </div>
 
+      {/* Wrapper que se desatura levemente durante refresh. NO blanquea
+          la pantalla — el cajero sigue viendo los datos viejos mientras
+          llegan los nuevos. pointer-events:none evita interacciones
+          ambiguas (clickear una fila que está por cambiar). */}
+      <div
+        aria-busy={refreshing}
+        style={{
+          opacity: refreshing ? 0.55 : 1,
+          pointerEvents: refreshing ? 'none' : 'auto',
+          transition: 'opacity 0.18s ease',
+        }}
+      >
       {/* KPIs — siempre visibles, no dependen del rango. */}
       <div
         className="reportes-kpis"
@@ -261,8 +360,27 @@ export default function ReportesPage() {
           )}
         </Card>
       </div>
+
+      </div>
+      {/* fin wrapper de opacidad-mientras-refresca */}
     </div>
   )
+}
+
+// ── Helper: timestamp relativo en formato humano AR ────────────────
+// Usa el "tick" implícito del componente padre (se re-render cada 60s
+// gracias a setTick) para que "Justo ahora" pase a "Hace 5 min" sin
+// que el usuario tenga que tocar nada.
+function formatTimestampRelative(date: Date): string {
+  const diffMs = Date.now() - date.getTime()
+  const minutos = Math.floor(diffMs / 60_000)
+  if (minutos < 1) return 'Justo ahora'
+  if (minutos === 1) return 'Hace 1 min'
+  if (minutos < 60) return `Hace ${minutos} min`
+  const horas = Math.floor(minutos / 60)
+  if (horas === 1) return 'Hace 1 h'
+  if (horas < 24) return `Hace ${horas} h`
+  return 'Hace más de un día'
 }
 
 // ─────────────────────────────────────────────────────────────────────
