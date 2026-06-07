@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════
--- RPC ajustar_stock_atomico — ajuste manual de stock con historial
+-- RPC ajustar_stock_atomico — ajuste manual de stock (V2)
 -- ═══════════════════════════════════════════════════════════════════
 --
 -- Cierra el último entry point que rompía el invariante stock_actual
@@ -14,12 +14,29 @@
 --      bloquea el botón), pero si por alguna razón pasa, fallamos
 --      visible en lugar de drift silencioso.
 --   3. Si NO tiene lotes (modo legacy) → UPDATE stock_actual al
---      valor nuevo. Insert en movimientos_stock con tipo
---      'ajuste_manual' para historial.
+--      valor nuevo.
 --
--- Tipo del movimiento: 'ajuste_manual'. La tabla movimientos_stock
--- no tiene CHECK sobre tipo — se puede usar libre. Un futuro sprint
--- puede agregar pantalla de historial que consuma esta data.
+-- ───── Historial — POSPUESTO A V3 ───────────────────────────────────
+-- La primera versión de esta migración intentaba INSERT en
+-- movimientos_stock con columnas (cantidad, motivo), pero ese es el
+-- schema del bootstrap landing/staging. Prod fue creado desde
+-- supabase-schema.sql que usa otro shape:
+--   cantidad_anterior INTEGER, cantidad_cambio INTEGER,
+--   cantidad_nueva INTEGER, notas TEXT
+-- + INTEGER no acepta decimales para productos por peso.
+--
+-- Para no atrasar el fix de integridad (que es el objetivo del
+-- sprint), removemos el INSERT al historial. Se acumulará como
+-- deuda técnica para un sprint V3 que:
+--   1. Decida un schema canónico de movimientos_stock (con
+--      cantidad NUMERIC en lugar de INTEGER).
+--   2. Migre prod a ese schema.
+--   3. Re-agregue el INSERT en esta RPC.
+--   4. Diseñe la pantalla de consulta del historial.
+--
+-- Mientras tanto: el ajuste manual de stock funciona y bloquea
+-- productos con lotes. No queda auditoría de quién/cuándo ajustó.
+-- Aceptable para V2 — el bug que el dueño reportó queda cerrado.
 --
 -- IDEMPOTENTE: CREATE OR REPLACE FUNCTION.
 
@@ -35,7 +52,6 @@ LANGUAGE plpgsql
 SECURITY INVOKER
 AS $$
 DECLARE
-  v_comercio_id    uuid;
   v_stock_anterior numeric;
   v_sum_lotes      numeric;
   v_delta          numeric;
@@ -47,9 +63,9 @@ BEGIN
       USING DETAIL = jsonb_build_object('cantidad', p_cantidad_nueva)::text;
   END IF;
 
-  -- 2. Lock producto + obtener stock anterior + comercio.
-  SELECT stock_actual, comercio_id
-    INTO v_stock_anterior, v_comercio_id
+  -- 2. Lock producto + obtener stock anterior.
+  SELECT stock_actual
+    INTO v_stock_anterior
     FROM productos
    WHERE id = p_producto_id
    FOR UPDATE;
@@ -78,8 +94,7 @@ BEGIN
   v_delta := p_cantidad_nueva - v_stock_anterior;
 
   IF v_delta = 0 THEN
-    -- No-op: ya estaba en el valor pedido. No registramos movimiento
-    -- ni tocamos updated_at para no ensuciar el historial.
+    -- No-op: ya estaba en el valor pedido. Nada que hacer.
     RETURN;
   END IF;
 
@@ -88,15 +103,11 @@ BEGIN
          updated_at   = now()
    WHERE id = p_producto_id;
 
-  -- 5. Historial — movimientos_stock.
-  -- tipo='ajuste_manual'. cantidad guarda el DELTA (positivo si
-  -- aumentó, negativo si bajó). Esto permite reconstruir el
-  -- historial sin tener que cruzar con valores intermedios.
-  INSERT INTO movimientos_stock (
-    comercio_id, producto_id, tipo, cantidad, motivo
-  ) VALUES (
-    v_comercio_id, p_producto_id, 'ajuste_manual', v_delta, p_motivo
-  );
+  -- 5. (Historial movimientos_stock — POSPUESTO V3, ver header).
+  --    p_motivo se acepta y se ignora por ahora para no romper el
+  --    contrato del cliente (lib/supabase/productos.ts.ajustarStock
+  --    ya lo pasa). Cuando volvamos a habilitar el INSERT, lo
+  --    aprovechamos sin cambiar el cliente.
 END;
 $$;
 
@@ -117,22 +128,25 @@ COMMIT;
 --      -- Pickear un producto sin lotes con stock_actual conocido:
 --      SELECT id, stock_actual FROM productos
 --      WHERE NOT EXISTS (SELECT 1 FROM lotes WHERE producto_id = productos.id)
+--        AND activo = true
 --      LIMIT 1;
 --      -- Llamar la RPC con stock_actual + 5:
 --      SELECT ajustar_stock_atomico('<uuid>', <stock_actual + 5>::numeric, 'Test V2');
 --      -- Verificar:
 --      SELECT stock_actual FROM productos WHERE id = '<uuid>';
 --      -- → stock_actual + 5
---      SELECT tipo, cantidad, motivo FROM movimientos_stock
---      WHERE producto_id = '<uuid>' ORDER BY created_at DESC LIMIT 1;
---      -- → ajuste_manual, +5, 'Test V2'
 --    ROLLBACK;
 --
 -- 3. Smoke test producto CON lotes (debe RAISE):
 --    BEGIN;
 --      SELECT id FROM productos
 --      WHERE EXISTS (SELECT 1 FROM lotes WHERE producto_id = productos.id)
+--        AND activo = true
 --      LIMIT 1;
 --      SELECT ajustar_stock_atomico('<uuid>', 999, 'Test V2');
 --      -- → ERROR: usa_lotes con DETAIL { producto_id, sum_lotes, hint }
 --    ROLLBACK;
+--
+-- NOTA: el INSERT a movimientos_stock está pospuesto a V3 (ver header).
+-- Si re-corrés el smoke test 2, no aparecerá fila en movimientos_stock —
+-- esperado.
