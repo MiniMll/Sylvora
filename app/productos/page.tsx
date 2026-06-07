@@ -13,6 +13,7 @@ import { EditProductModal, type EditFormValues } from './components/EditProductM
 import { ImportarProductosModal } from './components/ImportarProductosModal'
 import { useTrial } from '@/lib/hooks/useTrial'
 import { esComercioDemo } from '@/lib/demo'
+import { getBrowserClient } from '@/lib/supabase/_base'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -33,6 +34,12 @@ export default function ProductosPage() {
 
   const [editando, setEditando] = useState<Producto | null>(null)
   const [guardandoEdit, setGuardandoEdit] = useState(false)
+  // Flag para EditProductModal — true si el producto que se está
+  // editando tiene lotes. Cuando es true, el modal renderiza el campo
+  // "Stock actual" como read-only con aviso de que se ajusta vía lotes.
+  // Se resuelve en onEditar (query a lotes count); el modal no consulta
+  // por su cuenta para mantener la separación de responsabilidades.
+  const [editandoTieneLotes, setEditandoTieneLotes] = useState(false)
 
   const [confirmarBorrar, setConfirmarBorrar] = useState<Producto | null>(null)
 
@@ -88,7 +95,22 @@ export default function ProductosPage() {
     setCargandoLotes(false)
   }, [])
 
-  const onEditar = useCallback((p: Producto) => setEditando(p), [])
+  const onEditar = useCallback(async (p: Producto) => {
+    setEditando(p)
+    // Query si el producto tiene al menos un lote — afecta cómo el modal
+    // renderiza el campo "Stock actual". Es una query liviana
+    // (limit(1)) y no bloquea la apertura del modal: si llega tarde,
+    // el modal arranca con tieneLotes=false (estado inicial) y se actualiza
+    // al rato. No degrada la UX porque el modal se abre instantáneo.
+    const supabase = getBrowserClient()
+    const { data } = await supabase
+      .from('lotes')
+      .select('id')
+      .eq('producto_id', p.id)
+      .limit(1)
+      .maybeSingle()
+    setEditandoTieneLotes(!!data)
+  }, [])
   const onConfirmarBorrar = useCallback((p: Producto) => setConfirmarBorrar(p), [])
 
   const guardarEdicion = async (form: EditFormValues, imgFile: File | null) => {
@@ -299,7 +321,8 @@ export default function ProductosPage() {
         <EditProductModal
           producto={editando}
           guardando={guardandoEdit}
-          onClose={() => setEditando(null)}
+          tieneLotes={editandoTieneLotes}
+          onClose={() => { setEditando(null); setEditandoTieneLotes(false) }}
           onGuardar={guardarEdicion}
         />
       )}

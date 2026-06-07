@@ -36,7 +36,22 @@ export interface StockInsuficienteError {
   pedido: number
 }
 
-export type GuardarVentaResult = Venta | StockInsuficienteError | null
+/** Resultado descriptivo cuando la venta no se puede registrar porque
+ *  hay drift entre productos.stock_actual y SUM(lotes) — la RPC
+ *  intentó descontar de lotes FIFO pero no había suficiente cantidad
+ *  para cubrir el pedido. Es el assert server-side disparándose:
+ *  indica que un UPDATE directo o un bug rompió el invariante.
+ *  El cajero no puede hacer nada salvo escalar al administrador
+ *  (que tiene que correr el script de audit y reconciliar). */
+export interface DriftLotesError {
+  error: 'drift_lotes'
+}
+
+export type GuardarVentaResult =
+  | Venta
+  | StockInsuficienteError
+  | DriftLotesError
+  | null
 
 /** Type guard para discriminar el caso "stock insuficiente" del
  *  caso éxito o error genérico. */
@@ -44,6 +59,15 @@ export function esErrorStockInsuficiente(
   r: GuardarVentaResult,
 ): r is StockInsuficienteError {
   return !!r && typeof r === 'object' && 'error' in r && r.error === 'stock_insuficiente'
+}
+
+/** Type guard para "drift de lotes detectado". Diferente del
+ *  stock_insuficiente: este indica inconsistencia DB, no que el
+ *  carrito haya excedido el stock real. */
+export function esErrorDriftLotes(
+  r: GuardarVentaResult,
+): r is DriftLotesError {
+  return !!r && typeof r === 'object' && 'error' in r && r.error === 'drift_lotes'
 }
 
 // Cuántas veces reintentar el INSERT de venta si choca contra la
@@ -139,6 +163,17 @@ export async function guardarVenta(venta: VentaInput): Promise<GuardarVentaResul
         // DETAIL malformado — fallback a error genérico.
         console.error('[guardarVenta] error.details no parseable', e, stockError)
       }
+    }
+    // drift_lotes: el assert server-side detectó que SUM(lotes) <
+    // stock_actual al intentar descontar FIFO. Indica drift de datos
+    // (alguien rompió el invariante con un UPDATE directo). El cajero
+    // no puede resolverlo — escalar al administrador para correr el
+    // audit + reconciliación. PostgREST surface el message con el
+    // formato 'drift_lotes: ...' por la RAISE EXCEPTION format() de
+    // la RPC; matcheamos startsWith.
+    if (stockError.message?.startsWith('drift_lotes')) {
+      console.error('[guardarVenta] drift_lotes detectado por la RPC:', stockError.message)
+      return { error: 'drift_lotes' }
     }
     // Cualquier otro error de la RPC (cantidad_invalida,
     // producto_no_encontrado, red, etc.) → null genérico.
