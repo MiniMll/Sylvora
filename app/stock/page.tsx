@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Hint } from '@/components/ui/Hint'
 import { usePermissions } from '@/components/PermissionsProvider'
 import { stockColor, stockLabel, formatVencimiento } from '@/lib/utils'
 
@@ -252,6 +253,13 @@ export default function StockPage() {
             {/* Lotes existentes */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>Lotes existentes</div>
+              {/* FEFO hint — id compartido con ProductDetail. Si el
+                  comerciante lo dismissa en una pantalla, no reaparece
+                  en la otra (mismo localStorage key). */}
+              <Hint id="lotes-fefo" style={{ marginBottom: 10 }}>
+                Sylvora descuenta primero los lotes con vencimiento más cercano.
+                Si no tienen fecha, usa el orden de carga.
+              </Hint>
               {cargandoLotes ? (
                 <div style={{ fontSize: 12, color: 'var(--text2)', padding: 12, textAlign: 'center' }}>Cargando...</div>
               ) : lotesModal.length === 0 ? (
@@ -318,6 +326,9 @@ export default function StockPage() {
                     <Input value={nuevoLote.fecha_vencimiento} onChange={e => setNuevoLote(p => ({ ...p, fecha_vencimiento: e.target.value }))}
                       type="date" style={{ padding: '8px 10px' }} />
                   </div>
+                </div>
+                <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 2, lineHeight: 1.45 }}>
+                  Si cargás una fecha, Sylvora usa este dato para vender primero los lotes que vencen antes.
                 </div>
                 <Button variant="success" onClick={guardarNuevoLote} loading={guardandoLote} style={{ marginTop: 4 }}>
                   {guardandoLote ? 'Agregando...' : 'Agregar lote al stock'}

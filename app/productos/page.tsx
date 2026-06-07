@@ -368,6 +368,9 @@ export default function ProductosPage() {
                 <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Fecha de vencimiento</label>
                 <Input value={nuevoLote.fecha_vencimiento} onChange={e => setNuevoLote(p => ({ ...p, fecha_vencimiento: e.target.value }))}
                   type="date" />
+                <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 5, lineHeight: 1.45 }}>
+                  Si cargás una fecha, Sylvora usa este dato para vender primero los lotes que vencen antes.
+                </div>
               </div>
             </div>
           </>
