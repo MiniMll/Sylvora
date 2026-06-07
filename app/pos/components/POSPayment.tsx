@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner'
 import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
-import { guardarVenta, esErrorStockInsuficiente } from '@/lib/supabase/ventas'
+import { guardarVenta, esErrorStockInsuficiente, esErrorDriftLotes } from '@/lib/supabase/ventas'
 import { getComercio } from '@/lib/supabase/_base'
 import { TicketReceipt } from '@/components/TicketReceipt'
 import type { MetodoPago } from '@/types'
@@ -113,6 +113,19 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
         // Tras esto POSCart bloquea los + de los items afectados, lo
         // que ayuda al cajero a ajustar antes de re-intentar cobrar.
         void onStockSync()
+        return
+      }
+
+      // Drift de lotes detectado por la RPC: hay inconsistencia DB que
+      // el cajero no puede resolver. Mensaje específico para que sepa
+      // a quién escalar — NO genérico "probá de nuevo" porque va a
+      // seguir fallando hasta que el dueño audite + reconcilie.
+      if (esErrorDriftLotes(result)) {
+        toast.error(
+          'No pudimos cobrar — hay diferencia entre el stock total y los lotes de algún producto del ticket. Avisá al administrador.',
+          { id: 'pos-cobrar', duration: 8000 },
+        )
+        store.setCargandoVenta(false)
         return
       }
 

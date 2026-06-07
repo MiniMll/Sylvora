@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getStockCritico, ajustarStock } from '@/lib/supabase/productos'
+import { getStockCritico } from '@/lib/supabase/productos'
 import { getLotes, agregarLote, getSiguienteNumeroLote, eliminarLote } from '@/lib/supabase/stock'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { toast } from 'sonner'
-import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2, Check, X, Loader2 } from 'lucide-react'
+import { Pencil, PackageOpen, AlertTriangle, CheckCircle, XCircle, Trash2, Loader2 } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -23,8 +23,6 @@ export default function StockPage() {
   const [cargandoLotes, setCargandoLotes] = useState(false)
   const [nuevoLote, setNuevoLote] = useState({ numero_lote: '', cantidad: '', fecha_vencimiento: '' })
   const [guardandoLote, setGuardandoLote] = useState(false)
-  const [editandoLote, setEditandoLote] = useState<any | null>(null)
-  const [nuevoStockLote, setNuevoStockLote] = useState('')
   const [borrandoLote, setBorrandoLote] = useState<string | null>(null)
 
   useEffect(() => {
@@ -46,7 +44,6 @@ export default function StockPage() {
     setModalProducto(p)
     setCargandoLotes(true)
     setLotesModal([])
-    setEditandoLote(null)
     const lotes = await getLotes(p.id)
     setLotesModal(lotes)
     setCargandoLotes(false)
@@ -81,26 +78,19 @@ export default function StockPage() {
     setGuardandoLote(false)
   }
 
-  const guardarEdicionLote = async () => {
-    if (!editandoLote || nuevoStockLote === '') return
-    const nuevo = Number(nuevoStockLote)
-    const diferencia = nuevo - editandoLote.cantidad
-    const { createBrowserClient } = await import('@supabase/ssr')
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    await supabase.from('lotes').update({ cantidad: nuevo }).eq('id', editandoLote.id)
-    await ajustarStock(modalProducto.id, modalProducto.stock_actual + diferencia)
-    setProductos(prev => prev.map(p =>
-      p.id === modalProducto.id ? { ...p, stock_actual: p.stock_actual + diferencia } : p
-    ))
-    setModalProducto((prev: any) => ({ ...prev, stock_actual: prev.stock_actual + diferencia }))
-    setLotesModal(prev => prev.map(l => l.id === editandoLote.id ? { ...l, cantidad: nuevo } : l))
-    setEditandoLote(null)
-    setNuevoStockLote('')
-    toast.success('Lote actualizado')
-  }
+  // DESHABILITADO V2 — edit de cantidad de un lote era no-atómico:
+  //   UPDATE lotes.cantidad (directo, sin RPC) + ajustarStock
+  // Tras el fix V2, ajustarStock va por ajustar_stock_atomico que
+  // RECHAZA productos con lotes (porque rompe el invariante). El
+  // flujo entero quedó roto.
+  //
+  // Workaround V2: el comerciante puede borrar el lote (atomic) y
+  // agregar uno nuevo con la cantidad correcta. La UI esconde el
+  // botón "Editar" de cada lote — solo "Borrar".
+  //
+  // Restauración V3: una RPC editar_lote_atomico(lote_id, nueva_cantidad)
+  // que en una transacción UPDATEa lote + ajusta stock_actual con la
+  // diferencia. ~15 líneas de SQL.
 
   const borrarLote = async (lote: any) => {
     setBorrandoLote(lote.id)
@@ -247,7 +237,7 @@ export default function StockPage() {
       {/* Modal editar stock + lotes */}
       <Modal
         open={!!modalProducto}
-        onClose={() => { setModalProducto(null); setEditandoLote(null) }}
+        onClose={() => setModalProducto(null)}
         size="md">
         {modalProducto && (
           <>
@@ -273,7 +263,6 @@ export default function StockPage() {
                   {lotesModal.map((lote: any) => {
                     const vencido = lote.fecha_vencimiento && new Date(lote.fecha_vencimiento) < new Date()
                     const venc = formatVencimiento(lote.fecha_vencimiento)
-                    const editando = editandoLote?.id === lote.id
                     return (
                       <div key={lote.id} style={{ background: 'var(--bg3)', borderRadius: 10, padding: '10px 12px', border: `1px solid ${vencido ? 'rgba(255,71,87,0.3)' : 'var(--border)'}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -286,39 +275,21 @@ export default function StockPage() {
                           <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'DM Mono, monospace', color: 'var(--text)', minWidth: 40, textAlign: 'right' }}>
                             {lote.cantidad}
                           </div>
+                          {/* "Editar lote" removido V2 — el flujo era no-atómico
+                              y el RPC ajustar_stock_atomico rechaza productos
+                              con lotes. Workaround V2: borrar y agregar de
+                              nuevo. Reapertura en V3 con editar_lote_atomico. */}
                           {puedeGestionarLotes && (
-                            <>
-                              <button onClick={() => { setEditandoLote(lote); setNuevoStockLote(lote.cantidad.toString()) }}
-                                style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text)' }}>
-                                Editar
-                              </button>
-                              <button onClick={() => borrarLote(lote)} disabled={borrandoLote === lote.id}
-                                aria-label="Borrar lote"
-                                style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {borrandoLote === lote.id
-                                  ? <Loader2 size={12} color="var(--r)" style={{ animation: 'spin 0.8s linear infinite' }} />
-                                  : <Trash2 size={12} color="#ff4757" strokeWidth={2} />
-                                }
-                              </button>
-                            </>
+                            <button onClick={() => borrarLote(lote)} disabled={borrandoLote === lote.id}
+                              aria-label="Borrar lote"
+                              style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,71,87,0.3)', background: 'var(--bg2)', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {borrandoLote === lote.id
+                                ? <Loader2 size={12} color="var(--r)" style={{ animation: 'spin 0.8s linear infinite' }} />
+                                : <Trash2 size={12} color="#ff4757" strokeWidth={2} />
+                              }
+                            </button>
                           )}
                         </div>
-                        {puedeGestionarLotes && editando && (
-                          <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <Input type="number" value={nuevoStockLote} onChange={e => setNuevoStockLote(e.target.value)}
-                              style={{ flex: 1, padding: '8px 10px' }} placeholder="Nueva cantidad" autoFocus />
-                            <button onClick={guardarEdicionLote}
-                              aria-label="Guardar cambios del lote"
-                              style={{ padding: '7px 10px', borderRadius: 7, background: 'var(--ac)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Check size={14} strokeWidth={2.6} />
-                            </button>
-                            <button onClick={() => setEditandoLote(null)}
-                              aria-label="Cancelar edición"
-                              style={{ padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', color: 'var(--text2)', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <X size={14} strokeWidth={2.2} />
-                            </button>
-                          </div>
-                        )}
                       </div>
                     )
                   })}

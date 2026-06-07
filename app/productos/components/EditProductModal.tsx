@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Camera } from 'lucide-react'
+import { Camera, Layers, Info } from 'lucide-react'
 import type { Producto } from '@/types/database'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -23,9 +23,16 @@ interface Props {
   guardando: boolean
   onClose: () => void
   onGuardar: (values: EditFormValues, imgFile: File | null) => Promise<void>
+  /** Si true, el campo "Stock actual" se renderiza como solo-lectura con
+   *  aviso indicando que el stock se ajusta con lotes. Defensa de UX —
+   *  el guard en lib/supabase/productos.ts.actualizarProducto igual filtra
+   *  stock_actual del UPDATE si el producto tiene lotes, pero acá evitamos
+   *  que el comerciante meta un número y se quede esperando a que tenga
+   *  efecto. */
+  tieneLotes?: boolean
 }
 
-export function EditProductModal({ producto, guardando, onClose, onGuardar }: Props) {
+export function EditProductModal({ producto, guardando, onClose, onGuardar, tieneLotes = false }: Props) {
   const [form, setForm] = useState<EditFormValues>({
     nombre: producto.nombre || '',
     codigo_barras: producto.codigo_barras || '',
@@ -41,8 +48,12 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
   const [imgFile, setImgFile] = useState<File | null>(null)
   const [imgHover, setImgHover] = useState(false)
 
-  // Si cambia el producto editado (rara vez), resetea el form.
+  // Si cambia el producto editado (rara vez), resetea el form. Es una
+  // transición discreta entre productos — no es "sync to props" del
+  // anti-pattern que la regla react-hooks/set-state-in-effect intenta
+  // evitar.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm({
       nombre: producto.nombre || '',
       codigo_barras: producto.codigo_barras || '',
@@ -130,9 +141,11 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
             { label: 'Código de barras', key: 'codigo_barras' },
             { label: 'SKU', key: 'sku' },
             { label: 'Precio de costo', key: 'precio_costo', type: 'number' },
-            ...(form.unidad_venta !== 'kg' ? [{ label: 'Precio de venta', key: 'precio_venta', type: 'number' }] : []),
+            ...(form.unidad_venta !== 'kg' ? [{ label: 'Precio de venta', key: 'precio_venta' as const, type: 'number' }] : []),
             { label: 'Precio por kg', key: 'precio_por_kg', type: 'number' },
-            { label: 'Stock actual', key: 'stock_actual', type: 'number' },
+            // Stock actual editable solo si el producto NO tiene lotes.
+            // Cuando tiene lotes se renderiza más abajo como solo-lectura.
+            ...(tieneLotes ? [] : [{ label: 'Stock actual', key: 'stock_actual' as const, type: 'number' }]),
             { label: 'Stock mínimo', key: 'stock_minimo', type: 'number' },
           ] as { label: string; key: keyof EditFormValues; type?: string; full?: boolean }[]).map(f => (
             <div key={f.key} style={{ gridColumn: f.full ? '1 / -1' : 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -142,6 +155,42 @@ export function EditProductModal({ producto, guardando, onClose, onGuardar }: Pr
                 style={{ padding: '8px 10px' }} />
             </div>
           ))}
+
+          {/* Stock actual READ-ONLY con notice cuando el producto tiene lotes.
+              Mostramos el valor actual + explicación + CTA implícito (el
+              cajero ya conoce el botón "Agregar lote" de la pantalla de
+              detalle). El form sigue enviando stock_actual; el guard
+              defensivo en actualizarProducto lo filtra antes del UPDATE. */}
+          {tieneLotes && (
+            <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500 }}>Stock actual</label>
+              <div
+                style={{
+                  background: 'var(--bg3)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                }}
+              >
+                <Layers size={15} color="var(--ac)" strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 2 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', fontFamily: 'DM Mono, monospace', lineHeight: 1.2 }}>
+                    {form.stock_actual || '0'}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+                    <Info size={11} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span>
+                      Este producto usa lotes. El stock se ajusta agregando o
+                      eliminando lotes. <b>Para sumar stock, agregá un nuevo lote.</b>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 500 }}>Unidad de venta</label>
             <Select value={form.unidad_venta || 'unidad'}
