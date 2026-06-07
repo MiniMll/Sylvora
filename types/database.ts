@@ -27,18 +27,29 @@ export interface Producto {
    *  ⚠️ REGLA DE ORO: NUNCA UPDATE directo desde el cliente
    *  (`supabase.from('productos').update({ stock_actual: ... })`).
    *  Las mutaciones DEBEN pasar por las RPCs:
-   *    - descontar_stock_validado(items)  → ventas
-   *    - restituir_stock(producto, cant)  → anular venta
-   *    - agregar_lote_atomico(...)        → alta de lote
-   *    - eliminar_lote_atomico(lote_id)   → baja de lote
+   *    - descontar_stock_validado(items)         → ventas
+   *    - restituir_stock(producto, cant)         → anular venta
+   *    - agregar_lote_atomico(...)               → alta de lote
+   *    - eliminar_lote_atomico(lote_id)          → baja de lote
+   *    - ajustar_stock_atomico(prod, cant, mot)  → ajuste manual
+   *                                                (legacy only —
+   *                                                rechaza productos
+   *                                                con lotes)
    *  Las RPCs validan + asertan SUM(lotes) == stock_actual.
-   *  Saltarse esta regla introduce drift de lotes silencioso —
-   *  ya nos pasó una vez, ver scripts/audit-lotes-drift.sql.
    *
-   *  Único UPDATE directo legítimo: el de ajuste manual desde
-   *  /productos (actualizarProducto). Ese caso está documentado
-   *  como gap conocido en lib/supabase/productos.ts y solo
-   *  aplica al producto sin lotes. */
+   *  GUARDAS ACTIVAS (post sprint v2):
+   *    1. UI: EditProductModal renderiza el campo como read-only
+   *       cuando el producto tiene lotes (commit 4 del v2).
+   *    2. Cliente: actualizarProducto en lib/supabase/productos.ts
+   *       filtra cambios.stock_actual del UPDATE si el producto
+   *       tiene lotes — defensa programática.
+   *    3. Server: ajustar_stock_atomico (la RPC que invoca
+   *       ajustarStock) RAISE 'usa_lotes' si el producto tiene
+   *       lotes. Cierre final.
+   *
+   *  Diagnóstico:
+   *    scripts/audit-lotes-drift.sql           → drift positivo
+   *    scripts/audit-lotes-drift-negativo.sql  → drift negativo */
   stock_actual: number
   stock_minimo: number
   stock_ideal: number
@@ -59,7 +70,12 @@ export interface Lote {
    *
    *  ⚠️ NUNCA UPDATE directo desde el cliente. Mutar vía RPCs
    *  agregar_lote_atomico / eliminar_lote_atomico, o
-   *  indirectamente via descontar_stock_validado en ventas. */
+   *  indirectamente via descontar_stock_validado en ventas.
+   *
+   *  Post sprint v2 (scripts/migration-lotes-cleanup-cero.sql):
+   *  los lotes que quedan en cantidad=0 tras una venta FIFO se
+   *  borran automáticamente. Si listás lotes y no ves ninguno
+   *  con cantidad=0, es esperado — no es un bug. */
   cantidad: number
   fecha_vencimiento: string | null
   fecha_ingreso: string

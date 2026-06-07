@@ -9,12 +9,25 @@ import type { Lote } from '@/types/database'
 // de invariante SUM(lotes) == stock_actual. Ver
 // scripts/migration-lotes-integrity.sql para los contratos.
 //
+// Sprint v2 (scripts/migration-lotes-cleanup-cero.sql):
+//   - Las 3 RPCs (descontar_stock_validado, agregar_lote_atomico,
+//     eliminar_lote_atomico) borran automáticamente lotes con
+//     cantidad=0 al final de cada operación. Las filas borradas
+//     no aportaban al SUM (eran 0), el assert sigue verificándose
+//     correcto. Beneficio: la UI deja de mostrar lotes "fantasma"
+//     consumidos al 100%.
+//   - getLotes() devuelve la lista sin filtros — si en algún edge
+//     case quedara un lote en 0 (no debería), aparecerá. El UI
+//     puede mostrarlo como "vacío" o filtrarlo client-side.
+//
 // Errores conocidos de las RPCs (PostgREST los expone como
 // error.message, con DETAIL en error.details):
 //   - 'cantidad_invalida'
 //   - 'producto_no_encontrado'
 //   - 'lote_no_encontrado'
 //   - 'invariante_violada' (no debería pasar — bug si lo ves)
+//   - 'drift_lotes' (RPC de venta detectó drift previo — escalar
+//     a admin para audit + reconciliación L-AJUSTE)
 // Los mapeamos a boolean para mantener la API actual; los callers
 // muestran toast genérico. Detalle al console.error para debug.
 
