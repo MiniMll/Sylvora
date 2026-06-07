@@ -76,26 +76,25 @@ export async function guardarProducto(producto: GuardarProductoInput): Promise<P
 
 /** Edita un producto. Acepta cualquier subset de campos.
  *
- *  ⚠️ GAP CONOCIDO — STOCK_ACTUAL Y LOTES:
- *  Este UPDATE puede recibir `stock_actual` en `cambios` y modificarlo
- *  directamente, lo cual SALTEA las RPCs de lotes (descontar_stock_
- *  validado / restituir_stock / agregar_lote_atomico). Para productos
- *  EN MODO LEGACY (sin lotes) eso está bien — stock_actual es la
- *  única fuente. Para productos CON LOTES, modificar stock_actual
- *  acá rompe el invariante SUM(lotes) == stock_actual y deja drift
- *  silencioso (lo detectaría la próxima venta vía RAISE 'invariante_
- *  violada').
+ *  GUARDA POST-V2 — STOCK_ACTUAL Y LOTES:
+ *  Si el caller incluye `stock_actual` en `cambios` y el producto
+ *  tiene lotes, lo FILTRAMOS del UPDATE en el cliente. Razón:
+ *  modificar stock_actual directo en un producto con lotes rompe
+ *  el invariante SUM(lotes) == stock_actual y deja drift silencioso.
  *
- *  V1 acepta este gap porque el form de edit en /productos hoy NO
- *  expone el campo stock_actual al cajero (solo se modifica vía
- *  ventas y alta de lotes). Si en un futuro sprint se agrega un
- *  "Ajustar stock" desde la UI, habrá que: o filtrar stock_actual
- *  acá y crear una RPC ajustar_stock_atomico que valide el modo
- *  del producto, o bloquear la edición de stock_actual cuando
- *  productos.lotes > 0.
+ *  Comportamiento por modo del producto:
+ *    SIN lotes (legacy): stock_actual se actualiza como cualquier
+ *                        otro campo. Es la única fuente.
+ *    CON lotes:          stock_actual se descarta del UPDATE con
+ *                        console.warn. El stock se ajusta agregando
+ *                        o eliminando lotes via agregar_lote_atomico
+ *                        / eliminar_lote_atomico, o vía la RPC
+ *                        ajustar_stock_atomico (que igual rechaza
+ *                        productos con lotes — defensa en profundidad).
  *
- *  Por ahora: documentado y monitoreable vía scripts/audit-lotes-
- *  drift.sql. */
+ *  El bloqueo definitivo en UI vive en EditProductModal (commit 4),
+ *  pero acá ponemos la guarda defensiva por si alguna llamada
+ *  programática del futuro intenta pasarlo. */
 export async function actualizarProducto(
   id: string,
   cambios: Partial<Producto>,
@@ -111,6 +110,26 @@ export async function actualizarProducto(
   const cambiosNormalizados: Partial<Producto> = { ...cambios }
   if ('codigo_barras' in cambios) cambiosNormalizados.codigo_barras = codigoTrim || null
   if ('sku' in cambios) cambiosNormalizados.sku = skuTrim || null
+
+  // Guarda V2: si vamos a tocar stock_actual, chequear si el producto
+  // tiene lotes. Si tiene → filtrar. Esto cierra el camino que generaba
+  // el drift negativo (caso jamón en prod: comerciante editó stock a
+  // mano y el invariante se rompió).
+  if ('stock_actual' in cambiosNormalizados) {
+    const { data: algunLote } = await supabase
+      .from('lotes')
+      .select('id')
+      .eq('producto_id', id)
+      .limit(1)
+      .maybeSingle()
+    if (algunLote) {
+      console.warn(
+        '[actualizarProducto] producto %s tiene lotes — stock_actual filtrado del UPDATE.',
+        id,
+      )
+      delete cambiosNormalizados.stock_actual
+    }
+  }
 
   // Validar duplicados (replicación de la guarda de alta). Sólo chequea
   // si el valor nuevo es NO vacío. Replica el patrón de guardarProducto.
@@ -179,13 +198,31 @@ export async function getStockCritico(): Promise<Producto[]> {
   return (data ?? []) as Producto[]
 }
 
-export async function ajustarStock(id: string, nuevoStock: number): Promise<boolean> {
+/** Ajusta el stock_actual de un producto al valor pedido. Pasa por la
+ *  RPC ajustar_stock_atomico (no UPDATE directo), que:
+ *    - Rechaza productos con lotes (RAISE 'usa_lotes') — la UI debe
+ *      ofrecer "Agregar lote" en su lugar.
+ *    - Registra el delta en movimientos_stock con tipo='ajuste_manual'
+ *      para historial.
+ *  Devuelve true si OK, false si la RPC falló (red, usa_lotes,
+ *  producto_no_encontrado, cantidad_invalida). El error específico
+ *  va al console.error; el caller muestra toast genérico. */
+export async function ajustarStock(
+  id: string,
+  nuevoStock: number,
+  motivo: string = 'Ajuste manual desde /stock',
+): Promise<boolean> {
   const supabase = getBrowserClient()
-  const { error } = await supabase
-    .from('productos')
-    .update({ stock_actual: nuevoStock })
-    .eq('id', id)
-  return !error
+  const { error } = await supabase.rpc('ajustar_stock_atomico', {
+    p_producto_id:    id,
+    p_cantidad_nueva: nuevoStock,
+    p_motivo:         motivo,
+  })
+  if (error) {
+    console.error('[ajustarStock] RPC ajustar_stock_atomico falló:', error)
+    return false
+  }
+  return true
 }
 
 /** Snapshot mínimo de productos del comercio para alimentar
