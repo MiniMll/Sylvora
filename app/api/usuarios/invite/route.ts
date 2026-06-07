@@ -19,6 +19,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { getServiceClient } from '@/lib/supabase/server-admin'
+import { esRolValido } from '@/lib/permissions'
 
 function emailValido(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
   if (!email || typeof email !== 'string' || !emailValido(email)) {
     return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
   }
-  if (rol !== 'admin' && rol !== 'empleado') {
+  if (!rol || !esRolValido(rol)) {
     return NextResponse.json({ error: 'Rol inválido' }, { status: 400 })
   }
   const emailNorm = email.toLowerCase().trim()

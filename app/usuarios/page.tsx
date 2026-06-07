@@ -15,6 +15,17 @@ import { listUsuariosComercio, cambiarRolUsuario } from '@/lib/supabase/usuarios
 import { labelRol } from '@/lib/permissions'
 import type { Perfil, Rol } from '@/types/database'
 
+// Estilos del badge de rol. 3 colores semánticos:
+//   admin     → violeta (color de marca / privilegio elevado)
+//   encargado → amarillo (operativo elevado, atención)
+//   cajero    → verde (operativo base, OK)
+// Mantener sincronizado con MiniPreviews.tsx en la landing.
+function rolBadgeStyle(rol: Rol): { background: string; color: string } {
+  if (rol === 'admin') return { background: 'rgba(91,76,255,0.12)', color: 'var(--ac)' }
+  if (rol === 'encargado') return { background: 'rgba(255,184,0,0.14)', color: 'var(--w)' }
+  return { background: 'rgba(0,200,150,0.10)', color: 'var(--g)' } // cajero
+}
+
 // Página V1 de gestión de usuarios. Listar + cambiar rol con guard
 // de "último admin". Invite flow por email queda para P2.2 (requiere
 // service role key, server-side).
@@ -156,7 +167,7 @@ export default function UsuariosPage() {
             accent
             icon={<UserPlus size={20} color="var(--ac)" strokeWidth={2} />}
             title="Sos el único en tu equipo."
-            description="Invitá a tus empleados para que cobren con su propia cuenta. Vos decidís qué puede tocar cada uno."
+            description="Invitá a tu equipo para que cada uno opere con su propia cuenta. Vos decidís qué puede tocar cada rol."
             actions={[{ label: 'Invitar usuario', onClick: () => setInvitarOpen(true), variant: 'primary', icon: <UserPlus size={15} /> }]}
             guiaHref="/guia"
           />
@@ -167,7 +178,7 @@ export default function UsuariosPage() {
         <div style={{ flexShrink: 0 }}>
           <DemoLockNotice
             texto="Invitar usuarios está deshabilitado en la demo."
-            detalle="En tu propio comercio podés sumar empleados y asignarles permisos diferenciados (cobrar, ver reportes, etc.)."
+            detalle="En tu propio comercio podés sumar a tu equipo y asignarles permisos diferenciados (cobrar, ver reportes, etc.)."
           />
         </div>
       )}
@@ -202,8 +213,7 @@ export default function UsuariosPage() {
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5,
-                        background: u.rol === 'admin' ? 'rgba(91,76,255,0.12)' : 'rgba(0,200,150,0.10)',
-                        color: u.rol === 'admin' ? 'var(--ac)' : 'var(--g)',
+                        ...rolBadgeStyle(u.rol),
                         padding: '3px 9px', borderRadius: 5, fontSize: 10, fontWeight: 600,
                       }}>
                         {u.rol === 'admin' && <ShieldCheck size={11} />}
@@ -215,9 +225,10 @@ export default function UsuariosPage() {
                         value={u.rol}
                         disabled={editandoEste || esAdminUltimo}
                         onChange={e => cambiarRol(u, e.target.value as Rol)}
-                        style={{ width: 'auto', minWidth: 130, padding: '6px 10px' }}>
+                        style={{ width: 'auto', minWidth: 140, padding: '6px 10px' }}>
                         <option value="admin">Administrador</option>
-                        <option value="empleado">Empleado</option>
+                        <option value="encargado">Encargado</option>
+                        <option value="cajero">Cajero</option>
                       </Select>
                       {esAdminUltimo && (
                         <div style={{ fontSize: 10, color: 'var(--text2)', marginTop: 4 }}>
@@ -261,7 +272,7 @@ export default function UsuariosPage() {
               type="email"
               value={invEmail}
               onChange={e => setInvEmail(e.target.value)}
-              placeholder="empleado@ejemplo.com"
+              placeholder="nombre@miempresa.com"
               disabled={invitando}
               autoFocus
             />
@@ -284,8 +295,9 @@ export default function UsuariosPage() {
               value={invRol}
               onChange={e => setInvRol(e.target.value as Rol)}
               disabled={invitando}>
-              <option value="empleado">Empleado</option>
-              <option value="admin">Administrador</option>
+              <option value="cajero">Cajero — POS y caja</option>
+              <option value="encargado">Encargado — operativo + reportes</option>
+              <option value="admin">Administrador — todo</option>
             </Select>
           </div>
         </div>

@@ -336,19 +336,37 @@ export function MiniCajaPreview() {
 // 4. MiniUsersPreview — usado en Features "Tu equipo, con control"
 // ───────────────────────────────────────────────────────────────────
 
+type RolMini = 'admin' | 'encargado' | 'cajero'
+
 interface UserMini {
   nombre: string
   email: string
   iniciales: string
-  rol: 'admin' | 'empleado'
+  rol: RolMini
   color: string
 }
 
+// Roles mostrados en la landing — uno de cada para que el visitante
+// vea de un saque que Sylvora soporta 3 niveles de acceso. Mantener
+// los colores del badge sincronizados con rolBadgeStyle() en
+// app/usuarios/page.tsx.
 const USERS_MINI: UserMini[] = [
-  { nombre: 'Sofía Méndez',  email: 'sofia@elfaro.ar',  iniciales: 'SM', rol: 'admin',    color: '#5b4cff' },
-  { nombre: 'Martín Rocha',  email: 'martin@elfaro.ar', iniciales: 'MR', rol: 'empleado', color: '#00c896' },
-  { nombre: 'Laura Torres',  email: 'laura@elfaro.ar',  iniciales: 'LT', rol: 'empleado', color: '#ffb800' },
+  { nombre: 'Sofía Méndez',  email: 'sofia@elfaro.ar',  iniciales: 'SM', rol: 'admin',     color: '#5b4cff' },
+  { nombre: 'Martín Rocha',  email: 'martin@elfaro.ar', iniciales: 'MR', rol: 'encargado', color: '#ffb800' },
+  { nombre: 'Laura Torres',  email: 'laura@elfaro.ar',  iniciales: 'LT', rol: 'cajero',    color: '#00c896' },
 ]
+
+function rolMiniStyle(rol: RolMini): { background: string; color: string } {
+  if (rol === 'admin')     return { background: 'rgba(91,76,255,0.14)',  color: 'var(--ac)' }
+  if (rol === 'encargado') return { background: 'rgba(255,184,0,0.14)',  color: 'var(--w)' }
+  return                          { background: 'rgba(0,200,150,0.12)',  color: 'var(--g)' } // cajero
+}
+
+function rolMiniLabel(rol: RolMini): string {
+  if (rol === 'admin') return 'Admin'
+  if (rol === 'encargado') return 'Encargado'
+  return 'Cajero'
+}
 
 export function MiniUsersPreview() {
   return (
@@ -389,15 +407,13 @@ export function MiniUsersPreview() {
             </div>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
-              background: u.rol === 'admin' ? 'var(--ac-light)' : 'var(--bg3)',
-              color: u.rol === 'admin' ? 'var(--ac)' : 'var(--text2)',
+              ...rolMiniStyle(u.rol),
               padding: '3px 10px',
               borderRadius: 999,
               fontSize: 10, fontWeight: 600,
-              textTransform: 'capitalize',
             }}>
               {u.rol === 'admin' && <ShieldCheck size={10} strokeWidth={2.4} />}
-              {u.rol}
+              {rolMiniLabel(u.rol)}
             </span>
           </div>
         ))}
