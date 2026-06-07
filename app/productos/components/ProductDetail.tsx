@@ -4,6 +4,7 @@ import { Package, X, Layers, Pencil, Trash2, Loader2, Plus } from 'lucide-react'
 import { formatPeso, calcularMargen, stockColor, stockLabel, formatStock, formatVencimiento } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { Hint } from '@/components/ui/Hint'
 import { usePermissions } from '@/components/PermissionsProvider'
 import type { Producto, Lote } from '@/types/database'
 
@@ -116,6 +117,14 @@ export function ProductDetail({
                 </Button>
               )}
             </div>
+            {/* FEFO hint — explica al comerciante que los lotes con
+                vencimiento más cercano se consumen primero. id compartido
+                con el del modal de /stock (lib usa localStorage por id),
+                así si lo dismisses en una pantalla desaparece en la otra. */}
+            <Hint id="lotes-fefo" style={{ marginBottom: 10 }}>
+              Sylvora descuenta primero los lotes con vencimiento más cercano.
+              Si no tienen fecha, usa el orden de carga.
+            </Hint>
             {cargandoLotes ? (
               <div style={{ fontSize: 12, color: 'var(--text2)', textAlign: 'center', padding: 12 }}>Cargando lotes...</div>
             ) : lotes.length === 0 ? (
