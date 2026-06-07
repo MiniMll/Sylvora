@@ -41,12 +41,12 @@ export default function UsuariosPage() {
   const [invitando, setInvitando] = useState(false)
   const [invEmail, setInvEmail] = useState('')
   const [invNombre, setInvNombre] = useState('')
-  const [invRol, setInvRol] = useState<Rol>('empleado')
+  const [invRol, setInvRol] = useState<Rol>('cajero')
 
   const resetInviteForm = () => {
     setInvEmail('')
     setInvNombre('')
-    setInvRol('empleado')
+    setInvRol('cajero')
   }
 
   const refrescarUsuarios = async () => {
