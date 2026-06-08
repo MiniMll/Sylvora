@@ -1,403 +1,284 @@
-# Spec — P2.1 Roles y permisos (admin / empleado)
+# Spec — Roles y permisos (v1: admin / encargado / cajero)
 
-Estado: **aprobada, pendiente de correr migration e implementar.**
+Estado: **vigente. Sprint `feat/roles-permisos-v1` aplicado a main.**
 
-## Contexto / objetivo
+Última actualización: 2026-06-07 (Commit 5 — docs + audit final).
 
-La app está estable funcionalmente, pero hoy **todos los usuarios de un
-comercio tienen acceso total**: cualquier cajero puede reabrir caja, editar
-precios masivamente, eliminar productos o anular ventas. Para un comercio
-real con uno o más empleados, esto es un riesgo operativo y de seguridad.
+## Contexto
 
-P2.1 introduce un modelo simple de 2 roles (`admin` y `empleado`) con
-permisos diferenciados, defendido a nivel de UI (gating visual) **y** de
-DB (RLS), sin romper la app actual.
+V0 tenía 2 roles (`admin` / `empleado`). En la práctica, los comercios
+reales pedían un nivel intermedio: alguien que pueda operar el día a día
+(agregar productos, anular ventas, cerrar caja, ver reportes) sin tener
+control total (eliminar productos, reabrir cierres, gestionar usuarios).
 
-## Modelo conceptual
+V1 (este sprint) introduce **3 roles** con permisos diferenciados,
+defendidos en UI + RLS:
 
-- **2 roles fijos en V1**: `admin` y `empleado`. Modelo extensible (agregar
-  un tercer rol = 1 línea en la tabla de permisos) pero sin sobre-diseñar.
-- **Permisos derivados del rol**, no per-usuario. RBAC clásico, sin
-  capabilities ad-hoc.
-- **Defensa en profundidad**: UI esconde lo que el rol no puede hacer, y
-  RLS lo bloquea a nivel DB. La UI sola no es seguridad — RLS es la
-  fuente de verdad.
-- **Read = libre dentro del comercio**. Empleado puede VER productos,
-  stock, ventas, caja, dashboard. Solo se gatea la ESCRITURA.
+- **Admin** — dueño / encargado superior. Acceso total.
+- **Encargado** — operativo elevado. Día a día completo, sin destructivos.
+- **Cajero** — operativo base. POS + caja, nada más.
 
-## Permission matrix
+`'empleado'` legacy → migrado a `'cajero'` por `scripts/migration-roles-v1.sql`.
 
-Acción columna ✓ = permitida.
+## Modelo
 
-| Acción | admin | empleado |
-|---|---|---|
-| Ver productos, stock, ventas, caja, dashboard, reportes | ✓ | ✓ |
-| Crear venta (POS) | ✓ | ✓ |
-| Registrar egreso (con caja abierta) | ✓ | ✓ |
-| **Cerrar caja** | ✓ | ✓ |
-| Reabrir caja | ✓ | ✗ |
-| Anular venta | ✓ | ✗ |
-| Crear producto | ✓ | ✗ |
-| Editar producto (datos básicos, precio, stock manual) | ✓ | ✗ |
-| Eliminar producto | ✓ | ✗ |
-| Gestionar lotes (agregar / borrar) | ✓ | ✗ |
-| Actualizar precios masivamente (`/precios`) | ✓ | ✗ |
-| Gestionar usuarios y roles | ✓ | ✗ |
+- **3 roles fijos**. RBAC simple, no hay capabilities per-usuario ni
+  overrides. Cambiar permisos = editar `PERMISSIONS_BY_ROL` en
+  `lib/permissions.ts` y deploy.
+- **La fuente de verdad de SEGURIDAD es RLS**. La UI gatea para UX;
+  RLS contiene si la UI falla.
+- **Read = libre dentro del comercio**. Cualquier rol VE productos,
+  stock, ventas, caja, dashboard. Lo que se gatea es ESCRITURA y
+  acceso a `/reportes` / `/usuarios` / `/precios`.
+- **Default al signup**: el primer perfil del comercio es `admin`
+  (el que registra es el dueño).
 
-**Nota sobre stock**: el stock_actual se modifica indirectamente por
-ventas (POS), lotes (admin) o edición del producto (admin). No hay
-"edición manual de stock" como acción separada — está cubierta por
-`producto.editar`, que es admin-only. Empleado nunca puede tocar el
-campo stock_actual directamente.
+## Matriz completa de permisos
 
-## Modelo de datos
+✓ = permitido. ✗ = denegado.
 
-`perfiles.rol` (text, ya existe) toma valores `'admin'` | `'empleado'`.
+| Permission key | Admin | Encargado | Cajero | Notas |
+|---|:-:|:-:|:-:|---|
+| **Caja** | | | | |
+| `caja.cerrar` | ✓ | ✓ | ✓ | Cajero puede cerrar el día. |
+| `caja.reabrir` | ✓ | ✗ | ✗ | Destructivo (borra cierre). Admin-only. |
+| `caja.egreso` | ✓ | ✓ | ✓ | Egreso con caja abierta. |
+| **Productos** | | | | |
+| `producto.crear` | ✓ | ✓ | ✗ | |
+| `producto.editar` | ✓ | ✓ | ✗ | Datos básicos, precio, stock manual. |
+| `producto.eliminar` | ✓ | ✗ | ✗ | Destructivo (rompe FK items_venta). Admin-only. |
+| `lote.gestionar` | ✓ | ✓ | ✗ | Agregar / borrar lotes. |
+| **Precios** | | | | |
+| `precio.actualizar_masivo` | ✓ | ✓ | ✗ | `/precios` page. |
+| **Ventas** | | | | |
+| `venta.crear` | ✓ | ✓ | ✓ | POS. |
+| `venta.anular` | ✓ | ✓ | ✗ | |
+| **Reportes** | | | | |
+| `reporte.ver_completo` | ✓ | ✓ | ✗ | `/reportes` page. |
+| **Usuarios** | | | | |
+| `usuario.gestionar` | ✓ | ✗ | ✗ | Listar, invitar, cambiar rol. Admin-only. |
 
-```sql
--- 1. Backfill: existentes pasan a admin (todos son dueños hoy).
-UPDATE perfiles SET rol = 'admin' WHERE rol IS NULL OR rol NOT IN ('admin', 'empleado');
+### Por rol (resumen)
 
--- 2. Constraint de valores válidos.
-ALTER TABLE perfiles
-  ADD CONSTRAINT perfiles_rol_check CHECK (rol IN ('admin', 'empleado'));
+**Admin** — todos los permisos. Único rol que puede:
+- Eliminar productos.
+- Reabrir caja (borrar cierres).
+- Gestionar usuarios (invitar, cambiar rol).
 
--- 3. Default para nuevos signups (el que crea el comercio es admin).
-ALTER TABLE perfiles ALTER COLUMN rol SET DEFAULT 'admin';
-ALTER TABLE perfiles ALTER COLUMN rol SET NOT NULL;
-```
+**Encargado** — operativo elevado. Hace todo lo del día a día:
+- Crear / editar productos y lotes.
+- Actualizar precios masivamente.
+- Crear / anular ventas.
+- Cerrar caja, registrar egresos.
+- Ver reportes completos.
+- **NO**: eliminar productos, reabrir caja, gestionar usuarios.
 
-**Sin tabla aparte de permisos**: los permisos se derivan en código (constante
-`PERMISSIONS_BY_ROL`). Cambiar permisos de un rol = deploy de código, no
-update de DB. Trade-off aceptable para V1 (2 roles fijos, cambios raros).
+**Cajero** — POS + caja:
+- Crear ventas (POS).
+- Registrar egresos.
+- Cerrar caja (no reabrir).
+- **NO**: tocar productos/lotes/precios, anular ventas, ver reportes,
+  gestionar usuarios.
 
-## Función `get_rol()`
+## Implementación
 
-Análoga a `get_comercio_id()` que ya existe. Resuelve el rol del usuario
-actual desde RLS.
-
-```sql
-CREATE OR REPLACE FUNCTION get_rol() RETURNS text
-LANGUAGE sql STABLE SECURITY DEFINER
-AS $$
-  SELECT rol FROM perfiles WHERE id = auth.uid()
-$$;
-```
-
-`SECURITY DEFINER` para bypassear RLS de `perfiles` al consultar. Mismo
-patrón que `get_comercio_id()`.
-
-## RLS — defensa a nivel DB
-
-Estrategia: **una policy de SELECT abierta (todos en el comercio leen)
-+ una policy de escritura con `get_rol() = 'admin'` para tablas
-admin-only**. Para escrituras mixtas (ej. ventas: empleado puede crear,
-admin puede anular), policies separadas por operación.
-
-### Tablas admin-only para escritura
-
-`productos`, `categorias`, `proveedores`, `lotes`, `cierres_caja`,
-`movimientos_stock`:
-
-```sql
--- Ejemplo productos. Mismo patrón para las otras.
-DROP POLICY IF EXISTS "productos_comercio" ON productos;
-
-CREATE POLICY "productos_read" ON productos
-  FOR SELECT USING (comercio_id = get_comercio_id());
-
-CREATE POLICY "productos_write_admin" ON productos
-  FOR ALL
-  USING (comercio_id = get_comercio_id() AND get_rol() = 'admin')
-  WITH CHECK (comercio_id = get_comercio_id() AND get_rol() = 'admin');
-```
-
-`FOR ALL` cubre INSERT/UPDATE/DELETE. Postgres combina policies con OR
-para SELECT — la policy de read deja pasar a empleado; la de write solo
-matchea admin. Ambos roles ven, solo admin escribe.
-
-### `ventas` — mixto
-
-Empleado CREA (POS), admin UPDATE (anular).
-
-```sql
-DROP POLICY IF EXISTS "ventas_comercio" ON ventas;
-
-CREATE POLICY "ventas_read" ON ventas
-  FOR SELECT USING (comercio_id = get_comercio_id());
-
-CREATE POLICY "ventas_insert" ON ventas
-  FOR INSERT WITH CHECK (comercio_id = get_comercio_id());
-
-CREATE POLICY "ventas_update_admin" ON ventas
-  FOR UPDATE
-  USING (comercio_id = get_comercio_id() AND get_rol() = 'admin')
-  WITH CHECK (comercio_id = get_comercio_id() AND get_rol() = 'admin');
-
--- No DELETE policy → nadie puede borrar (anular es UPDATE estado).
-```
-
-### `movimientos_caja` (egresos)
-
-Si decisión 1 = empleado puede egresar → policy abierta de INSERT como
-ventas. Si no → admin-only.
-
-```sql
--- Caso decisión 1 = sí (recomendado):
-DROP POLICY IF EXISTS "movimientos_caja_comercio" ON movimientos_caja;
-CREATE POLICY "movimientos_caja_read" ON movimientos_caja
-  FOR SELECT USING (comercio_id = get_comercio_id());
-CREATE POLICY "movimientos_caja_insert" ON movimientos_caja
-  FOR INSERT WITH CHECK (comercio_id = get_comercio_id());
-```
-
-### `cierres_caja`
-
-Empleado puede cerrar (INSERT) pero no reabrir (DELETE). Admin todo.
-
-```sql
-DROP POLICY IF EXISTS "cierres_caja_comercio" ON cierres_caja;
-
-CREATE POLICY "cierres_caja_read" ON cierres_caja
-  FOR SELECT USING (comercio_id = get_comercio_id());
-
-CREATE POLICY "cierres_caja_insert" ON cierres_caja
-  FOR INSERT WITH CHECK (comercio_id = get_comercio_id());
-
-CREATE POLICY "cierres_caja_delete_admin" ON cierres_caja
-  FOR DELETE USING (comercio_id = get_comercio_id() AND get_rol() = 'admin');
-
--- Sin UPDATE policy: el cierre es inmutable. Para corregir, se reabre
--- (admin) y se cierra de nuevo.
-```
-
-### `perfiles`
-
-Hoy: `FOR ALL USING (id = auth.uid())` — cada uno solo el suyo. Admin no
-puede ver/editar a otros. Cambio: admin puede leer/editar a otros del mismo
-comercio; cada usuario sigue viendo el suyo.
-
-```sql
-DROP POLICY IF EXISTS "perfiles_propio" ON perfiles;
-
--- Leer: todos los perfiles del mismo comercio (para listar usuarios y
--- resolver responsables).
-CREATE POLICY "perfiles_read" ON perfiles
-  FOR SELECT USING (comercio_id = get_comercio_id() OR id = auth.uid());
-
--- Editar el propio (datos básicos, sin tocar rol).
-CREATE POLICY "perfiles_update_self" ON perfiles
-  FOR UPDATE USING (id = auth.uid());
-
--- Admin gestiona otros perfiles del mismo comercio (rol, nombre, etc.).
-CREATE POLICY "perfiles_update_admin" ON perfiles
-  FOR UPDATE
-  USING (comercio_id = get_comercio_id() AND get_rol() = 'admin')
-  WITH CHECK (comercio_id = get_comercio_id() AND get_rol() = 'admin');
-
--- Admin invita empleados nuevos (INSERT). UPDATE de su propio rol
--- queda implícitamente bloqueado porque la policy de self update no
--- restringe columnas — eso lo maneja la app (no exponer el campo rol
--- en el form de "Mi perfil").
-CREATE POLICY "perfiles_insert_admin" ON perfiles
-  FOR INSERT WITH CHECK (comercio_id = get_comercio_id() AND get_rol() = 'admin');
-```
-
-**Nota de seguridad**: un admin no podría auto-degradarse a empleado
-desde la UI si el form no expone el campo `rol` para "Mi perfil". Pero
-sí desde la consola si quisiera. Para V1, app-level check: "no podés
-bajar a empleado al último admin del comercio" se valida en el server
-action / API route que cambia roles.
-
-## Helper / `usePermissions`
-
-### Permission matrix en código
+### Fuente única de verdad — `lib/permissions.ts`
 
 ```ts
-// lib/permissions.ts
-export type Rol = 'admin' | 'empleado'
+export type Rol = 'admin' | 'encargado' | 'cajero'
 
-export type Permission =
-  | 'caja.cerrar'              // ambos roles
-  | 'caja.reabrir'             // admin only
-  | 'caja.egreso'              // ambos
-  | 'producto.crear'           // admin
-  | 'producto.editar'          // admin — incluye precio individual y stock manual
-  | 'producto.eliminar'        // admin
-  | 'lote.gestionar'           // admin
-  | 'precio.actualizar_masivo' // admin — /precios page
-  | 'venta.crear'              // ambos
-  | 'venta.anular'             // admin
-  | 'usuario.gestionar'        // admin
-
-const PERMISSIONS_BY_ROL: Record<Rol, Set<Permission>> = {
-  admin: new Set<Permission>([
-    'caja.cerrar', 'caja.reabrir', 'caja.egreso',
-    'producto.crear', 'producto.editar', 'producto.eliminar',
+const PERMISSIONS_BY_ROL: Record<Rol, ReadonlySet<Permission>> = {
+  admin:     new Set([...todos]),
+  encargado: new Set([
+    'caja.cerrar', 'caja.egreso',
+    'producto.crear', 'producto.editar',  // NO eliminar
     'lote.gestionar',
     'precio.actualizar_masivo',
     'venta.crear', 'venta.anular',
-    'usuario.gestionar',
+    'reporte.ver_completo',
   ]),
-  empleado: new Set<Permission>([
+  cajero: new Set([
     'venta.crear',
     'caja.egreso',
-    'caja.cerrar',     // no reabrir
+    'caja.cerrar',  // no reabrir
   ]),
 }
-
-export function rolPuede(rol: Rol | string | null | undefined, perm: Permission): boolean {
-  if (rol !== 'admin' && rol !== 'empleado') return false
-  return PERMISSIONS_BY_ROL[rol].has(perm)
-}
-
-export function esRolValido(rol: string | null | undefined): rol is Rol {
-  return rol === 'admin' || rol === 'empleado'
-}
 ```
 
-### Context provider
+Helpers: `rolPuede(rol, perm)`, `esRolValido(rol)`, `labelRol(rol)`,
+`puedeAnularVenta(venta, { rol })`.
 
-```tsx
-// components/PermissionsProvider.tsx
-'use client'
-const PermsContext = createContext<{ rol: Rol | null; loading: boolean; has: (p: Permission) => boolean; isAdmin: boolean }>(...)
+### Capas de defensa
 
-export function PermissionsProvider({ children }) {
-  const [rol, setRol] = useState<Rol | null>(null)
-  const [loading, setLoading] = useState(true)
+#### 1. UI — esconder botones con `usePermissions().has(...)`
 
-  useEffect(() => {
-    getPerfilActual().then(p => {
-      setRol(esRolValido(p?.rol) ? p.rol : null)
-      setLoading(false)
-    })
-  }, [])
+Mejor UX que deshabilitar. El usuario no ve "teaser" de funcionalidad
+inaccesible.
 
-  return <PermsContext.Provider value={{
-    rol, loading,
-    has: (p) => rolPuede(rol, p),
-    isAdmin: rol === 'admin',
-  }}>{children}</PermsContext.Provider>
-}
+#### 2. Page guard — bloqueo de página completa
 
-export function usePermissions() { return useContext(PermsContext) }
+Para páginas sensibles (`/reportes`, `/usuarios`, `/precios`): si el rol
+no puede ver la página, EmptyState "Sin acceso" en lugar de redirect.
+Cubre el caso de URL directa o link compartido.
+
+#### 3. Sidebar filter — `requierePermiso` por item
+
+`components/layout/Sidebar.tsx` filtra el nav según el permiso requerido.
+Cajero no ve los links de Reportes / Precios / Usuarios / Nuevo Producto.
+
+#### 4. RLS — defensa en profundidad
+
+`scripts/migration-roles-v1.sql` abre RLS de `productos`, `lotes`,
+`ventas` a encargado via helper `es_admin_o_encargado()`. Cajero sigue
+solo con SELECT (lectura). DELETE de productos / UPDATE de cierres
+sigue admin-only.
+
+## Audit de call sites
+
+Todos los puntos donde se evalúa un permiso, con el rol esperado en cada
+botón / página. Cruzar contra la matriz: si lo gateado no coincide con
+la columna del rol → bug.
+
+### Sidebar (`components/layout/Sidebar.tsx`)
+
+| Item | Permiso | Visible para |
+|---|---|---|
+| Nuevo Producto | `producto.crear` | Admin, Encargado |
+| Actualizar Precios | `precio.actualizar_masivo` | Admin, Encargado |
+| Reportes | `reporte.ver_completo` | Admin, Encargado |
+| Usuarios | `usuario.gestionar` | Admin |
+| (otros — Dashboard, POS, etc.) | sin gating | Todos |
+
+### Page guards
+
+| Ruta | Permiso | Comportamiento si no aplica |
+|---|---|---|
+| `/usuarios` | `usuario.gestionar` | EmptyState "Acceso restringido" |
+| `/reportes` | `reporte.ver_completo` | EmptyState "Sin acceso a reportes" + corta el fetch de la RPC |
+| `/precios` | `precio.actualizar_masivo` | EmptyState |
+
+### Botones / acciones con gating
+
+| Componente | Línea | Permiso | Botón |
+|---|---|---|---|
+| `app/caja/page.tsx` | 293 | `caja.reabrir` | Reabrir caja |
+| `app/ventas/page.tsx` | 301 | `venta.anular` (via `puedeAnularVenta`) | Anular venta |
+| `app/stock/page.tsx` | 18-19 | `producto.editar`, `lote.gestionar` | Edit stock / lotes |
+| `app/productos/components/ProductDetail.tsx` | 45 | `lote.gestionar` | Gestión de lotes |
+| `app/productos/components/ProductDetail.tsx` | 189-197 | `producto.editar`, `producto.eliminar` | Editar / Borrar |
+| `app/productos/components/ProductFilters.tsx` | 44, 50 | `producto.crear` | Importar / Nuevo |
+| `app/productos/components/ProductGrid.tsx` | 153-259 | `producto.editar`, `producto.eliminar` | Acciones por fila |
+
+### Servidor (endpoints)
+
+| Endpoint | Check | Quién pasa |
+|---|---|---|
+| `POST /api/usuarios/invite` | `callerPerfil.rol !== 'admin'` → 403 | Admin only |
+| `POST /api/usuarios/invite` | `!esRolValido(rol)` → 400 | Cualquier rol válido como payload |
+| `POST /api/registro` | hardcoded `rol: 'admin'` | El que registra el comercio nuevo |
+
+### Resultado del audit
+
+**Sin botones expuestos a roles incorrectos.** Cada call site fue cruzado
+contra la matriz. La UI y el sidebar son consistentes con `PERMISSIONS_BY_ROL`.
+
+## Defensa en profundidad — RLS
+
+`scripts/migration-roles-v1.sql` ya aplicado en prod. Helper:
+
+```sql
+CREATE OR REPLACE FUNCTION es_admin_o_encargado() RETURNS boolean
+LANGUAGE sql STABLE SECURITY INVOKER
+AS $$ SELECT get_rol() IN ('admin', 'encargado') $$;
 ```
 
-Wireado en `app/layout.tsx` para que sea singleton de sesión, una sola
-query al montar.
+Policies abiertas a encargado: INSERT/UPDATE en `productos`, `lotes`,
+`ventas`. DELETE de productos y UPDATE de `cierres_caja` siguen
+admin-only. RLS de `perfiles.update` sigue admin-only (la UI de
+`/usuarios` está gateada doblemente).
 
-`getPerfilActual()` resuelve `auth.uid()` → `perfiles` (id, comercio_id,
-rol, nombre). Reusa el patrón de `getComercioId` pero cachea más.
+## Gaps conocidos
 
-## Estrategia de gating UI
+Documentados acá para no perderlos — ninguno bloquea V1.
 
-Tres capas, en orden de aplicabilidad:
+### 1. Middleware `proxy.ts` no chequea rol
 
-### 1. Esconder botones / acciones (más usado)
+`proxy.ts` solo gatea **autenticación** (loggeado vs no). No hay
+redirect server-side por rol — un cajero que pega `/reportes` en la URL
+sigue entrando al cliente, y ahí el page guard lo recibe con EmptyState
+"Sin acceso".
 
-```tsx
-const { has } = usePermissions()
+**Por qué no bloquea V1**: page guard + RLS contienen. El cajero no
+puede leer data sensible — la RPC de reportes la bloquea RLS, y el
+guard cliente no llega a hacer el fetch.
 
-{has('venta.anular') && <Button onClick={anular}>Anular venta</Button>}
-```
+**Cuándo agregarlo**: si V2 mete páginas donde el render *en sí* expone
+algo (ej. server components que filtran data sensible). Hoy todas las
+páginas hacen fetch desde el cliente.
 
-Si el usuario no puede ejecutar la acción, no se ve. Mejor UX que
-deshabilitar — no hay "tease" de funcionalidad inaccesible.
+### 2. Self-degradación de admin
 
-### 2. Bloqueo de página completa
+La RLS `perfiles_update_self` permite a un admin editar su propio
+perfil, incluido el campo `rol`. La UI de `/usuarios` no expone "Mi
+perfil → cambiar mi rol", pero un admin con consola podría auto-degradarse.
 
-Para `/precios` (admin-only): wrapper en la page que redirige a `/pos`
-o renderiza un placeholder "No tenés permiso" si rol = empleado.
+**Mitigación actual**: la función `cambiarRolUsuario` (`lib/supabase/usuarios.ts`)
+tiene guard app-level "último admin" cuando se baja un admin a no-admin.
+No cubre el caso "admin se degrada a sí mismo siendo el único" si se
+hace por SQL directo.
 
-```tsx
-const { has, loading } = usePermissions()
-if (loading) return <Spinner />
-if (!has('precio.actualizar_masivo')) return <NoPermiso />
-```
+**Cuándo blindar**: nunca para usuarios sin acceso a SQL. Si en el
+futuro exponemos consola SQL en la app, agregar policy RLS:
+`perfiles_update_self WHERE id = auth.uid() AND rol = (SELECT rol FROM perfiles WHERE id = auth.uid())`
+o validar en un trigger.
 
-### 3. Middleware (defensa en profundidad)
+### 3. `MiniPreviews.tsx` tiene tipo local
 
-`proxy.ts` ya intercepta requests. Agregar tabla de rutas → permiso, y
-si el rol del usuario no la satisface, redirect server-side.
+El componente de la landing define su propio `type RolMini = 'admin' | 'encargado' | 'cajero'`
+en vez de importar `Rol` de `types/database.ts`. Intencional: la landing
+es marketing y queremos desacoplarla del schema interno (el tipo `Rol`
+podría cambiar sin romper la landing). Si se agrega un 4to rol, hay que
+acordarse de tocar también `MiniPreviews.tsx` — pero el deploy del
+backend no se rompe por esto.
 
-```ts
-const RUTAS_ADMIN_ONLY = ['/precios', '/usuarios']
-// en el middleware:
-if (RUTAS_ADMIN_ONLY.some(r => pathname.startsWith(r))) {
-  const rol = await getRolFromCookie(...)
-  if (rol !== 'admin') return NextResponse.redirect(new URL('/pos', req.url))
-}
-```
+### 4. ESLint preexistente en `Sidebar.tsx:46`
 
-V1: capa 1 + 2 obligatorias, capa 3 opcional (se puede agregar después).
+Error `react-hooks/set-state-in-effect` en el `useEffect` del theme
+toggle. Commit `29438cce` de mayo, no relacionado a roles. Fuera de
+scope de este sprint. TODO separado.
 
-## Estrategia de migración segura
+## Decisiones del sprint
 
-Riesgo principal: aplicar RLS nuevas y romper la app para usuarios
-existentes. Mitigación:
-
-1. **Backfill primero**: todos los perfiles existentes pasan a `'admin'`.
-   Esto garantiza que ningún flujo existente se rompa (admin = puede todo).
-2. **Constraint + default después**: NOT NULL + CHECK + DEFAULT 'admin'.
-3. **RLS por tabla, una a la vez**: el SQL del spec hace todas juntas,
-   pero si querés verificar página por página, se puede partir.
-4. **Verificar app con admin existente**: nada cambia. Si algo se rompe,
-   indica un bug pre-existente o una RLS mal escrita.
-5. **Solo después de verificar admin OK**: invitar primer empleado de
-   prueba, verificar que las acciones admin-only fallen como se espera.
-
-Reversibilidad: si algo sale mal, las RLS se pueden revertir a las
-originales (`FOR ALL USING (comercio_id = get_comercio_id())`) sin
-perder data. El backfill de rol = 'admin' es no-destructivo.
-
-## Plan de implementación
-
-Por commits:
-
-1. **Spec doc** (este).
-2. **Migration SQL** (manual en Supabase, igual que cierre-caja):
-   backfill + constraint + default + `get_rol()` + RLS nuevas.
-3. **types/database.ts**: tipar `rol` como `'admin' | 'empleado'`.
-4. **`lib/permissions.ts`** + **`components/PermissionsProvider.tsx`**
-   + wireado en `app/layout.tsx`.
-5. **Gating UI por página** (1 commit por página o agrupado):
-   - `productos/page.tsx`: ocultar botones Nuevo / Editar / Borrar.
-   - `productos/components/ProductDetail.tsx`: ocultar Editar / Borrar /
-     gestión de lotes.
-   - `app/precios/page.tsx`: bloqueo de página completa.
-   - `app/ventas/page.tsx`: ocultar Anular venta.
-   - `app/caja/page.tsx`: ocultar Cerrar / Reabrir.
-   - `app/stock/page.tsx`: ocultar gestión de lotes.
-6. **`/usuarios` page V1** (básica): lista de usuarios del comercio,
-   cambiar rol entre admin/empleado. Sin invite flow.
-7. **Middleware (opcional)** en `proxy.ts` para rutas admin-only.
-
-Aprox. 5-7 commits después de la migration.
-
-## Decisiones confirmadas
-
-1. **Empleado registra egresos**: sí.
-2. **Empleado gestiona lotes**: no (admin-only).
-3. **Empleado ve dashboard/reportes**: sí, read-only.
-4. **Default rol al signup**: `admin`.
-5. **`/usuarios` page en P2.1**: sí, versión básica (listar + cambiar
-   rol). Sin invite flow.
-6. **"Al menos 1 admin" como invariante**: sí, validación app-level
-   en el server action que cambia roles.
-7. **Middleware route-level**: deferido a P2.2.
-
-**Ajuste explícito del user**: empleado **SÍ puede cerrar caja**
-(no reabrir). El stock manual se bloquea como efecto secundario de
-`producto.editar` siendo admin-only.
+1. **Encargado puede anular ventas** — sí.
+2. **Encargado ve reportes** — sí (`reporte.ver_completo`).
+3. **Encargado puede `caja.reabrir`** — NO. Reabrir borra el cierre y es
+   destructivo. Admin-only.
+4. **Cajero puede cerrar caja** — sí (mantenemos comportamiento V0).
+5. **Encargado gestiona usuarios** — NO. `usuario.gestionar` admin-only.
+6. **RLS** — Camino A: helper `es_admin_o_encargado()` + policies abiertas
+   a ambos en tablas mixtas.
+7. **Rename** — `'empleado'` → `'cajero'`. Migración hace UPDATE en
+   `perfiles` + relaxa CHECK constraint.
 
 ## Out of scope V1
 
-- **Invite flow por email** con service role. → P2.2.
-- **Multi-comercio user** (mismo email en varios comercios). YAGNI.
+- **Invite con assignment a multi-comercio**. YAGNI.
 - **Permisos per-usuario** (override del rol). YAGNI.
-- **Roles custom** (ej. "supervisor" entre admin y empleado). El sistema
-  los soporta agregando entradas a la tabla; UI para definirlos = futuro
-  si surge la necesidad.
-- **Activity log / auditoría** (quién hizo qué cuándo). Futuro.
-- **2FA / sesiones múltiples / device management**. Futuro.
+- **Roles custom** (ej. "supervisor" entre admin y encargado).
+- **Activity log / auditoría** (quién hizo qué cuándo).
+- **Middleware con gating por rol**. Ver gap #1.
+- **Blindaje SQL contra self-degradación**. Ver gap #2.
+
+## Histórico
+
+La versión original de este spec (P2.1, 2 roles `admin` / `empleado`)
+quedó en git history hasta `feat/roles-permisos-v1`. La forma de razonar
+sobre RLS (`get_rol()`, policies por tabla, defensa en profundidad) se
+mantuvo — solo cambió el set de roles y los permisos asignados.
+
+Para ver el diff conceptual:
+- Tipo `Rol` pasó de 2 → 3 valores.
+- Se agregó permiso `reporte.ver_completo` (antes los empleados veían
+  reportes).
+- Se agregó helper SQL `es_admin_o_encargado()`.
+- Se renombró `'empleado'` → `'cajero'` (semántica más clara para AR).
