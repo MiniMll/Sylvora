@@ -31,7 +31,12 @@ export type CambiarRolResult =
 
 /**
  * Cambia el rol de un perfil. Invariante app-level: no permitir bajar
- * a empleado al último admin del comercio (decisión 6 del spec).
+ * el rol del ÚLTIMO admin del comercio (sino el comercio queda sin
+ * nadie que pueda gestionar usuarios / editar configuración).
+ *
+ * Tras el sprint feat/roles-permisos-v1, los roles válidos son admin,
+ * encargado y cajero. El guard aplica cuando el nuevo rol es
+ * NO-admin (encargado o cajero) y el target era admin.
  *
  * La RLS bloquea el UPDATE si el caller no es admin — esto es defensa
  * en profundidad, no la fuente de seguridad.
@@ -41,10 +46,11 @@ export async function cambiarRolUsuario(perfilId: string, nuevoRol: Rol): Promis
   const comercioId = await getComercioId()
   if (!comercioId) return { ok: false, reason: 'error', message: 'Comercio no resuelto' }
 
-  // Guard: si vamos a degradar a empleado, asegurar que queda al menos
-  // otro admin en el comercio. Si el perfilId YA es empleado, este
-  // check no aplica (no estamos degradando admin).
-  if (nuevoRol === 'empleado') {
+  // Guard: si vamos a bajar a un admin a NO-admin (encargado o cajero),
+  // asegurar que queda al menos otro admin en el comercio. Si subimos
+  // a admin o el cambio no involucra a un admin actual, este check no
+  // aplica.
+  if (nuevoRol !== 'admin') {
     const { data: admins, error } = await supabase
       .from('perfiles')
       .select('id')

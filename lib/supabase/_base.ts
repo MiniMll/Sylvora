@@ -73,7 +73,7 @@ export interface PerfilActual {
   id: string
   comercio_id: string
   nombre: string | null
-  rol: 'admin' | 'empleado'
+  rol: 'admin' | 'encargado' | 'cajero'
 }
 
 let _perfilActualPromise: Promise<PerfilActual | null> | null = null
@@ -104,12 +104,25 @@ export async function getPerfilActual(): Promise<PerfilActual | null> {
         if (!data) return null
         // Defensa contra rol con valor invalido (debería ser imposible
         // post-migration con CHECK + NOT NULL, pero por las dudas no
-        // bloqueamos al user con un rol roto).
-        const rolValido = data.rol === 'admin' || data.rol === 'empleado'
+        // bloqueamos al user con un rol roto). Si encontramos un
+        // rol legacy 'empleado' (debería haber sido migrado), lo
+        // mapeamos a 'cajero' como semantic equivalent.
+        const rolValido =
+          data.rol === 'admin' ||
+          data.rol === 'encargado' ||
+          data.rol === 'cajero'
         if (!rolValido) {
-          console.warn('[getPerfilActual] rol invalido en DB:', JSON.stringify(data.rol))
+          if (data.rol === 'empleado') {
+            console.warn('[getPerfilActual] rol legacy "empleado" — mapeando a "cajero". Re-aplicar migration-roles-v1.sql.')
+          } else {
+            console.warn('[getPerfilActual] rol invalido en DB:', JSON.stringify(data.rol))
+          }
         }
-        const rol = rolValido ? data.rol : 'admin'
+        const rol: 'admin' | 'encargado' | 'cajero' = rolValido
+          ? data.rol
+          : data.rol === 'empleado'
+            ? 'cajero'
+            : 'admin'
         return {
           id: data.id,
           comercio_id: data.comercio_id,

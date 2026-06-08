@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { usePermissions } from '@/components/PermissionsProvider'
 import { formatPeso } from '@/lib/utils'
 import {
   getReporteDashboard,
@@ -52,6 +53,13 @@ function labelKpi(base: string, rango: RangoReporte): string {
 // anterior). Acá solo render + filtro de rango.
 
 export default function ReportesPage() {
+  // Gating de acceso: solo admin y encargado pueden ver reportes.
+  // Cajero queda fuera (sidebar oculta el link, este guard cubre el
+  // caso de URL directa / link compartido). RLS bloquea igual la RPC
+  // si se intentara llamar — esto es UX, no la fuente de seguridad.
+  const { has, loading: permsLoading } = usePermissions()
+  const puedeVer = has('reporte.ver_completo')
+
   const [rango, setRango] = useState<RangoReporte>('semana')
   const [data, setData] = useState<ReporteDashboard | null>(null)
   // cargando = initial full-page spinner; solo true antes del primer
@@ -106,11 +114,15 @@ export default function ReportesPage() {
   // Trigger inicial + cuando cambia el rango. El ref marca si fue
   // initial o refresh. Sin esto, cambiar rango también lanzaría
   // el spinner full-page que decidimos evitar.
+  //
+  // Si el rol no puede ver reportes, evitamos el fetch (RLS igual
+  // bloquearía, pero ahorramos round-trip + ruido en logs).
   useEffect(() => {
+    if (permsLoading || !puedeVer) return
     const refresh = !isFirstLoad.current
     isFirstLoad.current = false
     cargar(rango, refresh)
-  }, [cargar, rango])
+  }, [cargar, rango, permsLoading, puedeVer])
 
   // Re-render del timestamp cada 60s. Solo activo cuando hay data —
   // si la página está en estado loading/error no hace falta.
@@ -124,6 +136,32 @@ export default function ReportesPage() {
     if (refreshing || cargando) return
     cargar(rango, true)
   }, [cargar, rango, refreshing, cargando])
+
+  // ── Permisos todavía cargando ──
+  if (permsLoading) {
+    return (
+      <div style={{ padding: 24, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Spinner texto="Cargando reportes..." />
+      </div>
+    )
+  }
+
+  // ── Sin acceso (cajero entra por URL directa) ──
+  if (!puedeVer) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ maxWidth: 360, textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,184,0,0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+            <AlertTriangle size={22} color="var(--w)" strokeWidth={1.8} />
+          </div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, marginBottom: 6, color: 'var(--text)' }}>Sin acceso a reportes</h2>
+          <p style={{ fontSize: 13, color: 'var(--text2)', margin: 0, lineHeight: 1.5 }}>
+            Esta sección está disponible para administradores y encargados. Si necesitás ver reportes, pedile a un admin que te cambie el rol.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   // ── Loading inicial — todavía no hay data ──
   if (cargando && !data) {

@@ -175,8 +175,24 @@ export interface Comercio {
 }
 
 /** Roles soportados por el sistema. Ver docs/roles-permissions-spec.md.
- *  Tras la migration P2.1, `rol` en DB es NOT NULL con CHECK ('admin'|'empleado'). */
-export type Rol = 'admin' | 'empleado'
+ *  Tras scripts/migration-roles-v1.sql, `rol` en DB es NOT NULL con
+ *  CHECK ('admin' | 'encargado' | 'cajero').
+ *
+ *  Semántica de cada rol:
+ *    'admin'     → dueño. Todo (gestión usuarios, configuración, eliminar
+ *                  productos, reabrir caja, etc.).
+ *    'encargado' → operativa elevada. Crea/edita productos, gestiona
+ *                  lotes, anula ventas, ve reportes, cierra caja.
+ *                  NO elimina productos, NO reabre caja, NO gestiona
+ *                  usuarios, NO edita datos del comercio.
+ *    'cajero'    → operación de caja del día. POS, egresos, cerrar caja.
+ *                  Reemplaza al 'empleado' del modelo anterior.
+ *
+ *  La fuente de verdad de qué puede cada rol está en
+ *  lib/permissions.ts (UI gating) Y en las RLS policies (DB).
+ *  Ambas capas se mantienen sincronizadas — ver
+ *  scripts/migration-roles-v1.sql para el contrato RLS. */
+export type Rol = 'admin' | 'encargado' | 'cajero'
 
 export interface Perfil {
   id: string
