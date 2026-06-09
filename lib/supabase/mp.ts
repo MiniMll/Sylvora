@@ -29,13 +29,23 @@ import { encryptToken, decryptToken } from '@/lib/mp/crypto'
 // Tipos
 // ════════════════════════════════════════════════════════════════════
 
-/** Estados posibles del intento de cobro. Match con el CHECK constraint. */
+/** Estados posibles del intento de cobro. Match con el CHECK constraint.
+ *
+ *  Lifecycle:
+ *    pendiente → aprobado     → requiere_revision (crear_venta falló)
+ *              → rechazado
+ *              → cancelado
+ *              → expirado
+ *
+ *  requiere_revision: terminal en V1. MP cobró pero crear_venta falló
+ *  (stock cambió, RPC error, etc.). Visible para resolución manual. */
 export type EstadoIntentoMP =
   | 'pendiente'
   | 'aprobado'
   | 'rechazado'
   | 'cancelado'
   | 'expirado'
+  | 'requiere_revision'
 
 /** Método del intento. Match con el CHECK constraint. */
 export type MetodoIntentoMP = 'qr' | 'link'
@@ -591,4 +601,53 @@ export async function cancelarIntentoCobro(
   const fresco = await obtenerIntentoCobroPorId(supabase, id)
   if (!fresco) return { ok: false, reason: 'not_found' }
   return { ok: false, reason: 'not_pending', intento: fresco }
+}
+
+/** Resultado discriminado de marcarIntentoRequiereRevision. */
+export type RequiereRevisionResult =
+  | { ok: true; intento: IntentoCobroMP }
+  | { ok: false; reason: 'not_found' | 'not_in_aprobado'; intento?: IntentoCobroMP }
+
+/**
+ * Marca un intento APROBADO como requiere_revision. Atómico:
+ * UPDATE ... WHERE estado='aprobado'.
+ *
+ * Solo se permite la transición desde 'aprobado' — el caso de uso es
+ * "MP cobró al cliente y nos llegó el webhook OK, pero al disparar
+ * crear_venta falló (stock cambió en paralelo, RPC error, etc.)".
+ * Cualquier otro estado origen indica un bug del caller.
+ *
+ * El motivo se guarda en mp_status_detail. Lo trunca a 200 chars
+ * para evitar que un stack trace gigante explote la columna.
+ *
+ * Estado TERMINAL en V1: no hay transición automática desde
+ * requiere_revision. El admin lo resuelve fuera de la app (refund
+ * desde dashboard MP + anulación manual del intento). Conciliación
+ * automática queda para V1.5.
+ */
+export async function marcarIntentoRequiereRevision(
+  supabase: SupabaseClient,
+  id: string,
+  motivo: string,
+): Promise<RequiereRevisionResult> {
+  const motivoSan = typeof motivo === 'string'
+    ? motivo.slice(0, 200)
+    : 'requiere_revision (motivo no provisto)'
+
+  const { data, error } = await supabase
+    .from('intentos_cobro_mp')
+    .update({ estado: 'requiere_revision', mp_status_detail: motivoSan })
+    .eq('id', id)
+    .eq('estado', 'aprobado')
+    .select(INTENTO_SELECT)
+    .maybeSingle()
+
+  if (error) throw pgError('marcarIntentoRequiereRevision', error)
+  if (data) {
+    return { ok: true, intento: data as IntentoCobroMP }
+  }
+  // No matchó — o no existe, o no estaba en 'aprobado'.
+  const fresco = await obtenerIntentoCobroPorId(supabase, id)
+  if (!fresco) return { ok: false, reason: 'not_found' }
+  return { ok: false, reason: 'not_in_aprobado', intento: fresco }
 }

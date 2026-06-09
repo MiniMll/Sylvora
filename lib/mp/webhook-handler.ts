@@ -75,11 +75,15 @@ export interface ProcessWebhookResult {
 }
 
 // Estados terminales del intento — si ya está acá, no reprocesar.
+// Incluye requiere_revision: una vez que el frontend lo marcó (MP
+// cobró pero crear_venta falló), un webhook posterior no debe pisar
+// el estado. La resolución es manual.
 const FINAL_STATES: ReadonlySet<EstadoIntentoMP> = new Set([
   'aprobado',
   'rechazado',
   'cancelado',
   'expirado',
+  'requiere_revision',
 ])
 
 /** Resultado de éxito idempotente "no había nada que hacer". */

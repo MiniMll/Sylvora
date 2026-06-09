@@ -954,3 +954,75 @@ Los commits **4, 5, 6** son los más sensibles (touch real con MP API y manejo d
 | Fecha | Cambio | Autor |
 |---|---|---|
 | 2026-06-07 | Versión inicial (Commit 1). | — |
+| 2026-06-09 | Agregar estado `requiere_revision` (Commit 12a). | — |
+
+---
+
+## 18. Estado `requiere_revision` (Commit 12a)
+
+### Por qué existe
+
+El flujo "MP aprueba → frontend dispara `crear_venta`" puede fallar
+después del pago aprobado:
+
+- Stock cambió mid-cobro (otro cajero vendió el producto en paralelo).
+- RPC error transitorio.
+- Conectividad del POS interrumpida justo después del polling.
+
+Cuando esto ocurre, **el dinero ya está en la cuenta MP del
+comerciante** pero la venta no se registró en Sylvora. Sin un estado
+explícito, la situación quedaría invisible y dependería de que el
+comerciante "se acuerde" de que algo salió mal — inaceptable.
+
+### Lifecycle actualizado
+
+```
+pendiente
+    ├── aprobado ──┬── (crear_venta OK)            → asociado a venta
+    │              └── requiere_revision  ← NUEVO  → resolución manual
+    ├── rechazado
+    ├── cancelado
+    └── expirado
+```
+
+### Características
+
+- **Terminal en V1**: una vez en `requiere_revision`, no hay transición
+  automática. El admin lo resuelve fuera de la app (refund desde
+  dashboard MP, ajuste manual de stock, etc.). Conciliación automática
+  queda para V1.5.
+- **Solo transiciona desde `aprobado`**: `marcarIntentoRequiereRevision`
+  hace UPDATE atómico `WHERE estado='aprobado'`. Cualquier otro estado
+  origen indica bug del caller.
+- **Webhook lo respeta como final**: incluido en `FINAL_STATES` del
+  handler. Un webhook posterior con el mismo payment no reprocesa.
+- **mp_status_detail guarda el motivo**: truncado a 200 chars para no
+  explotar la columna con stack traces.
+
+### Quién dispara
+
+**Solo el frontend**, vía endpoint `POST /api/mp/cobros/:id/requiere-revision`
+con `{ motivo }`. Razón: solo el frontend invoca `crear_venta` y sabe
+si falló. La RPC de ventas se mantiene desacoplada de MP (no debería
+saber que existe).
+
+### UX al cajero
+
+Cuando el frontend recibe error de `crear_venta` después de un cobro
+aprobado:
+1. Llama al endpoint con motivo descriptivo (ej. "stock_insuficiente_post_aprobado").
+2. Muestra alerta crítica bloqueante: "Mercado Pago cobró pero la venta
+   no pudo registrarse. Avisá al administrador."
+3. El intento queda visible en la base con estado `requiere_revision`
+   y el motivo en `mp_status_detail`.
+
+### UX al admin (V1)
+
+V1: el admin descubre el caso por canal manual (cajero le avisa,
+revisión periódica de la DB, etc.). V1.5: panel `/configuracion/
+mercado-pago/revision` que lista los intentos en este estado.
+
+### Migración
+
+`scripts/migration-mp-intentos-requiere-revision.sql` — idempotente,
+solo agrega el valor al CHECK constraint.
