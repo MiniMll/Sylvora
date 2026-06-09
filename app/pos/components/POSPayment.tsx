@@ -14,9 +14,11 @@ import {
 import { toast } from 'sonner'
 import { formatPeso, formatTicketText, shareOrCopy } from '@/lib/utils'
 import { usePOSStore } from '@/lib/store'
-import { guardarVenta, esErrorStockInsuficiente, esErrorDriftLotes } from '@/lib/supabase/ventas'
+import { guardarVenta, esErrorStockInsuficiente, esErrorDriftLotes, type GuardarVentaResult } from '@/lib/supabase/ventas'
 import { getComercio } from '@/lib/supabase/_base'
 import { TicketReceipt } from '@/components/TicketReceipt'
+import { MPCobroModal } from '@/components/pos/MPCobroModal'
+import { asociarVentaAIntentoMP, marcarCobroRequiereRevision } from '@/lib/mp/client-fetch'
 import type { MetodoPago } from '@/types'
 import type { Venta, Comercio } from '@/types/database'
 
@@ -55,6 +57,11 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
   // una vez al montar el POS y se cachea via getComercio() —
   // suficiente para una sesión completa de cobros.
   const [comercio, setComercio] = useState<Comercio | null>(null)
+  // Estado del flow MP. Cuando metodoPago='mercadopago' y el cajero
+  // aprieta Cobrar, se abre el modal en vez de llamar guardarVenta
+  // directamente. La venta se persiste recién cuando el modal nos
+  // avisa onAprobado.
+  const [mpModalOpen, setMpModalOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -64,17 +71,14 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
 
   const cobrarRef = useRef<() => void>(() => {})
 
-  const cobrar = async () => {
-    // Guard contra doble-submit: el flag global cargandoVenta también
-    // deshabilita el input del scanner durante el await (P0-7).
-    if (store.cargandoVenta || cobrado) return
-    if (!store.items.length) {
-      toast.error('El ticket está vacío', { id: 'pos-cobrar' })
-      return
-    }
-
-    store.setCargandoVenta(true)
-
+  // Ejecuta el flow de persistencia de la venta + UX de éxito/error.
+  // Se invoca desde el camino sincrónico (efectivo/débito/crédito) y
+  // también desde el callback onAprobado del MPCobroModal. El mpIntentoId
+  // se pasa para asociar la venta al intento MP recién aprobado.
+  // Devuelve true si la venta se registró, false en cualquier otro caso
+  // (stock_insuficiente, drift, error). El caller MP usa el bool para
+  // decidir si marcar requiere_revision.
+  const ejecutarVenta = async (mpIntentoId?: string): Promise<{ ok: true; venta: Venta } | { ok: false; razon: string }> => {
     const itemsParaVenta = store.items.map(i => ({
       producto_id: i.producto_id.includes('_') ? i.producto_id.split('_')[0] : i.producto_id,
       nombre_producto: i.nombre,
@@ -83,11 +87,10 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
       subtotal: i.subtotal,
       peso_kg: i.peso_kg,
     }))
-
     const totalActual = store.total()
-
+    let result: GuardarVentaResult
     try {
-      const result = await guardarVenta({
+      result = await guardarVenta({
         subtotal: store.subtotal(),
         descuento_porcentaje: store.descuentoPct,
         descuento_monto: store.descuentoMonto(),
@@ -97,159 +100,177 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
         metodo_pago: store.metodoPago,
         items: itemsParaVenta,
       })
+    } catch (e) {
+      return { ok: false, razon: e instanceof Error ? e.message : 'error_red' }
+    }
 
-      // Caso esperado: server-side detectó que algún ítem del ticket
-      // ya no tiene stock suficiente (otro cajero vendió mientras tanto,
-      // o el carrito tenía datos desactualizados). NO limpiamos el
-      // ticket — el cajero ajusta y reintenta. Mostramos qué producto
-      // falló y cuánto hay disponible.
-      if (esErrorStockInsuficiente(result)) {
-        toast.error(
-          `Sin stock de ${result.nombre}. Te quedan ${result.disponible}, pediste ${result.pedido}.`,
-          { id: 'pos-cobrar', duration: 6000 },
-        )
-        store.setCargandoVenta(false)
-        // Refrescar productos: el carrito tenía stocks desactualizados.
-        // Tras esto POSCart bloquea los + de los items afectados, lo
-        // que ayuda al cajero a ajustar antes de re-intentar cobrar.
-        void onStockSync()
-        return
-      }
+    if (esErrorStockInsuficiente(result)) {
+      toast.error(
+        `Sin stock de ${result.nombre}. Te quedan ${result.disponible}, pediste ${result.pedido}.`,
+        { id: 'pos-cobrar', duration: 6000 },
+      )
+      void onStockSync()
+      return { ok: false, razon: `stock_insuficiente:${result.nombre}` }
+    }
+    if (esErrorDriftLotes(result)) {
+      toast.error(
+        'No pudimos cobrar — hay diferencia entre el stock total y los lotes de algún producto del ticket. Avisá al administrador.',
+        { id: 'pos-cobrar', duration: 8000 },
+      )
+      return { ok: false, razon: 'drift_lotes' }
+    }
+    if (!result) {
+      return { ok: false, razon: 'guardarVenta_devolvio_null' }
+    }
 
-      // Drift de lotes detectado por la RPC: hay inconsistencia DB que
-      // el cajero no puede resolver. Mensaje específico para que sepa
-      // a quién escalar — NO genérico "probá de nuevo" porque va a
-      // seguir fallando hasta que el dueño audite + reconcilie.
-      if (esErrorDriftLotes(result)) {
-        toast.error(
-          'No pudimos cobrar — hay diferencia entre el stock total y los lotes de algún producto del ticket. Avisá al administrador.',
-          { id: 'pos-cobrar', duration: 8000 },
-        )
-        store.setCargandoVenta(false)
-        return
-      }
+    // ── Éxito: cerrar flow + UX (toast con acciones inline) ─────────
+    setCobrado(true)
+    setMontoRecibido('')
 
-      if (!result) {
-        toast.error('No se pudo guardar la venta. Probá de nuevo.', { id: 'pos-cobrar' })
-        store.setCargandoVenta(false)
-        return
-      }
+    const ventaImprimible: Venta = {
+      ...(result as Venta),
+      items_venta: itemsParaVenta.map((i, idx) => ({
+        id: `tmp-${idx}`,
+        venta_id: result.id,
+        producto_id: i.producto_id || null,
+        nombre_producto: i.nombre_producto,
+        precio_unitario: i.precio_unitario,
+        cantidad: i.cantidad,
+        subtotal: i.subtotal,
+        peso_kg: i.peso_kg ?? null,
+      })),
+    }
+    setVentaParaTicket(ventaImprimible)
 
-      store.setCargandoVenta(false)
-      setCobrado(true)
-      setMontoRecibido('')
+    // Si vino de MP, asociar venta_id al intento (best-effort).
+    if (mpIntentoId) {
+      void asociarVentaAIntentoMP(mpIntentoId, result.id).catch(e => {
+        // Best-effort: la venta ya existe. Loguear y seguir.
+        console.warn('[POSPayment] asociarVentaAIntentoMP falló:', e instanceof Error ? e.message : e)
+      })
+    }
 
-      // Construir Venta enriquecida (con items_venta) para
-      // print/share desde el toast. La función guardarVenta sólo
-      // retorna el row de la tabla ventas; los items los tenemos
-      // del input local.
-      const ventaImprimible: Venta = {
-        ...(result as Venta),
-        items_venta: itemsParaVenta.map((i, idx) => ({
-          id: `tmp-${idx}`,
-          venta_id: result.id,
-          producto_id: i.producto_id || null,
-          nombre_producto: i.nombre_producto,
-          precio_unitario: i.precio_unitario,
-          cantidad: i.cantidad,
-          subtotal: i.subtotal,
-          peso_kg: i.peso_kg ?? null,
-        })),
-      }
-      setVentaParaTicket(ventaImprimible)
-
-      // Toast con acciones inline (Sonner custom JSX).
-      toast.custom((t) => (
-        <div style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          borderLeft: '4px solid var(--g)',
-          borderRadius: 12,
-          padding: '12px 16px',
-          minWidth: 320,
-          maxWidth: 400,
-          boxShadow: 'var(--shadow-md)',
-          fontFamily: 'DM Sans, sans-serif',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: 'rgba(0,200,150,0.12)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <CheckCircle size={15} color="var(--g)" strokeWidth={1.8} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                Venta de {formatPeso(totalActual)} registrada
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text2)' }}>
-                Ticket #{String(ventaImprimible.numero_ticket).padStart(4, '0')}
-              </div>
-            </div>
+    toast.custom((t) => (
+      <div style={{
+        background: 'var(--card)', border: '1px solid var(--border)',
+        borderLeft: '4px solid var(--g)', borderRadius: 12,
+        padding: '12px 16px', minWidth: 320, maxWidth: 400,
+        boxShadow: 'var(--shadow-md)', fontFamily: 'DM Sans, sans-serif',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: 'rgba(0,200,150,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <CheckCircle size={15} color="var(--g)" strokeWidth={1.8} />
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button
-              onClick={() => {
-                // Pequeño delay para que el toast se cierre antes del print
-                // (sino el toast aparece en la preview de impresión).
-                toast.dismiss(t)
-                setTimeout(() => window.print(), 100)
-              }}
-              style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                padding: '7px 10px', borderRadius: 7,
-                background: 'var(--bg2)', color: 'var(--text)',
-                border: '1px solid var(--border)',
-                fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}>
-              <Printer size={12} /> Imprimir
-            </button>
-            <button
-              onClick={async () => {
-                toast.dismiss(t)
-                const r = await shareOrCopy(
-                  formatTicketText(ventaImprimible, comercio),
-                  `Ticket #${String(ventaImprimible.numero_ticket).padStart(4, '0')}`,
-                )
-                if (r === 'copied') toast.success('Ticket copiado al portapapeles', { id: 'pos-share' })
-                else if (r === 'error') toast.error('No se pudo compartir', { id: 'pos-share' })
-              }}
-              style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                padding: '7px 10px', borderRadius: 7,
-                background: 'var(--bg2)', color: 'var(--text)',
-                border: '1px solid var(--border)',
-                fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}>
-              <Share2 size={12} /> Compartir
-            </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+              Venta de {formatPeso(totalActual)} registrada
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text2)' }}>
+              Ticket #{String(ventaImprimible.numero_ticket).padStart(4, '0')}
+            </div>
           </div>
         </div>
-      ), { id: 'pos-cobrar', duration: 6000 })
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={() => { toast.dismiss(t); setTimeout(() => window.print(), 100) }}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              padding: '7px 10px', borderRadius: 7,
+              background: 'var(--bg2)', color: 'var(--text)',
+              border: '1px solid var(--border)',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}>
+            <Printer size={12} /> Imprimir
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(t)
+              const r = await shareOrCopy(
+                formatTicketText(ventaImprimible, comercio),
+                `Ticket #${String(ventaImprimible.numero_ticket).padStart(4, '0')}`,
+              )
+              if (r === 'copied') toast.success('Ticket copiado al portapapeles', { id: 'pos-share' })
+              else if (r === 'error') toast.error('No se pudo compartir', { id: 'pos-share' })
+            }}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              padding: '7px 10px', borderRadius: 7,
+              background: 'var(--bg2)', color: 'var(--text)',
+              border: '1px solid var(--border)',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}>
+            <Share2 size={12} /> Compartir
+          </button>
+        </div>
+      </div>
+    ), { id: 'pos-cobrar', duration: 6000 })
 
-      setTimeout(() => {
-        setCobrado(false)
-        store.limpiarTicket()
-        // Devuelve foco al input del scanner para la próxima venta.
-        store.requestRefocus()
-      }, COBRADO_FEEDBACK_MS)
+    setTimeout(() => {
+      setCobrado(false)
+      store.limpiarTicket()
+      store.requestRefocus()
+    }, COBRADO_FEEDBACK_MS)
 
-      // Refrescar productos para reflejar stocks bajados — la próxima
-      // búsqueda ve datos frescos. No bloquea el flujo de éxito.
-      void onStockSync()
+    void onStockSync()
+    setTimeout(() => setVentaParaTicket(null), 30_000)
+    return { ok: true, venta: result as Venta }
+  }
 
-      // Liberar la venta retenida después de la duración del toast,
-      // para que el printable off-screen no quede colgado en DOM
-      // indefinidamente.
-      setTimeout(() => setVentaParaTicket(null), 30_000)
-    } catch {
-      toast.error('No pudimos guardar la venta. Probá de nuevo.', { id: 'pos-cobrar' })
+  const cobrar = async () => {
+    // Guard contra doble-submit.
+    if (store.cargandoVenta || cobrado) return
+    if (!store.items.length) {
+      toast.error('El ticket está vacío', { id: 'pos-cobrar' })
+      return
+    }
+
+    // Camino MP: abrir modal en vez de persistir. La persistencia ocurre
+    // cuando el modal confirma el cobro (onAprobado → ejecutarVenta).
+    if (store.metodoPago === 'mercadopago') {
+      setMpModalOpen(true)
+      return
+    }
+
+    store.setCargandoVenta(true)
+    try {
+      await ejecutarVenta()
+    } finally {
       store.setCargandoVenta(false)
     }
   }
+
+  // Callback del MPCobroModal cuando MP confirma el cobro. Ejecuta
+  // crear_venta. Si falla, marca el intento como requiere_revision —
+  // el dinero está en la cuenta MP del comerciante y el cajero ve
+  // alerta crítica.
+  const onMPAprobado = async (intentoId: string) => {
+    store.setCargandoVenta(true)
+    try {
+      const res = await ejecutarVenta(intentoId)
+      if (!res.ok) {
+        // crear_venta falló POST aprobación MP. Marcar para revisión.
+        try {
+          await marcarCobroRequiereRevision(intentoId, res.razon)
+        } catch (e) {
+          console.error('[POSPayment] marcarCobroRequiereRevision falló:', e instanceof Error ? e.message : e)
+        }
+        toast.error(
+          'Mercado Pago cobró pero la venta no se pudo registrar. Avisá al administrador.',
+          { id: 'pos-cobrar', duration: 12000 },
+        )
+      }
+    } finally {
+      store.setCargandoVenta(false)
+      setMpModalOpen(false)
+    }
+  }
+
 
   // Mantener el ref sincronizado con la última versión de `cobrar`
   // para que el listener de F8/Ctrl+Enter siempre invoque la closure
@@ -447,6 +468,20 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
         <div data-printable className="print-only">
           <TicketReceipt venta={ventaParaTicket} comercio={comercio} />
         </div>
+      )}
+
+      {/* Modal de cobro Mercado Pago. Se abre cuando el cajero aprieta
+          Cobrar con metodoPago='mercadopago'. La venta NO se persiste
+          hasta que el modal confirma estado='aprobado' via onAprobado.
+          Render condicional para que cada apertura monte un component
+          fresh (sin estados residuales del cobro anterior). */}
+      {mpModalOpen && (
+        <MPCobroModal
+          open
+          monto={totalActual}
+          onAprobado={onMPAprobado}
+          onClose={() => setMpModalOpen(false)}
+        />
       )}
     </>
   )
