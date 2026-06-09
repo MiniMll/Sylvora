@@ -337,8 +337,9 @@ export async function POST(req: Request) {
     estado: 'pendiente',
   }
 
-  // Log success sin tokens ni qr_data (qr_data está bien pero no
-  // aporta nada al log).
+  // Log success sin tokens. Incluye presencia/longitud de qr_data y
+  // checkout_url para diagnosticar si el QR llegó vacío o se perdió
+  // en el camino DB → response.
   console.log(JSON.stringify({
     event: 'mp_cobro_creado',
     intentoId: intentoActualizado.id,
@@ -346,6 +347,14 @@ export async function POST(req: Request) {
     orderIdMp: order.orderIdMp,
     monto,
     source: token.source,
+    // Diagnóstico del QR en la respuesta al frontend:
+    qrDataPresent: typeof response.qr_data === 'string',
+    qrDataLen: typeof response.qr_data === 'string' ? response.qr_data.length : null,
+    checkoutUrlPresent: typeof response.checkout_url === 'string',
+    // Y lo que tenía el intento actualizado en DB (puede divergir si
+    // el UPDATE post-Order falló — `intentoActualizado` queda en el
+    // valor pre-update por el catch warn).
+    intentoQrDataPresent: typeof intentoActualizado.qr_data === 'string',
   }))
 
   return NextResponse.json(response, { status: 201 })

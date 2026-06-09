@@ -15,7 +15,7 @@
 //
 // SERVER-ONLY.
 
-import { mpPost } from './api-client'
+import { mpPost, sanitizeForLog } from './api-client'
 import { idempotencyKeyForOrder } from './identifiers'
 import type { MPOrderCreateBody, MPOrderResponse } from './types'
 
@@ -114,13 +114,45 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
   // formato de la respuesta. Tomamos defensivamente el primero que
   // exista. Si ninguno aparece, dejamos null — el caller decide qué
   // hacer (típicamente: caer al modo "link de pago" o tirar error).
-  const qrData =
-    response.qr_data ??
-    response.point_of_interaction?.transaction_data?.qr_code ??
-    null
+  const qrFromRoot = response.qr_data ?? null
+  const qrFromPoi = response.point_of_interaction?.transaction_data?.qr_code ?? null
+  const qrData = qrFromRoot ?? qrFromPoi ?? null
   const checkoutUrl =
     response.point_of_interaction?.transaction_data?.ticket_url ??
     null
+
+  // DIAGNÓSTICO temporal del troubleshooting del schema sept 2025:
+  // logueamos la SHAPE de la respuesta (top-level keys + structure de
+  // POI si existe) para confirmar dónde MP coloca el QR en el flujo
+  // real. Sanitizado — no leakea tokens (no debería haber, pero
+  // defensa). Pasarlo a level=info para que se vea en Vercel logs.
+  console.log(JSON.stringify({
+    level: 'info',
+    component: 'mp/orders',
+    event: 'mp_order_create_response',
+    operation: 'create-order-qr',
+    externalReference: input.externalReference,
+    externalPosId: input.externalPosId,
+    orderIdMp: response.id ?? null,
+    qrSource:
+      qrFromRoot !== null ? 'root.qr_data'
+      : qrFromPoi !== null ? 'point_of_interaction.transaction_data.qr_code'
+      : 'NO_QR_FOUND',
+    qrDataLen: typeof qrData === 'string' ? qrData.length : null,
+    qrDataPreview: typeof qrData === 'string' ? qrData.slice(0, 40) : null,
+    checkoutUrlPresent: typeof checkoutUrl === 'string',
+    // Top-level keys de la respuesta para ver qué nos manda MP:
+    responseTopLevelKeys: response && typeof response === 'object'
+      ? Object.keys(response as unknown as Record<string, unknown>)
+      : null,
+    // POI shape (si existe) — para saber el path real del QR.
+    pointOfInteractionShape: response.point_of_interaction
+      ? sanitizeForLog(response.point_of_interaction)
+      : null,
+    // Si NO encontramos el QR en ningún path conocido, logueamos la
+    // respuesta entera sanitizada para detectar el path nuevo.
+    ...(qrData === null ? { fullResponseSanitized: sanitizeForLog(response) } : {}),
+  }))
 
   return {
     orderIdMp: response.id,

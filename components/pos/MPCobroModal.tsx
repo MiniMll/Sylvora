@@ -103,6 +103,16 @@ export function MPCobroModal({ open, monto, descripcion, onAprobado, onClose }: 
 
     crearCobroMP(monto, descripcion).then(res => {
       if (cancelled) return
+      // DIAGNÓSTICO: ver exactamente qué llegó del backend.
+      console.log('[MPCobroModal] crearCobroMP response:', {
+        intento_id: res.intento_id,
+        qr_data_present: typeof res.qr_data === 'string',
+        qr_data_len: typeof res.qr_data === 'string' ? res.qr_data.length : null,
+        qr_data_preview: typeof res.qr_data === 'string' ? res.qr_data.slice(0, 40) : null,
+        checkout_url_present: typeof res.checkout_url === 'string',
+        expira_en: res.expira_en,
+        estado: res.estado,
+      })
       setIntentoId(res.intento_id)
       setQrData(res.qr_data)
       setCheckoutUrl(res.checkout_url)
@@ -137,14 +147,28 @@ export function MPCobroModal({ open, monto, descripcion, onAprobado, onClose }: 
 
   // ── Renderizar QR en canvas cuando llega qr_data ──────────────────
   useEffect(() => {
-    if (!qrData || !canvasRef.current) return
+    if (!qrData) {
+      console.log('[MPCobroModal] QR render skip: qrData es', qrData)
+      return
+    }
+    if (!canvasRef.current) {
+      console.log('[MPCobroModal] QR render skip: canvasRef.current es null (canvas no montado todavía)')
+      return
+    }
+    console.log('[MPCobroModal] QR render start:', {
+      qrDataLen: qrData.length,
+      qrDataPreview: qrData.slice(0, 60),
+      canvasMounted: !!canvasRef.current,
+    })
     QRCode.toCanvas(canvasRef.current, qrData, {
       width: 260,
       margin: 1,
       errorCorrectionLevel: 'M',
       color: { dark: '#0a0a0a', light: '#ffffff' },
+    }).then(() => {
+      console.log('[MPCobroModal] QR render OK')
     }).catch(err => {
-      console.error('[MPCobroModal] QR render falló:', err)
+      console.error('[MPCobroModal] QR render falló:', err instanceof Error ? err.message : err)
     })
   }, [qrData])
 
