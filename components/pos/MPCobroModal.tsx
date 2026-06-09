@@ -112,8 +112,21 @@ export function MPCobroModal({ open, monto, descripcion, onAprobado, onClose }: 
       if (cancelled) return
       setFase('error')
       if (e instanceof MPClientFetchError) {
-        // 409 = MP no conectado. 502/503 = MP caído.
-        setMensajeError(e.message || 'No pudimos generar el cobro.')
+        // Mensaje según code específico — más útil que el mensaje
+        // genérico del backend en casos diagnosticables.
+        if (e.code === 'mp_order_client_error') {
+          setMensajeError(
+            'Mercado Pago rechazó la solicitud. Esto suele ser por una configuración del POS — avisá al administrador para revisar los logs.',
+          )
+        } else if (e.code === 'mp_auth_error') {
+          setMensajeError('La conexión con Mercado Pago no es válida. El administrador tiene que reconectarla.')
+        } else if (e.code === 'mp_rate_limit') {
+          setMensajeError('Mercado Pago está limitando los pedidos. Probá en unos segundos.')
+        } else if (e.code === 'mp_server_error') {
+          setMensajeError('Mercado Pago no responde. Probá de nuevo en un momento.')
+        } else {
+          setMensajeError(e.message || 'No pudimos generar el cobro.')
+        }
       } else {
         setMensajeError('No pudimos conectar con el servidor.')
       }

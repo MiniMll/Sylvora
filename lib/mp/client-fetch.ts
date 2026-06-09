@@ -35,11 +35,10 @@ async function parseJsonOrThrow(res: Response): Promise<unknown> {
     // body no JSON.
   }
   if (!res.ok) {
-    const msg =
-      body && typeof body === 'object' && 'error' in body && typeof (body as { error: unknown }).error === 'string'
-        ? (body as { error: string }).error
-        : `HTTP ${res.status}`
-    throw new MPClientFetchError(msg, res.status)
+    const obj = body && typeof body === 'object' ? (body as Record<string, unknown>) : null
+    const msg = obj && typeof obj.error === 'string' ? obj.error : `HTTP ${res.status}`
+    const code = obj && typeof obj.code === 'string' ? obj.code : undefined
+    throw new MPClientFetchError(msg, res.status, code)
   }
   return body
 }

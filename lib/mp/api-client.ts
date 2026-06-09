@@ -325,6 +325,52 @@ function logLine(line: LogBase & Record<string, unknown>): void {
   fn(JSON.stringify(line))
 }
 
+/**
+ * Sanitiza un valor arbitrario para incluirlo en logs estructurados:
+ *   - Trunca strings largas a maxStrLen.
+ *   - Recorta arrays largos a maxItems.
+ *   - Filtra keys sensibles (token, secret, authorization, credential,
+ *     password, refresh, access_token, api_key).
+ *   - Limita profundidad a maxDepth.
+ *
+ * Pensada para loguear cuerpos de respuesta MP en errores 4xx sin
+ * arriesgar leak de información sensible.
+ */
+const SENSITIVE_KEY_RE = /token|secret|authorization|credential|password|refresh|api_?key/i
+
+export function sanitizeForLog(
+  value: unknown,
+  opts: { maxStrLen?: number; maxItems?: number; maxDepth?: number } = {},
+): unknown {
+  const { maxStrLen = 500, maxItems = 20, maxDepth = 5 } = opts
+  function walk(v: unknown, depth: number): unknown {
+    if (depth > maxDepth) return '<max-depth>'
+    if (v === null || v === undefined) return v
+    if (typeof v === 'string') {
+      return v.length > maxStrLen ? v.slice(0, maxStrLen) + '…' : v
+    }
+    if (typeof v === 'number' || typeof v === 'boolean') return v
+    if (Array.isArray(v)) {
+      const out = v.slice(0, maxItems).map(x => walk(x, depth + 1))
+      if (v.length > maxItems) out.push(`<+${v.length - maxItems} más>`)
+      return out
+    }
+    if (typeof v === 'object') {
+      const out: Record<string, unknown> = {}
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+        if (SENSITIVE_KEY_RE.test(k)) {
+          out[k] = '<redacted>'
+        } else {
+          out[k] = walk(val, depth + 1)
+        }
+      }
+      return out
+    }
+    return String(v)
+  }
+  return walk(value, 0)
+}
+
 // ────────────────────────────────────────────────────────────────────
 // API pública
 // ────────────────────────────────────────────────────────────────────
@@ -376,6 +422,12 @@ export async function mpRequest<T>(
       lastErr = e
       const isLast = attempt > maxRetries
       if (isLast || !e.retryable || !canRetry) {
+        // Para errores client-side (4xx), incluimos el body parseado
+        // de MP en el log — es la única forma de diagnosticar campos
+        // mal armados sin tener que reproducir el request. Sanitizado
+        // para evitar leak de keys sensibles si MP cambiara la forma.
+        // Para 5xx/network no incluimos body (suele ser HTML genérico).
+        const includeBody = e.status >= 400 && e.status < 500 && e.body !== null && e.body !== undefined
         logLine({
           level: 'error',
           component: 'mp/api-client',
@@ -390,6 +442,8 @@ export async function mpRequest<T>(
           status: e.status,
           code: e.code,
           mpRequestId: e.mpRequestId,
+          mpErrorMessage: e.message,
+          ...(includeBody ? { mpResponseBody: sanitizeForLog(e.body) } : {}),
         })
         throw e
       }

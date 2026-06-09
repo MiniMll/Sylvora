@@ -43,8 +43,10 @@ import { MP_INTENTO_TTL_MS } from '@/lib/mp/config'
 import {
   MPApiError,
   MPAuthError,
+  MPClientError,
   MPRateLimitError,
   MPServerError,
+  sanitizeForLog,
 } from '@/lib/mp/api-client'
 
 interface CrearCobroBody {
@@ -223,37 +225,79 @@ export async function POST(req: Request) {
       }))
     }
 
+    // Body que mandamos a MP, reconstruido para el log (mismo que arma
+    // crearOrderQR). Sin tokens — los headers no se incluyen. Sirve para
+    // diagnosticar campos rechazados sin tener que reproducir el flujo.
+    const requestBodyParaLog = {
+      type: 'qr',
+      total_amount: monto.toFixed(2),
+      external_reference: externalReference,
+      description: descripcion ?? null,
+      config: { qr: { external_pos_id: token.externalPosId, mode: 'dynamic' } },
+    }
+
+    // Log enriquecido para 4xx — incluye el body parseado de MP (con
+    // cause / message / error si vienen), el body que mandamos, y los
+    // identificadores del intento. Para 5xx alcanza con el status.
+    const isClient4xx = e instanceof MPClientError
     console.error(JSON.stringify({
-      event: 'mp_create_order_failed',
+      event: isClient4xx ? 'mp_create_order_client_error' : 'mp_create_order_failed',
       intentoId: intento.id,
       comercioId: perfil.comercio_id,
       source: token.source,
+      externalReference,
+      externalPosId: token.externalPosId,
+      monto,
+      descripcion: descripcion ?? null,
       errorName: e instanceof Error ? e.name : 'unknown',
       status: e instanceof MPApiError ? e.status : null,
       code: e instanceof MPApiError ? e.code : null,
+      mpRequestId: e instanceof MPApiError ? e.mpRequestId : null,
+      mpErrorMessage: e instanceof MPApiError ? e.message : null,
+      ...(isClient4xx ? {
+        mpResponseBody: sanitizeForLog((e as MPClientError).body),
+        sylvoraRequestBody: requestBodyParaLog,
+      } : {}),
     }))
 
-    // Mensaje al frontend según tipo de error.
+    // Mensaje al frontend según tipo de error. El code permite que el
+    // frontend discrimine sin parsear strings.
     if (e instanceof MPAuthError) {
       return NextResponse.json(
-        { error: 'La conexión con Mercado Pago no es válida. El administrador tiene que reconectarla.' },
+        {
+          error: 'La conexión con Mercado Pago no es válida. El administrador tiene que reconectarla.',
+          code: 'mp_auth_error',
+        },
         { status: 502 },
       )
     }
     if (e instanceof MPRateLimitError) {
       return NextResponse.json(
-        { error: 'Mercado Pago está limitando los pedidos. Probá en unos segundos.' },
+        { error: 'Mercado Pago está limitando los pedidos. Probá en unos segundos.', code: 'mp_rate_limit' },
         { status: 503 },
       )
     }
     if (e instanceof MPServerError) {
       return NextResponse.json(
-        { error: 'Mercado Pago no responde. Probá de nuevo en un momento.' },
+        { error: 'Mercado Pago no responde. Probá de nuevo en un momento.', code: 'mp_server_error' },
         { status: 503 },
       )
     }
+    if (e instanceof MPClientError) {
+      // 4xx — body mal armado o config (ej. external_pos_id no existe,
+      // monto fuera de rango). Mensaje genérico al frontend (el detalle
+      // queda en los logs server-side), pero con code específico para
+      // que el modal pueda discriminar UX.
+      return NextResponse.json(
+        {
+          error: 'Mercado Pago rechazó la solicitud. Revisá los datos del cobro o avisá al administrador.',
+          code: 'mp_order_client_error',
+        },
+        { status: 502 },
+      )
+    }
     return NextResponse.json(
-      { error: 'No pudimos generar el cobro. Probá de nuevo.' },
+      { error: 'No pudimos generar el cobro. Probá de nuevo.', code: 'mp_unknown_error' },
       { status: 502 },
     )
   }
