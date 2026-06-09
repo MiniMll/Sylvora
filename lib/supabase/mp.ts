@@ -554,3 +554,41 @@ export async function marcarExpiradoSiCorresponde(
   }
   return data as IntentoCobroMP
 }
+
+/**
+ * Resultado discriminado de cancelarIntentoCobro. La UI puede
+ * distinguir el caso "ya no estaba cancelable" del éxito real.
+ */
+export type CancelarIntentoResult =
+  | { ok: true; intento: IntentoCobroMP }
+  | { ok: false; reason: 'not_found' | 'not_pending'; intento?: IntentoCobroMP }
+
+/**
+ * Cancela un intento pendiente. Atómico: UPDATE ... WHERE
+ * estado='pendiente'. Si el intento ya fue aprobado/rechazado/
+ * expirado entre la verificación de la UI y el UPDATE (race con
+ * webhook o lazy expiry), el cambio NO se aplica y el resultado
+ * marca 'not_pending'.
+ */
+export async function cancelarIntentoCobro(
+  supabase: SupabaseClient,
+  id: string,
+): Promise<CancelarIntentoResult> {
+  const { data, error } = await supabase
+    .from('intentos_cobro_mp')
+    .update({ estado: 'cancelado' })
+    .eq('id', id)
+    .eq('estado', 'pendiente')
+    .select(INTENTO_SELECT)
+    .maybeSingle()
+
+  if (error) throw pgError('cancelarIntentoCobro', error)
+  if (data) {
+    return { ok: true, intento: data as IntentoCobroMP }
+  }
+  // Sin update — o no existe el id, o ya no estaba pendiente.
+  // Releemos para devolver el estado actual al caller.
+  const fresco = await obtenerIntentoCobroPorId(supabase, id)
+  if (!fresco) return { ok: false, reason: 'not_found' }
+  return { ok: false, reason: 'not_pending', intento: fresco }
+}
