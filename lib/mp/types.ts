@@ -92,10 +92,26 @@ export interface MPPOSResponse {
 // Orders API (creación de cobro QR dinámico)
 // ────────────────────────────────────────────────────────────────────
 
-/** Body para POST /v1/orders (Orders API — nueva, sep 2025). */
+/** Item de la lista transactions.payments. MP exige solo amount; otros
+ *  campos (payment_method_id, installments, payer, etc.) los resuelve
+ *  cuando el cliente paga el QR. */
+export interface MPOrderPayment {
+  /** String con 2 decimales, mismo formato que total_amount. */
+  amount: string
+}
+
+/** Body para POST /v1/orders (Orders API — schema vigente desde
+ *  sept 2025; transactions agregado como obligatorio).
+ *
+ *  Invariante de MP:
+ *    total_amount === SUM(transactions.payments[].amount)
+ *
+ *  Para cobros V1 mandamos 1 sola payment con el monto total. Si en
+ *  el futuro soportamos splits (pagar en cuotas múltiples por POS),
+ *  pasa a array de varios. */
 export interface MPOrderCreateBody {
   type: 'qr'
-  total_amount: string          // como string con 2 decimales: "1500.00"
+  total_amount: string          // string con 2 decimales: "1500.00"
   external_reference: string    // nuestro id — clave del webhook lookup
   description?: string
   config: {
@@ -103,6 +119,9 @@ export interface MPOrderCreateBody {
       external_pos_id: string
       mode: 'dynamic' | 'static'
     }
+  }
+  transactions: {
+    payments: MPOrderPayment[]
   }
 }
 

@@ -80,9 +80,14 @@ function formatMontoMP(monto: number): string {
  * marcar el intento como rechazado, qué mostrar al usuario, etc.
  */
 export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrderQRResult> {
+  // Mismo string formateado en total_amount y en payments[0].amount —
+  // MP exige que total_amount === SUM(transactions.payments[].amount).
+  // Para V1 mandamos 1 sola payment con el monto total (no soportamos
+  // splits en el POS).
+  const montoStr = formatMontoMP(input.monto)
   const body: MPOrderCreateBody = {
     type: 'qr',
-    total_amount: formatMontoMP(input.monto),
+    total_amount: montoStr,
     external_reference: input.externalReference,
     description: input.descripcion,
     config: {
@@ -90,6 +95,9 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
         external_pos_id: input.externalPosId,
         mode: 'dynamic',
       },
+    },
+    transactions: {
+      payments: [{ amount: montoStr }],
     },
   }
 

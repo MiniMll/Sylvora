@@ -955,6 +955,67 @@ Los commits **4, 5, 6** son los más sensibles (touch real con MP API y manejo d
 |---|---|---|
 | 2026-06-07 | Versión inicial (Commit 1). | — |
 | 2026-06-09 | Agregar estado `requiere_revision` (Commit 12a). | — |
+| 2026-06-09 | Body MP `/v1/orders` ahora exige `transactions`. | — |
+
+---
+
+## 19. Schema de Orders API — `transactions` obligatorio
+
+### Hallazgo
+
+Probando manual_sandbox, MP rechazó la primera Order con HTTP 400:
+
+```json
+{ "errors": [{ "code": "required_properties", "message": "Missing properties",
+               "details": ["missing properties: '$.transactions'"] }] }
+```
+
+El spec original de Sylvora (sep 2025) tenía el body sin `transactions`.
+Entre la versión beta de la doc y el release actual, MP agregó
+`transactions` como obligatorio.
+
+### Body actualizado para QR dinámico V1
+
+```json
+{
+  "type": "qr",
+  "total_amount": "3000.00",
+  "external_reference": "sy_<uuid>",
+  "config": {
+    "qr": {
+      "external_pos_id": "<external_pos_id>",
+      "mode": "dynamic"
+    }
+  },
+  "transactions": {
+    "payments": [
+      { "amount": "3000.00" }
+    ]
+  }
+}
+```
+
+### Invariante MP
+
+```
+total_amount === SUM(transactions.payments[].amount)
+```
+
+Sylvora manda **1 sola payment con el monto total** — no soportamos
+splits en V1 (un solo cobro por intento). El `formatMontoMP()` se
+reutiliza para ambos campos así no hay riesgo de discrepancia.
+
+### Campos que NO mandamos
+
+| Campo | Por qué |
+|---|---|
+| `transactions.payments[].payment_method_id` | MP lo resuelve cuando el cliente paga el QR. |
+| `transactions.payments[].installments` | Idem — el cliente elige en su app MP. |
+| `transactions.payments[].payer` | Idem. |
+| `items` | Optional. Sylvora tiene items en su propia DB. |
+| `expiration_time` | Optional ISO duration. Manejamos TTL server-side con `MP_INTENTO_TTL_MS`. |
+| `marketplace_fee` | Optional. Opción A (sin comisión Sylvora). |
+| `integration_data` | Optional. Lo agregamos cuando hagamos onboarding con MP Partners. |
 
 ---
 

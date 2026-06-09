@@ -228,12 +228,16 @@ export async function POST(req: Request) {
     // Body que mandamos a MP, reconstruido para el log (mismo que arma
     // crearOrderQR). Sin tokens — los headers no se incluyen. Sirve para
     // diagnosticar campos rechazados sin tener que reproducir el flujo.
+    // Mantener sincronizado con el body real de crearOrderQR (incluye
+    // transactions desde el ajuste al schema de sept 2025).
+    const montoStr = monto.toFixed(2)
     const requestBodyParaLog = {
       type: 'qr',
-      total_amount: monto.toFixed(2),
+      total_amount: montoStr,
       external_reference: externalReference,
-      description: descripcion ?? null,
+      ...(descripcion ? { description: descripcion } : {}),
       config: { qr: { external_pos_id: token.externalPosId, mode: 'dynamic' } },
+      transactions: { payments: [{ amount: montoStr }] },
     }
 
     // Log enriquecido para 4xx — incluye el body parseado de MP (con

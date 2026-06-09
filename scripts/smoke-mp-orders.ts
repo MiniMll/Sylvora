@@ -138,6 +138,39 @@ async function run() {
     assert(body.config.qr.external_pos_id === 'POS_1', 'pos id mal')
     assert(body.config.qr.mode === 'dynamic', 'mode mal')
     assert(body.description === 'Venta de prueba', 'descripcion mal')
+    // transactions agregado por schema sept 2025 — obligatorio.
+    assert(typeof body.transactions === 'object' && body.transactions !== null, 'transactions ausente')
+    assert(Array.isArray(body.transactions.payments), 'transactions.payments no es array')
+    assert(body.transactions.payments.length === 1, `payments len: ${body.transactions.payments.length}`)
+    assert(body.transactions.payments[0].amount === '1500.00', `payments[0].amount: ${body.transactions.payments[0].amount}`)
+  })
+
+  await check('5b. crearOrderQR: total_amount === SUM(transactions.payments[].amount)', async () => {
+    setHandler(async () => jsonResponse(201, { id: 'o', type: 'qr', status: 'created', total_amount: '0', external_reference: 'x' }))
+    // Monto fraccional para verificar que el formateo es idéntico en
+    // ambos lugares (invariante MP).
+    await crearOrderQR({
+      accessToken: 'AT', externalPosId: 'P', externalReference: 'sy_test_5b', monto: 2547.83,
+    })
+    const body = JSON.parse(calls[0].init?.body as string)
+    const total = body.total_amount as string
+    const sumPayments = body.transactions.payments
+      .reduce((acc: number, p: { amount: string }) => acc + Number(p.amount), 0)
+      .toFixed(2)
+    assert(total === '2547.83', `total_amount: ${total}`)
+    assert(sumPayments === total, `sum payments (${sumPayments}) != total_amount (${total})`)
+  })
+
+  await check('5c. crearOrderQR: sin descripcion → no incluye description en body', async () => {
+    setHandler(async () => jsonResponse(201, { id: 'o', type: 'qr', status: 'created', total_amount: '0', external_reference: 'x' }))
+    await crearOrderQR({
+      accessToken: 'AT', externalPosId: 'P', externalReference: 'sy_test_5c', monto: 100,
+    })
+    const body = JSON.parse(calls[0].init?.body as string)
+    // JSON.stringify omite undefined — la key no debería estar presente.
+    assert(!('description' in body), `description presente con undefined: ${JSON.stringify(body)}`)
+    // Pero transactions sí debe estar.
+    assert('transactions' in body, 'transactions ausente sin descripcion')
   })
 
   await check('6. crearOrderQR: extrae qr_data del nivel root', async () => {
