@@ -115,8 +115,9 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
   // exista. Si ninguno aparece, dejamos null — el caller decide qué
   // hacer (típicamente: caer al modo "link de pago" o tirar error).
   const qrFromRoot = response.qr_data ?? null
+  const qrFromTypeResponse = response.type_response?.qr_data ?? null
   const qrFromPoi = response.point_of_interaction?.transaction_data?.qr_code ?? null
-  const qrData = qrFromRoot ?? qrFromPoi ?? null
+  const qrData = qrFromRoot ?? qrFromTypeResponse ?? qrFromPoi ?? null
   const checkoutUrl =
     response.point_of_interaction?.transaction_data?.ticket_url ??
     null
@@ -136,6 +137,7 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
     orderIdMp: response.id ?? null,
     qrSource:
       qrFromRoot !== null ? 'root.qr_data'
+      : qrFromTypeResponse !== null ? 'type_response.qr_data'
       : qrFromPoi !== null ? 'point_of_interaction.transaction_data.qr_code'
       : 'NO_QR_FOUND',
     qrDataLen: typeof qrData === 'string' ? qrData.length : null,

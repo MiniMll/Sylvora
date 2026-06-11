@@ -133,6 +133,9 @@ export interface MPOrderResponse {
   total_amount: string
   external_reference: string
   qr_data?: string              // contenido del QR para renderizar
+  type_response?: {
+    qr_data?: string            // Orders API nuevo: QR dinámico
+  }
   point_of_interaction?: {
     transaction_data?: {
       qr_code?: string
