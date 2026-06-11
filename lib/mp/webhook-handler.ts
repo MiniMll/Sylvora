@@ -44,6 +44,8 @@ import {
   type EstadoIntentoMP,
 } from '@/lib/supabase/mp'
 import { mapMPStatusToIntentoEstado, type MPWebhookPayload, type MPPaymentDetail } from './types'
+import { getMPEnv } from './config'
+import { getMPMode } from './token-provider'
 
 export interface ProcessWebhookOptions {
   /** data.id del query string (?data.id=<paymentId>). */
@@ -86,6 +88,71 @@ const FINAL_STATES: ReadonlySet<EstadoIntentoMP> = new Set([
   'requiere_revision',
 ])
 
+type WebhookCredenciales = {
+  comercio_id: string
+  access_token: string
+}
+
+function readHeader(headers: HeadersLike, name: string): string | null {
+  if (headers instanceof Headers) return headers.get(name)
+  const lower = name.toLowerCase()
+  for (const [k, v] of Object.entries(headers)) {
+    if (k.toLowerCase() === lower) return v ?? null
+  }
+  return null
+}
+
+function envFlag(name: string): boolean {
+  return process.env[name]?.toLowerCase().trim() === 'true'
+}
+
+function getSandboxUserIdExpected(): number | null {
+  const raw = process.env.MP_SANDBOX_USER_ID_MP
+  if (!raw) return null
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+function getWebhookSandboxModeInfo() {
+  const mpEnv = getMPEnv()
+  let mpMode: string
+  try {
+    mpMode = getMPMode()
+  } catch (e) {
+    mpMode = e instanceof Error ? `invalid:${e.message}` : 'invalid'
+  }
+  const allowUnsignedEnv = envFlag('MP_WEBHOOK_ALLOW_UNSIGNED_SANDBOX')
+  return {
+    mpEnv,
+    mpMode,
+    allowUnsignedEnv,
+    unsignedAllowed:
+      allowUnsignedEnv &&
+      mpEnv === 'sandbox' &&
+      mpMode === 'manual_sandbox',
+    unsignedBlockedProduction:
+      allowUnsignedEnv &&
+      mpEnv === 'production',
+  }
+}
+
+function getManualSandboxWebhookCredenciales(userId: number): WebhookCredenciales | null {
+  if (getMPEnv() === 'production') return null
+  try {
+    if (getMPMode() !== 'manual_sandbox') return null
+  } catch {
+    return null
+  }
+
+  const expectedUserId = getSandboxUserIdExpected()
+  if (!expectedUserId || userId !== expectedUserId) return null
+
+  const accessToken = process.env.MP_SANDBOX_ACCESS_TOKEN?.trim()
+  const comercioId = process.env.MP_SANDBOX_COMERCIO_ID?.trim()
+  if (!accessToken || !comercioId) return null
+  return { comercio_id: comercioId, access_token: accessToken }
+}
+
 /** Resultado de éxito idempotente "no había nada que hacer". */
 function ok(
   event: string,
@@ -102,6 +169,20 @@ function ok(
 export async function processMPWebhookNotification(
   opts: ProcessWebhookOptions,
 ): Promise<ProcessWebhookResult> {
+  let parsedPayloadForDiag: MPWebhookPayload | null = null
+  try {
+    parsedPayloadForDiag = JSON.parse(opts.rawBody) as MPWebhookPayload
+  } catch {
+    parsedPayloadForDiag = null
+  }
+
+  const xSignaturePresent = Boolean(readHeader(opts.headers, 'x-signature'))
+  const xRequestIdPresent = Boolean(readHeader(opts.headers, 'x-request-id'))
+  const queryDataIdPresent = Boolean(opts.dataId)
+  const payloadDataId = parsedPayloadForDiag?.data?.id ?? null
+  const payloadDataIdPresent = typeof payloadDataId === 'string' && payloadDataId.length > 0
+  const sandboxUserIdExpected = getSandboxUserIdExpected()
+
   // ── 1. Verificar firma ───────────────────────────────────────────
   // Si falla cualquier validación del header/secret/timestamp,
   // devolvemos 401 genérico. El log con el .code distingue ruido
@@ -116,12 +197,49 @@ export async function processMPWebhookNotification(
     })
   } catch (e) {
     if (e instanceof MPWebhookSignatureError) {
+      const sandboxModeInfo = getWebhookSandboxModeInfo()
       console.warn(JSON.stringify({
         component: 'mp/webhook',
         event: 'signature_fail',
         code: e.code,
         dataId: opts.dataId,
+        queryDataIdPresent,
+        payloadDataIdPresent,
+        xSignaturePresent,
+        xRequestIdPresent,
+        payloadUserId: parsedPayloadForDiag?.user_id ?? null,
+        sandboxUserIdExpected,
+        mpEnv: sandboxModeInfo.mpEnv,
+        mpMode: sandboxModeInfo.mpMode,
+        allowUnsignedEnv: sandboxModeInfo.allowUnsignedEnv,
       }))
+
+      if (sandboxModeInfo.unsignedBlockedProduction) {
+        console.error(JSON.stringify({
+          component: 'mp/webhook',
+          event: 'manual_sandbox_unsigned_webhook_blocked_production',
+          code: e.code,
+          dataId: opts.dataId,
+        }))
+      }
+
+      const canAcceptUnsigned =
+        sandboxModeInfo.unsignedAllowed &&
+        (e.code === 'missing_header' || e.code === 'missing_data_id') &&
+        parsedPayloadForDiag !== null
+
+      if (canAcceptUnsigned) {
+        const unsignedPayload = parsedPayloadForDiag as MPWebhookPayload
+        console.warn(JSON.stringify({
+          component: 'mp/webhook',
+          event: 'manual_sandbox_unsigned_webhook_accepted',
+          code: e.code,
+          dataId: opts.dataId,
+          effectiveDataId: opts.dataId || payloadDataId,
+          payloadUserId: unsignedPayload.user_id,
+          sandboxUserIdExpected,
+        }))
+      } else {
       const sev = e.code === 'missing_header' ? 'warn' : 'error'
       return {
         status: 401,
@@ -131,7 +249,14 @@ export async function processMPWebhookNotification(
           event: 'mp_webhook_signature_fail',
           code: e.code,
           dataId: opts.dataId,
+          queryDataIdPresent,
+          payloadDataIdPresent,
+          xSignaturePresent,
+          xRequestIdPresent,
+          payloadUserId: parsedPayloadForDiag?.user_id ?? null,
+          sandboxUserIdExpected,
         },
+      }
       }
     }
     throw e   // bug inesperado; que el route handler lo log/500.
@@ -145,10 +270,11 @@ export async function processMPWebhookNotification(
   // ── 2. Parse body ────────────────────────────────────────────────
   let payload: MPWebhookPayload
   try {
-    payload = JSON.parse(opts.rawBody) as MPWebhookPayload
+    payload = parsedPayloadForDiag ?? JSON.parse(opts.rawBody) as MPWebhookPayload
   } catch {
     return ok('mp_webhook_bad_json', { dataId: opts.dataId }, 'warn')
   }
+  const effectiveDataId = opts.dataId || payload.data?.id || ''
   console.log(JSON.stringify({
     component: 'mp/webhook',
     event: 'payload_parsed',
@@ -156,7 +282,9 @@ export async function processMPWebhookNotification(
     type: payload.type,
     userId: payload.user_id,
     dataId: opts.dataId,
+    effectiveDataId,
     payloadDataId: payload.data?.id ?? null,
+    sandboxUserIdExpected,
   }))
 
   // Solo manejamos type=payment en V1. merchant_order y otros tipos
@@ -171,7 +299,7 @@ export async function processMPWebhookNotification(
   }
 
   // ── 3. Resolver credenciales del seller ──────────────────────────
-  let cred: Awaited<ReturnType<typeof obtenerCredencialesPorUserIdMp>>
+  let cred: WebhookCredenciales | null
   try {
     cred = await obtenerCredencialesPorUserIdMp(opts.supabase, userId)
   } catch (e) {
@@ -189,6 +317,9 @@ export async function processMPWebhookNotification(
     }
   }
   if (!cred) {
+    cred = getManualSandboxWebhookCredenciales(userId)
+  }
+  if (!cred) {
     // user_id_mp no matchea ningún comercio. Puede pasar si:
     //   - El comercio se desconectó después del cobro pero antes
     //     del webhook (raro).
@@ -197,7 +328,19 @@ export async function processMPWebhookNotification(
     //   - El seller cambió de cuenta MP.
     // 200 idempotente con warn — no queremos que MP reintente
     // indefinidamente.
-    return ok('mp_webhook_user_id_sin_credenciales', { userId, dataId: opts.dataId }, 'warn')
+    return ok(
+      'mp_webhook_user_id_sin_credenciales',
+      { userId, sandboxUserIdExpected, dataId: opts.dataId },
+      'warn',
+    )
+  }
+  if (cred.comercio_id === process.env.MP_SANDBOX_COMERCIO_ID?.trim()) {
+    console.warn(JSON.stringify({
+      component: 'mp/webhook',
+      event: 'manual_sandbox_credenciales_env_usadas',
+      userId,
+      comercioId: cred.comercio_id,
+    }))
   }
   console.log(JSON.stringify({
     component: 'mp/webhook',
@@ -211,7 +354,7 @@ export async function processMPWebhookNotification(
   // que pegar a /v1/payments/<id> con el access_token del seller.
   // data.id viene como string en el payload — preferimos el del URL
   // (más confiable, MP lo manda fuera del body firmable).
-  const paymentId = opts.dataId || payload.data?.id
+  const paymentId = effectiveDataId
   if (!paymentId) {
     return ok('mp_webhook_no_payment_id', { dataId: opts.dataId }, 'warn')
   }
