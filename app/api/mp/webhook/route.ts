@@ -21,11 +21,22 @@ import { processMPWebhookNotification } from '@/lib/mp/webhook-handler'
 export async function POST(req: Request) {
   const url = new URL(req.url)
   const dataId = url.searchParams.get('data.id') ?? ''
+  const xRequestId = req.headers.get('x-request-id')
+  const xSignature = req.headers.get('x-signature')
 
   // Body crudo. MP no firma el body en su template oficial, pero lo
   // leemos como text() para que el handler lo parsee y para tenerlo
   // disponible si MP cambia el algoritmo.
   const rawBody = await req.text()
+
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'webhook_received',
+    dataId,
+    xRequestIdPresent: typeof xRequestId === 'string' && xRequestId.length > 0,
+    xSignaturePresent: typeof xSignature === 'string' && xSignature.length > 0,
+    rawBodyLen: rawBody.length,
+  }))
 
   let secret: string
   try {

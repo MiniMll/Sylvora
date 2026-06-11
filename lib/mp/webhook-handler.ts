@@ -116,6 +116,12 @@ export async function processMPWebhookNotification(
     })
   } catch (e) {
     if (e instanceof MPWebhookSignatureError) {
+      console.warn(JSON.stringify({
+        component: 'mp/webhook',
+        event: 'signature_fail',
+        code: e.code,
+        dataId: opts.dataId,
+      }))
       const sev = e.code === 'missing_header' ? 'warn' : 'error'
       return {
         status: 401,
@@ -130,6 +136,11 @@ export async function processMPWebhookNotification(
     }
     throw e   // bug inesperado; que el route handler lo log/500.
   }
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'signature_ok',
+    dataId: opts.dataId,
+  }))
 
   // ── 2. Parse body ────────────────────────────────────────────────
   let payload: MPWebhookPayload
@@ -138,6 +149,15 @@ export async function processMPWebhookNotification(
   } catch {
     return ok('mp_webhook_bad_json', { dataId: opts.dataId }, 'warn')
   }
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'payload_parsed',
+    action: payload.action,
+    type: payload.type,
+    userId: payload.user_id,
+    dataId: opts.dataId,
+    payloadDataId: payload.data?.id ?? null,
+  }))
 
   // Solo manejamos type=payment en V1. merchant_order y otros tipos
   // los aceptamos sin procesar — devolvemos 200 para que MP no reintente.
@@ -179,6 +199,12 @@ export async function processMPWebhookNotification(
     // indefinidamente.
     return ok('mp_webhook_user_id_sin_credenciales', { userId, dataId: opts.dataId }, 'warn')
   }
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'credenciales_encontradas',
+    userId,
+    comercioId: cred.comercio_id,
+  }))
 
   // ── 4. Fetch payment canónico desde MP ───────────────────────────
   // El payload del webhook NO se considera fuente de verdad: tenemos
@@ -235,6 +261,14 @@ export async function processMPWebhookNotification(
       'warn',
     )
   }
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'payment_fetched',
+    paymentId,
+    paymentStatus: payment.status,
+    paymentStatusDetail: payment.status_detail ?? null,
+    externalReference: payment.external_reference,
+  }))
 
   // ── 5. Buscar intento por external_reference ─────────────────────
   const externalRef = payment.external_reference
@@ -266,6 +300,14 @@ export async function processMPWebhookNotification(
     // sistema, o el intento se borró (no debería).
     return ok('mp_webhook_intento_no_encontrado', { externalRef, paymentId }, 'warn')
   }
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'intento_encontrado',
+    intentoId: intento.id,
+    externalRef,
+    estadoActual: intento.estado,
+    ventaId: intento.venta_id,
+  }))
 
   // ── 6. Idempotencia: ya en estado final → no reprocesar ──────────
   if (FINAL_STATES.has(intento.estado)) {
@@ -281,6 +323,14 @@ export async function processMPWebhookNotification(
 
   // ── 7. Mapear status y aplicar transición ────────────────────────
   const nuevoEstado = mapMPStatusToIntentoEstado(payment.status)
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'estado_mapeado',
+    intentoId: intento.id,
+    paymentStatus: payment.status,
+    estadoAnterior: intento.estado,
+    estadoNuevo: nuevoEstado,
+  }))
   if (nuevoEstado === null) {
     // pending / in_process / authorized — esperar siguiente webhook.
     return ok(
