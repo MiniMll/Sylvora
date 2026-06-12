@@ -33,6 +33,7 @@ import {
   mpGet,
   MPApiError,
   MPAuthError,
+  MPClientError,
   MPServerError,
   MPNetworkError,
 } from './api-client'
@@ -268,12 +269,13 @@ export async function processMPWebhookNotification(
         },
       }
       }
+    } else {
+      throw e   // bug inesperado; que el route handler lo log/500.
     }
-    throw e   // bug inesperado; que el route handler lo log/500.
   }
   console.log(JSON.stringify({
     component: 'mp/webhook',
-    event: 'signature_ok',
+    event: 'webhook_after_signature_gate',
     dataId: opts.dataId,
   }))
 
@@ -287,7 +289,7 @@ export async function processMPWebhookNotification(
   const effectiveDataId = opts.dataId || payload.data?.id || ''
   console.log(JSON.stringify({
     component: 'mp/webhook',
-    event: 'payload_parsed',
+    event: 'webhook_payload_ok',
     action: payload.action,
     type: payload.type,
     userId: payload.user_id,
@@ -347,7 +349,7 @@ export async function processMPWebhookNotification(
   if (cred.comercio_id === process.env.MP_SANDBOX_COMERCIO_ID?.trim()) {
     console.warn(JSON.stringify({
       component: 'mp/webhook',
-      event: 'manual_sandbox_credenciales_env_usadas',
+      event: 'manual_sandbox_webhook_used',
       userId,
       comercioId: cred.comercio_id,
     }))
@@ -368,6 +370,12 @@ export async function processMPWebhookNotification(
   if (!paymentId) {
     return ok('mp_webhook_no_payment_id', { dataId: opts.dataId }, 'warn')
   }
+
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'payment_fetch_start',
+    paymentId,
+  }))
 
   let payment: MPPaymentDetail
   try {
@@ -403,6 +411,13 @@ export async function processMPWebhookNotification(
         },
       }
     }
+    if (e instanceof MPClientError && e.status === 404) {
+      return ok(
+        'manual_sandbox_simulator_payment_not_found',
+        { paymentId, userId, sandboxUserIdExpected },
+        'warn',
+      )
+    }
     // Otros 4xx (404, etc.). 200 — no reintentable.
     return ok(
       'mp_webhook_mp_client_error',
@@ -416,7 +431,7 @@ export async function processMPWebhookNotification(
   }
   console.log(JSON.stringify({
     component: 'mp/webhook',
-    event: 'payment_fetched',
+    event: 'payment_fetch_success',
     paymentId,
     paymentStatus: payment.status,
     paymentStatusDetail: payment.status_detail ?? null,
@@ -431,6 +446,13 @@ export async function processMPWebhookNotification(
     // (link de pago manual, otro POS, etc.).
     return ok('mp_webhook_payment_sin_external_reference', { paymentId }, 'info')
   }
+
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'intento_lookup_start',
+    paymentId,
+    externalRef,
+  }))
 
   let intento: Awaited<ReturnType<typeof obtenerIntentoCobroPorExternalReference>>
   try {
@@ -455,7 +477,7 @@ export async function processMPWebhookNotification(
   }
   console.log(JSON.stringify({
     component: 'mp/webhook',
-    event: 'intento_encontrado',
+    event: 'intento_lookup_success',
     intentoId: intento.id,
     externalRef,
     estadoActual: intento.estado,
@@ -519,6 +541,15 @@ export async function processMPWebhookNotification(
       },
     }
   }
+
+  console.log(JSON.stringify({
+    component: 'mp/webhook',
+    event: 'intento_update_success',
+    intentoId: intento.id,
+    estadoAnterior: intento.estado,
+    estadoNuevo: nuevoEstado,
+    paymentId,
+  }))
 
   return ok('mp_webhook_intento_actualizado', {
     intentoId: intento.id,
