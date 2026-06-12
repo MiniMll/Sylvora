@@ -16,7 +16,9 @@
 // SERVER-ONLY.
 
 import { mpPost, sanitizeForLog } from './api-client'
+import { getMPWebhookUrl } from './config'
 import { idempotencyKeyForOrder } from './identifiers'
+import { getMPMode } from './token-provider'
 import type { MPOrderCreateBody, MPOrderResponse } from './types'
 
 export interface CrearOrderQRInput {
@@ -63,6 +65,18 @@ function formatMontoMP(monto: number): string {
   return monto.toFixed(2)
 }
 
+function sanitizeWebhookUrlForLog(url: string): string {
+  try {
+    const parsed = new URL(url)
+    if (parsed.searchParams.has('x-vercel-protection-bypass')) {
+      parsed.searchParams.set('x-vercel-protection-bypass', '[redacted]')
+    }
+    return parsed.toString()
+  } catch {
+    return '[invalid-url]'
+  }
+}
+
 /**
  * Crea una Order de tipo QR dinámico en MP.
  *
@@ -85,11 +99,31 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
   // Para V1 mandamos 1 sola payment con el monto total (no soportamos
   // splits en el POS).
   const montoStr = formatMontoMP(input.monto)
+  const notificationUrl = getMPWebhookUrl()
+  if (!notificationUrl) {
+    let mode: string
+    try {
+      mode = getMPMode()
+    } catch {
+      mode = 'invalid'
+    }
+    if (mode === 'manual_sandbox') {
+      console.warn(JSON.stringify({
+        level: 'warn',
+        component: 'mp/orders',
+        event: 'mp_order_notification_url_missing',
+        mode,
+        envVar: 'SYLVORA_MP_WEBHOOK_URL',
+      }))
+    }
+  }
+
   const body: MPOrderCreateBody = {
     type: 'qr',
     total_amount: montoStr,
     external_reference: input.externalReference,
     description: input.descripcion,
+    ...(notificationUrl ? { notification_url: notificationUrl } : {}),
     config: {
       qr: {
         external_pos_id: input.externalPosId,
@@ -135,6 +169,8 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
     externalReference: input.externalReference,
     externalPosId: input.externalPosId,
     orderIdMp: response.id ?? null,
+    notificationUrlPresent: typeof notificationUrl === 'string',
+    ...(notificationUrl ? { notificationUrl: sanitizeWebhookUrlForLog(notificationUrl) } : {}),
     qrSource:
       qrFromRoot !== null ? 'root.qr_data'
       : qrFromTypeResponse !== null ? 'type_response.qr_data'

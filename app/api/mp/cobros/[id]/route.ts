@@ -20,9 +20,15 @@ import { cookies } from 'next/headers'
 import {
   obtenerIntentoCobroPorId,
   marcarExpiradoSiCorresponde,
+  actualizarIntentoCobro,
 } from '@/lib/supabase/mp'
+import { resolveAccessToken } from '@/lib/mp/token-provider'
+import { mpGet } from '@/lib/mp/api-client'
+import type { MPOrderResponse } from '@/lib/mp/types'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const MP_POLL_MIN_INTERVAL_MS = 4_000
+const lastMpOrderPollAt = new Map<string, number>()
 
 interface GetCobroResponse {
   intento_id: string
@@ -35,6 +41,58 @@ interface GetCobroResponse {
   pagado_en: string | null
   venta_id: string | null
   mp_status_detail: string | null
+}
+
+function normalizeStatus(value: unknown): string {
+  return typeof value === 'string' ? value.toLowerCase().trim() : ''
+}
+
+function numericAmount(value: unknown): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  if (typeof value === 'string') {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : 0
+  }
+  return 0
+}
+
+function getPaymentReferenceId(order: MPOrderResponse): number | null {
+  const ref = order.transactions?.payments?.[0]?.reference_id
+  if (!ref) return null
+  const n = Number(ref)
+  return Number.isInteger(n) && n > 0 ? n : null
+}
+
+function mapOrderStatus(order: MPOrderResponse): 'aprobado' | 'rechazado' | null {
+  const orderStatus = normalizeStatus(order.status)
+  const orderStatusDetail = normalizeStatus(order.status_detail)
+  const payments = order.transactions?.payments ?? []
+  const paymentStatuses = payments.map(p => normalizeStatus(p.status))
+  const paymentStatusDetails = payments.map(p => normalizeStatus(p.status_detail))
+  const totalAmount = numericAmount(order.total_amount)
+  const totalPaidAmount = numericAmount(order.total_paid_amount)
+
+  const approvedStatuses = new Set(['approved', 'accredited', 'paid', 'processed'])
+  const rejectedStatuses = new Set(['rejected', 'cancelled', 'canceled'])
+
+  if (
+    approvedStatuses.has(orderStatus) ||
+    approvedStatuses.has(orderStatusDetail) ||
+    paymentStatuses.some(s => approvedStatuses.has(s)) ||
+    paymentStatusDetails.some(s => approvedStatuses.has(s)) ||
+    (totalAmount > 0 && totalPaidAmount >= totalAmount)
+  ) {
+    return 'aprobado'
+  }
+
+  if (
+    rejectedStatuses.has(orderStatus) ||
+    paymentStatuses.some(s => rejectedStatuses.has(s))
+  ) {
+    return 'rechazado'
+  }
+
+  return null
 }
 
 export async function GET(
@@ -95,6 +153,96 @@ export async function GET(
       errorMessage: e instanceof Error ? e.message : 'unknown',
     }))
     actual = intento
+  }
+
+  if (actual.estado === 'pendiente' && actual.order_id_mp) {
+    const updatedAtMs = new Date(actual.actualizado_en).getTime()
+    const lastPollAt = lastMpOrderPollAt.get(actual.id) ?? 0
+    const now = Date.now()
+    const recentlyUpdated = Number.isFinite(updatedAtMs) &&
+      now - updatedAtMs < MP_POLL_MIN_INTERVAL_MS
+    const recentlyPolled = now - lastPollAt < MP_POLL_MIN_INTERVAL_MS
+
+    if (!recentlyUpdated && !recentlyPolled) {
+      lastMpOrderPollAt.set(actual.id, now)
+      console.log(JSON.stringify({
+        event: 'mp_poll_order_start',
+        intentoId: actual.id,
+        orderIdMp: actual.order_id_mp,
+        comercioId: actual.comercio_id,
+      }))
+
+      try {
+        const token = await resolveAccessToken({
+          comercioId: actual.comercio_id,
+          supabase: userClient,
+        })
+        const order = await mpGet<MPOrderResponse>({
+          accessToken: token.accessToken,
+          path: `/v1/orders/${encodeURIComponent(actual.order_id_mp)}`,
+          operation: 'poll-order-status',
+        })
+        console.log(JSON.stringify({
+          event: 'mp_poll_order_success',
+          intentoId: actual.id,
+          orderIdMp: actual.order_id_mp,
+          orderStatus: order.status,
+          orderStatusDetail: order.status_detail ?? null,
+          totalPaidAmount: order.total_paid_amount ?? null,
+          paymentStatus: order.transactions?.payments?.[0]?.status ?? null,
+          paymentStatusDetail: order.transactions?.payments?.[0]?.status_detail ?? null,
+        }))
+
+        const nuevoEstado = mapOrderStatus(order)
+        console.log(JSON.stringify({
+          event: 'mp_poll_order_status_mapped',
+          intentoId: actual.id,
+          orderIdMp: actual.order_id_mp,
+          estadoAnterior: actual.estado,
+          estadoNuevo: nuevoEstado,
+          paymentReferenceId: order.transactions?.payments?.[0]?.reference_id ?? null,
+        }))
+
+        if (nuevoEstado === 'aprobado') {
+          const paymentId = getPaymentReferenceId(order)
+          actual = await actualizarIntentoCobro(userClient, actual.id, {
+            estado: 'aprobado',
+            mp_payment_id: paymentId,
+            mp_status_detail: order.status_detail ?? order.transactions?.payments?.[0]?.status_detail ?? null,
+            pagado_en: order.last_updated_date ?? new Date(),
+          })
+          console.log(JSON.stringify({
+            event: 'mp_poll_order_update_success',
+            intentoId: actual.id,
+            orderIdMp: actual.order_id_mp,
+            estadoNuevo: actual.estado,
+            paymentId,
+          }))
+        } else if (nuevoEstado === 'rechazado') {
+          const paymentId = getPaymentReferenceId(order)
+          actual = await actualizarIntentoCobro(userClient, actual.id, {
+            estado: 'rechazado',
+            mp_payment_id: paymentId,
+            mp_status_detail: order.status_detail ?? order.transactions?.payments?.[0]?.status_detail ?? null,
+          })
+          console.log(JSON.stringify({
+            event: 'mp_poll_order_update_success',
+            intentoId: actual.id,
+            orderIdMp: actual.order_id_mp,
+            estadoNuevo: actual.estado,
+            paymentId,
+          }))
+        }
+      } catch (e) {
+        console.warn(JSON.stringify({
+          event: 'mp_poll_order_failed',
+          intentoId: actual.id,
+          orderIdMp: actual.order_id_mp,
+          errorName: e instanceof Error ? e.name : 'unknown',
+          errorMessage: e instanceof Error ? e.message : 'unknown',
+        }))
+      }
+    }
   }
 
   const response: GetCobroResponse = {

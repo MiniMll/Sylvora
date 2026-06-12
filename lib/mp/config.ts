@@ -66,6 +66,14 @@ export function getMPWebhookSecret(): string {
   )
 }
 
+/** URL absoluta donde MP debe enviar notificaciones para cobros QR.
+ *  Opcional: en QR Orders se manda en notification_url al crear la
+ *  Order. En previews puede incluir x-vercel-protection-bypass. */
+export function getMPWebhookUrl(): string | null {
+  const raw = process.env.SYLVORA_MP_WEBHOOK_URL?.trim()
+  return raw && raw.length > 0 ? raw : null
+}
+
 /** Clave base64 de 32 bytes para AES-256-GCM. */
 export function getMPTokenEncryptionKey(): string {
   return requireEnv(

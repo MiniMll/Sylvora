@@ -114,6 +114,7 @@ export interface MPOrderCreateBody {
   total_amount: string          // string con 2 decimales: "1500.00"
   external_reference: string    // nuestro id — clave del webhook lookup
   description?: string
+  notification_url?: string     // webhook absoluto opcional para QR Orders
   config: {
     qr: {
       external_pos_id: string
@@ -130,11 +131,26 @@ export interface MPOrderResponse {
   id: string                    // order_id_mp
   type: 'qr'
   status: string                // 'created' inicial
+  status_detail?: string | null
   total_amount: string
+  total_paid_amount?: string | null
   external_reference: string
+  user_id?: string | number
+  created_date?: string
+  last_updated_date?: string
   qr_data?: string              // contenido del QR para renderizar
   type_response?: {
     qr_data?: string            // Orders API nuevo: QR dinámico
+  }
+  transactions?: {
+    payments?: Array<{
+      id?: string
+      reference_id?: string
+      status?: string
+      status_detail?: string | null
+      amount?: string
+      paid_amount?: string
+    }>
   }
   point_of_interaction?: {
     transaction_data?: {

@@ -236,6 +236,9 @@ export async function POST(req: Request) {
       total_amount: montoStr,
       external_reference: externalReference,
       ...(descripcion ? { description: descripcion } : {}),
+      ...(process.env.SYLVORA_MP_WEBHOOK_URL?.trim()
+        ? { notification_url: '[configured-redacted]' }
+        : {}),
       config: { qr: { external_pos_id: token.externalPosId, mode: 'dynamic' } },
       transactions: { payments: [{ amount: montoStr }] },
     }
