@@ -223,16 +223,26 @@ export async function processMPWebhookNotification(
         }))
       }
 
-      const canAcceptUnsigned =
+      // SOLO SANDBOX/DEV:
+      // El simulador de Mercado Pago puede mandar headers incompletos o
+      // firmas que no matchean el secret real de la app. Permitimos seguir
+      // únicamente con MP_WEBHOOK_ALLOW_UNSIGNED_SANDBOX=true,
+      // MP_ENV=sandbox y MP_MODE=manual_sandbox. getWebhookSandboxModeInfo()
+      // mantiene el hard guard: nunca se habilita en production ni en OAuth.
+      const canBypassSignature =
         sandboxModeInfo.unsignedAllowed &&
-        (e.code === 'missing_header' || e.code === 'missing_data_id') &&
+        (
+          e.code === 'missing_header' ||
+          e.code === 'missing_data_id' ||
+          e.code === 'signature_mismatch'
+        ) &&
         parsedPayloadForDiag !== null
 
-      if (canAcceptUnsigned) {
+      if (canBypassSignature) {
         const unsignedPayload = parsedPayloadForDiag as MPWebhookPayload
         console.warn(JSON.stringify({
           component: 'mp/webhook',
-          event: 'manual_sandbox_unsigned_webhook_accepted',
+          event: 'manual_sandbox_signature_bypass_used',
           code: e.code,
           dataId: opts.dataId,
           effectiveDataId: opts.dataId || payloadDataId,
