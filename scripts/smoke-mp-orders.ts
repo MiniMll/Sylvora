@@ -8,7 +8,7 @@
 // Cubrimos:
 //   1. generateExternalReference: formato sy_<32hex>, único.
 //   2. isValidExternalReference: regex MP-compatible.
-//   3. idempotencyKeyForOrder: determinístico, mismo input ⇒ misma key.
+//   3. idempotencyKeyForOrder: determinístico, mismo input => misma key.
 //   4. idempotencyKeyForOrder rechaza external_ref inválido.
 //   5. crearOrderQR: arma body correcto y manda X-Idempotency-Key.
 //   6. crearOrderQR: extrae qr_data del nivel root.
@@ -17,6 +17,7 @@
 //   9. crearOrderQR: monto=0 rechaza antes de llamar a MP.
 //  10. crearOrderQR: monto se formatea con 2 decimales fijos.
 //  11. crearOrderQR: propaga MPApiError sin tragarlo.
+//  12. crearOrderQR: NO manda notification_url aunque SYLVORA_MP_WEBHOOK_URL exista.
 //
 // Correr con:
 //   npx tsx scripts/smoke-mp-orders.ts
@@ -74,7 +75,7 @@ process.stdout.write('\n[smoke-mp-orders] Verificando wrapper Orders API + ident
 
 async function run() {
 
-  // ── identifiers ────────────────────────────────────────────────
+  // Identifiers
 
   await check('1. generateExternalReference: formato sy_<32hex>, único', () => {
     const a = generateExternalReference()
@@ -113,7 +114,7 @@ async function run() {
     assert(threw, 'no rechazó espacios')
   })
 
-  // ── crearOrderQR ──────────────────────────────────────────────
+  // crearOrderQR
 
   await check('5. crearOrderQR: arma body correcto y manda X-Idempotency-Key', async () => {
     setHandler(async () => jsonResponse(201, { id: 'order_xyz', type: 'qr', status: 'created', total_amount: '1500.00', external_reference: 'sy_test' }))
@@ -138,7 +139,6 @@ async function run() {
     assert(body.config.qr.external_pos_id === 'POS_1', 'pos id mal')
     assert(body.config.qr.mode === 'dynamic', 'mode mal')
     assert(body.description === 'Venta de prueba', 'descripcion mal')
-    // transactions agregado por schema sept 2025 — obligatorio.
     assert(typeof body.transactions === 'object' && body.transactions !== null, 'transactions ausente')
     assert(Array.isArray(body.transactions.payments), 'transactions.payments no es array')
     assert(body.transactions.payments.length === 1, `payments len: ${body.transactions.payments.length}`)
@@ -147,8 +147,6 @@ async function run() {
 
   await check('5b. crearOrderQR: total_amount === SUM(transactions.payments[].amount)', async () => {
     setHandler(async () => jsonResponse(201, { id: 'o', type: 'qr', status: 'created', total_amount: '0', external_reference: 'x' }))
-    // Monto fraccional para verificar que el formateo es idéntico en
-    // ambos lugares (invariante MP).
     await crearOrderQR({
       accessToken: 'AT', externalPosId: 'P', externalReference: 'sy_test_5b', monto: 2547.83,
     })
@@ -161,16 +159,38 @@ async function run() {
     assert(sumPayments === total, `sum payments (${sumPayments}) != total_amount (${total})`)
   })
 
-  await check('5c. crearOrderQR: sin descripcion → no incluye description en body', async () => {
+  await check('5c. crearOrderQR: sin descripcion -> no incluye description en body', async () => {
     setHandler(async () => jsonResponse(201, { id: 'o', type: 'qr', status: 'created', total_amount: '0', external_reference: 'x' }))
     await crearOrderQR({
       accessToken: 'AT', externalPosId: 'P', externalReference: 'sy_test_5c', monto: 100,
     })
     const body = JSON.parse(calls[0].init?.body as string)
-    // JSON.stringify omite undefined — la key no debería estar presente.
     assert(!('description' in body), `description presente con undefined: ${JSON.stringify(body)}`)
-    // Pero transactions sí debe estar.
     assert('transactions' in body, 'transactions ausente sin descripcion')
+  })
+
+  await check('5d. crearOrderQR: NO incluye notification_url aunque SYLVORA_MP_WEBHOOK_URL exista', async () => {
+    const prevUrl = process.env.SYLVORA_MP_WEBHOOK_URL
+    const prevEnv = process.env.MP_ENV
+    const prevMode = process.env.MP_MODE
+    process.env.SYLVORA_MP_WEBHOOK_URL = 'https://preview.example/api/mp/webhook?x-vercel-protection-bypass=secret'
+    process.env.MP_ENV = 'sandbox'
+    process.env.MP_MODE = 'manual_sandbox'
+    try {
+      setHandler(async () => jsonResponse(201, { id: 'o', type: 'qr', status: 'created', total_amount: '0', external_reference: 'x' }))
+      await crearOrderQR({
+        accessToken: 'AT', externalPosId: 'P', externalReference: 'sy_test_5d', monto: 100,
+      })
+      const body = JSON.parse(calls[0].init?.body as string)
+      assert(!('notification_url' in body), `notification_url no permitido en Orders QR: ${JSON.stringify(body)}`)
+    } finally {
+      if (prevUrl === undefined) delete process.env.SYLVORA_MP_WEBHOOK_URL
+      else process.env.SYLVORA_MP_WEBHOOK_URL = prevUrl
+      if (prevEnv === undefined) delete process.env.MP_ENV
+      else process.env.MP_ENV = prevEnv
+      if (prevMode === undefined) delete process.env.MP_MODE
+      else process.env.MP_MODE = prevMode
+    }
   })
 
   await check('6. crearOrderQR: extrae qr_data del nivel root', async () => {
@@ -245,7 +265,6 @@ async function run() {
     } catch (e) { caught = e }
     assert(caught instanceof MPClientError, `error type: ${caught instanceof Error ? caught.name : 'none'}`)
   })
-
 }
 
 run().then(() => {
@@ -253,9 +272,9 @@ run().then(() => {
   if (failed > 0) process.exit(1)
 
   process.stdout.write([
-    '─'.repeat(70),
+    '-'.repeat(70),
     'TEST MANUAL DEL ENDPOINT POST /api/mp/cobros',
-    '─'.repeat(70),
+    '-'.repeat(70),
     '',
     'Prerrequisitos (modo manual_sandbox):',
     '  - MP_MODE=manual_sandbox',
@@ -277,12 +296,12 @@ run().then(() => {
     '    "expira_en": "<iso>", "estado": "pendiente" }',
     '',
     'Smokes negativos:',
-    '  monto=0    → 400 "Monto inválido"',
-    '  sin cookie → 401 "No autenticado"',
-    '  rol sin venta.crear → 403 (no debería pasar — todos los roles lo tienen)',
-    '  MP no conectado + MP_MODE=oauth → 409 "Mercado Pago no está conectado"',
+    '  monto=0    -> 400 "Monto inválido"',
+    '  sin cookie -> 401 "No autenticado"',
+    '  rol sin venta.crear -> 403 (no debería pasar; todos los roles lo tienen)',
+    '  MP no conectado + MP_MODE=oauth -> 409 "Mercado Pago no está conectado"',
     '',
-    '─'.repeat(70),
+    '-'.repeat(70),
     '',
   ].join('\n'))
 }).catch(e => {

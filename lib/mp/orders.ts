@@ -65,18 +65,6 @@ function formatMontoMP(monto: number): string {
   return monto.toFixed(2)
 }
 
-function sanitizeWebhookUrlForLog(url: string): string {
-  try {
-    const parsed = new URL(url)
-    if (parsed.searchParams.has('x-vercel-protection-bypass')) {
-      parsed.searchParams.set('x-vercel-protection-bypass', '[redacted]')
-    }
-    return parsed.toString()
-  } catch {
-    return '[invalid-url]'
-  }
-}
-
 /**
  * Crea una Order de tipo QR dinámico en MP.
  *
@@ -100,20 +88,31 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
   // splits en el POS).
   const montoStr = formatMontoMP(input.monto)
   const notificationUrl = getMPWebhookUrl()
-  if (!notificationUrl) {
-    let mode: string
-    try {
-      mode = getMPMode()
-    } catch {
-      mode = 'invalid'
-    }
-    if (mode === 'manual_sandbox') {
+  let mode: string
+  try {
+    mode = getMPMode()
+  } catch {
+    mode = 'invalid'
+  }
+  if (mode === 'manual_sandbox') {
+    if (notificationUrl) {
+      console.warn(JSON.stringify({
+        level: 'warn',
+        component: 'mp/orders',
+        event: 'mp_order_notification_url_ignored',
+        mode,
+        envVar: 'SYLVORA_MP_WEBHOOK_URL',
+        notificationUrlPresent: true,
+        note: 'Orders API QR no acepta notification_url en este schema; manual_sandbox depende del polling de Orders.',
+      }))
+    } else {
       console.warn(JSON.stringify({
         level: 'warn',
         component: 'mp/orders',
         event: 'mp_order_notification_url_missing',
         mode,
         envVar: 'SYLVORA_MP_WEBHOOK_URL',
+        note: 'Orders API QR no acepta notification_url en este schema; manual_sandbox depende del polling de Orders.',
       }))
     }
   }
@@ -123,7 +122,6 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
     total_amount: montoStr,
     external_reference: input.externalReference,
     description: input.descripcion,
-    ...(notificationUrl ? { notification_url: notificationUrl } : {}),
     config: {
       qr: {
         external_pos_id: input.externalPosId,
@@ -170,7 +168,8 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
     externalPosId: input.externalPosId,
     orderIdMp: response.id ?? null,
     notificationUrlPresent: typeof notificationUrl === 'string',
-    ...(notificationUrl ? { notificationUrl: sanitizeWebhookUrlForLog(notificationUrl) } : {}),
+    notificationUrlSent: false,
+    note: 'Orders API QR no acepta notification_url en este schema; el estado se reconcilia por polling de Orders.',
     qrSource:
       qrFromRoot !== null ? 'root.qr_data'
       : qrFromTypeResponse !== null ? 'type_response.qr_data'

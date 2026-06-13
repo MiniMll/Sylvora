@@ -114,7 +114,6 @@ export interface MPOrderCreateBody {
   total_amount: string          // string con 2 decimales: "1500.00"
   external_reference: string    // nuestro id — clave del webhook lookup
   description?: string
-  notification_url?: string     // webhook absoluto opcional para QR Orders
   config: {
     qr: {
       external_pos_id: string
