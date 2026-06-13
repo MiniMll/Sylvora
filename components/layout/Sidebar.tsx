@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { invalidarCacheComercio } from '@/lib/supabase/_base'
+import { usePOSStore } from '@/lib/store'
 import { useAuthListener } from '@/lib/hooks/useAuthListener'
 import { usePermissions } from '@/components/PermissionsProvider'
 import { labelRol } from '@/lib/permissions'
@@ -43,6 +44,7 @@ export function Sidebar() {
 
   useEffect(() => {
     const saved = localStorage.getItem('theme')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved === 'dark') { setDark(true); document.documentElement.classList.add('dark') }
   }, [])
 
@@ -75,6 +77,7 @@ export function Sidebar() {
 
   const cerrarSesion = useCallback(async () => {
     const supabase = createClient()
+    usePOSStore.getState().limpiarMemoriaSesion()
     await supabase.auth.signOut()
     invalidarCacheComercio()
     router.push('/login')

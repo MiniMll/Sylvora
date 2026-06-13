@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Scale, Beaker, Ruler, Package, Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 import { getProductos } from '@/lib/supabase/productos'
+import { getPerfilActual } from '@/lib/supabase/_base'
 import { usePOSStore } from '@/lib/store'
 import { formatPeso } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Spinner'
@@ -34,6 +35,9 @@ const cardStyle: React.CSSProperties = {
 export default function POSPage() {
   const router = useRouter()
   const store = usePOSStore()
+  const storageReady = usePOSStore(s => s.storageReady)
+  const comercioIdActivo = usePOSStore(s => s.comercioId)
+  const setComercioActivo = usePOSStore(s => s.setComercioActivo)
   const [productos, setProductos] = useState<Producto[]>([])
   const [cargando, setCargando] = useState(true)
   const [busqueda, setBusqueda] = useState('')
@@ -63,20 +67,42 @@ export default function POSPage() {
   // selector específico, sincronizarStock mantiene la misma referencia.
   const sincronizarStock = usePOSStore(s => s.sincronizarStock)
 
+  useEffect(() => {
+    let cancelled = false
+    getPerfilActual().then(perfil => {
+      if (cancelled) return
+      setComercioActivo(perfil?.comercio_id ?? null)
+    }).catch(() => {
+      if (!cancelled) setComercioActivo(null)
+    })
+    return () => { cancelled = true }
+  }, [setComercioActivo])
+
   // Refresh de productos. Se llama:
   //  - al montar la pantalla
   //  - después de cobrar exitosamente (los stocks bajaron)
   //  - después de un stock_insuficiente al cobrar (carrito tenía
   //    stocks viejos — refrescar para que POSCart bloquee el +)
   const refreshProductos = useCallback(async () => {
+    if (!comercioIdActivo) return
     const data = await getProductos()
     setProductos(data)
     // Sincronizar stock_disponible de los items del ticket vivo.
-    const stockMap = Object.fromEntries(data.map(p => [p.id, p.stock_actual]))
-    sincronizarStock(stockMap)
-  }, [sincronizarStock])
+    const stockMap = Object.fromEntries(data.map(p => [
+      p.id,
+      { stock_actual: p.stock_actual, comercio_id: p.comercio_id },
+    ]))
+    const removidos = sincronizarStock(stockMap)
+    if (removidos > 0) {
+      toast.message('Quitamos productos del ticket que ya no pertenecen a este comercio o ya no existen.', {
+        id: 'pos-cart-sanitize',
+        duration: 5000,
+      })
+    }
+  }, [comercioIdActivo, sincronizarStock])
 
   useEffect(() => {
+    if (!storageReady) return
     // Fetch on mount — patrón estándar de Next + Supabase client.
     // El lint react-hooks/set-state-in-effect prefiere useSyncExternalStore
     // o data layer (SWR/react-query), pero acá el efecto sirve para
@@ -84,7 +110,7 @@ export default function POSPage() {
     // documentado por React.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshProductos().finally(() => setCargando(false))
-  }, [refreshProductos])
+  }, [refreshProductos, storageReady])
 
   // Resultados filtrados (compartido entre POSSearch y POSProducts)
   const resultados = useMemo(() => {
@@ -128,6 +154,7 @@ export default function POSPage() {
     }
     store.agregarItem({
       producto_id: p.id,
+      comercio_id: p.comercio_id,
       nombre: p.nombre,
       precio_unitario: p.precio_venta,
       cantidad: 1,
@@ -203,6 +230,7 @@ export default function POSPage() {
     beep('ok')
     store.agregarItem({
       producto_id: producto.id,
+      comercio_id: producto.comercio_id,
       nombre: producto.nombre,
       precio_unitario: producto.precio_venta,
       cantidad: 1,
@@ -285,6 +313,7 @@ export default function POSPage() {
 
     store.agregarItem({
       producto_id: `${modalCantidad.id}_${Date.now()}`,
+      comercio_id: modalCantidad.comercio_id,
       nombre: `${modalCantidad.nombre} (${sufijo})`,
       precio_unitario: precio,
       cantidad: 1,

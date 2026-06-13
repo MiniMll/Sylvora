@@ -73,6 +73,25 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
 
   const cobrarRef = useRef<() => void>(() => {})
 
+  const bloquearCarritoInseguro = () => {
+    if (!comercio?.id) {
+      toast.error('No pudimos validar el comercio actual. Recargá la página antes de cobrar.', {
+        id: 'pos-cobrar',
+        duration: 6000,
+      })
+      return true
+    }
+    if (!store.carritoPerteneceAComercio(comercio.id)) {
+      store.limpiarTicketPorSeguridad()
+      toast.error('El carrito pertenecía a otra sesión o comercio. Lo limpiamos por seguridad.', {
+        id: 'pos-cobrar',
+        duration: 7000,
+      })
+      return true
+    }
+    return false
+  }
+
   // Ejecuta el flow de persistencia de la venta + UX de éxito/error.
   // Se invoca desde el camino sincrónico (efectivo/débito/crédito) y
   // también desde el callback onAprobado del MPCobroModal. El mpIntentoId
@@ -81,6 +100,10 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
   // (stock_insuficiente, drift, error). El caller MP usa el bool para
   // decidir si marcar requiere_revision.
   const ejecutarVenta = async (mpIntentoId?: string): Promise<{ ok: true; venta: Venta } | { ok: false; razon: string }> => {
+    if (bloquearCarritoInseguro()) {
+      return { ok: false, razon: 'carrito_comercio_mismatch' }
+    }
+
     const itemsParaVenta = store.items.map(i => ({
       producto_id: i.producto_id.includes('_') ? i.producto_id.split('_')[0] : i.producto_id,
       nombre_producto: i.nombre,
@@ -231,6 +254,7 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
       toast.error('El ticket está vacío', { id: 'pos-cobrar' })
       return
     }
+    if (bloquearCarritoInseguro()) return
 
     // Camino MP: primero elegir entre QR dinámico y cobro manual.
     if (store.metodoPago === 'mercadopago') {
