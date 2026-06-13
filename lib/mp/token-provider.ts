@@ -5,7 +5,7 @@
 // Dos modos (MP_MODE env):
 //   - 'oauth' (default, producción): lee de mp_credenciales del
 //     comercio. Falla si el comercio no conectó MP.
-//   - 'manual_sandbox' (temporal, dev): lee MP_SANDBOX_* del env.
+//   - 'manual_sandbox' (temporal, preview/dev): lee MP_SANDBOX_* del env.
 //     HARD-BLOCKED en MP_ENV=production.
 //
 // Diseñado para que cuando OAuth real funcione, basta con borrar el

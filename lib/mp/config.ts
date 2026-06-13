@@ -66,9 +66,9 @@ export function getMPWebhookSecret(): string {
   )
 }
 
-/** URL absoluta donde MP debe enviar notificaciones para cobros QR.
- *  Opcional: en QR Orders se manda en notification_url al crear la
- *  Order. En previews puede incluir x-vercel-protection-bypass. */
+/** URL absoluta del webhook MP para flows que la soporten.
+ *  Nota: /v1/orders QR no acepta notification_url en este schema;
+ *  esos cobros se reconcilian por polling de Orders. */
 export function getMPWebhookUrl(): string | null {
   const raw = process.env.SYLVORA_MP_WEBHOOK_URL?.trim()
   return raw && raw.length > 0 ? raw : null
@@ -112,6 +112,10 @@ export const MP_API_TIMEOUT_MS = 15_000
 /** Polling del frontend POS para el estado del intento. Failsafe
  *  del webhook + de Supabase Realtime. */
 export const MP_POLL_INTERVAL_MS = 2_000
+
+/** Monto mínimo operativo para cobros MP QR en ARS. MP rechaza montos
+ *  muy bajos; validamos antes de crear intentos para dar UX clara. */
+export const MP_MIN_AMOUNT_ARS = 15
 
 /** Safety check: monto máximo permitido en sandbox para evitar
  *  errores costosos si un dev pega producción por error. En prod

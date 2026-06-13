@@ -15,10 +15,8 @@
 //
 // SERVER-ONLY.
 
-import { mpPost, sanitizeForLog } from './api-client'
-import { getMPWebhookUrl } from './config'
+import { mpPost } from './api-client'
 import { idempotencyKeyForOrder } from './identifiers'
-import { getMPMode } from './token-provider'
 import type { MPOrderCreateBody, MPOrderResponse } from './types'
 
 export interface CrearOrderQRInput {
@@ -87,36 +85,6 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
   // Para V1 mandamos 1 sola payment con el monto total (no soportamos
   // splits en el POS).
   const montoStr = formatMontoMP(input.monto)
-  const notificationUrl = getMPWebhookUrl()
-  let mode: string
-  try {
-    mode = getMPMode()
-  } catch {
-    mode = 'invalid'
-  }
-  if (mode === 'manual_sandbox') {
-    if (notificationUrl) {
-      console.warn(JSON.stringify({
-        level: 'warn',
-        component: 'mp/orders',
-        event: 'mp_order_notification_url_ignored',
-        mode,
-        envVar: 'SYLVORA_MP_WEBHOOK_URL',
-        notificationUrlPresent: true,
-        note: 'Orders API QR no acepta notification_url en este schema; manual_sandbox depende del polling de Orders.',
-      }))
-    } else {
-      console.warn(JSON.stringify({
-        level: 'warn',
-        component: 'mp/orders',
-        event: 'mp_order_notification_url_missing',
-        mode,
-        envVar: 'SYLVORA_MP_WEBHOOK_URL',
-        note: 'Orders API QR no acepta notification_url en este schema; manual_sandbox depende del polling de Orders.',
-      }))
-    }
-  }
-
   const body: MPOrderCreateBody = {
     type: 'qr',
     total_amount: montoStr,
@@ -154,41 +122,23 @@ export async function crearOrderQR(input: CrearOrderQRInput): Promise<CrearOrder
     response.point_of_interaction?.transaction_data?.ticket_url ??
     null
 
-  // DIAGNÓSTICO temporal del troubleshooting del schema sept 2025:
-  // logueamos la SHAPE de la respuesta (top-level keys + structure de
-  // POI si existe) para confirmar dónde MP coloca el QR en el flujo
-  // real. Sanitizado — no leakea tokens (no debería haber, pero
-  // defensa). Pasarlo a level=info para que se vea en Vercel logs.
+  // Log de auditoria sin QR payload ni response completo.
   console.log(JSON.stringify({
     level: 'info',
     component: 'mp/orders',
-    event: 'mp_order_create_response',
+    event: 'mp_order_created',
     operation: 'create-order-qr',
     externalReference: input.externalReference,
     externalPosId: input.externalPosId,
     orderIdMp: response.id ?? null,
-    notificationUrlPresent: typeof notificationUrl === 'string',
     notificationUrlSent: false,
-    note: 'Orders API QR no acepta notification_url en este schema; el estado se reconcilia por polling de Orders.',
     qrSource:
       qrFromRoot !== null ? 'root.qr_data'
       : qrFromTypeResponse !== null ? 'type_response.qr_data'
       : qrFromPoi !== null ? 'point_of_interaction.transaction_data.qr_code'
       : 'NO_QR_FOUND',
-    qrDataLen: typeof qrData === 'string' ? qrData.length : null,
-    qrDataPreview: typeof qrData === 'string' ? qrData.slice(0, 40) : null,
+    qrDataPresent: typeof qrData === 'string',
     checkoutUrlPresent: typeof checkoutUrl === 'string',
-    // Top-level keys de la respuesta para ver qué nos manda MP:
-    responseTopLevelKeys: response && typeof response === 'object'
-      ? Object.keys(response as unknown as Record<string, unknown>)
-      : null,
-    // POI shape (si existe) — para saber el path real del QR.
-    pointOfInteractionShape: response.point_of_interaction
-      ? sanitizeForLog(response.point_of_interaction)
-      : null,
-    // Si NO encontramos el QR en ningún path conocido, logueamos la
-    // respuesta entera sanitizada para detectar el path nuevo.
-    ...(qrData === null ? { fullResponseSanitized: sanitizeForLog(response) } : {}),
   }))
 
   return {

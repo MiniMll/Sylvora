@@ -39,7 +39,7 @@ import {
 import { resolveAccessToken, MPTokenProviderError } from '@/lib/mp/token-provider'
 import { generateExternalReference } from '@/lib/mp/identifiers'
 import { crearOrderQR } from '@/lib/mp/orders'
-import { MP_INTENTO_TTL_MS } from '@/lib/mp/config'
+import { MP_INTENTO_TTL_MS, MP_MIN_AMOUNT_ARS } from '@/lib/mp/config'
 import {
   MPApiError,
   MPAuthError,
@@ -78,6 +78,13 @@ export async function POST(req: Request) {
   if (!Number.isFinite(monto) || monto <= 0 || monto > MAX_MONTO) {
     return NextResponse.json(
       { error: 'Monto inválido. Debe ser un número positivo razonable.' },
+      { status: 400 },
+    )
+  }
+
+  if (monto < MP_MIN_AMOUNT_ARS) {
+    return NextResponse.json(
+      { error: `Mercado Pago permite cobrar desde $${MP_MIN_AMOUNT_ARS}. Ajusta el monto para generar el QR.` },
       { status: 400 },
     )
   }
@@ -337,9 +344,7 @@ export async function POST(req: Request) {
     estado: 'pendiente',
   }
 
-  // Log success sin tokens. Incluye presencia/longitud de qr_data y
-  // checkout_url para diagnosticar si el QR llegó vacío o se perdió
-  // en el camino DB → response.
+  // Log de auditoría sin tokens ni QR payload.
   console.log(JSON.stringify({
     event: 'mp_cobro_creado',
     intentoId: intentoActualizado.id,
@@ -347,14 +352,8 @@ export async function POST(req: Request) {
     orderIdMp: order.orderIdMp,
     monto,
     source: token.source,
-    // Diagnóstico del QR en la respuesta al frontend:
     qrDataPresent: typeof response.qr_data === 'string',
-    qrDataLen: typeof response.qr_data === 'string' ? response.qr_data.length : null,
     checkoutUrlPresent: typeof response.checkout_url === 'string',
-    // Y lo que tenía el intento actualizado en DB (puede divergir si
-    // el UPDATE post-Order falló — `intentoActualizado` queda en el
-    // valor pre-update por el catch warn).
-    intentoQrDataPresent: typeof intentoActualizado.qr_data === 'string',
   }))
 
   return NextResponse.json(response, { status: 201 })

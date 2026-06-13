@@ -956,6 +956,7 @@ Los commits **4, 5, 6** son los más sensibles (touch real con MP API y manejo d
 | 2026-06-07 | Versión inicial (Commit 1). | — |
 | 2026-06-09 | Agregar estado `requiere_revision` (Commit 12a). | — |
 | 2026-06-09 | Body MP `/v1/orders` ahora exige `transactions`. | — |
+| 2026-06-13 | Cierre E2E: `manual_sandbox` queda limitado a preview/dev, QR Orders no acepta `notification_url`, y el flujo depende del polling canónico de Orders cuando el webhook no llega. | — |
 
 ---
 
@@ -1016,6 +1017,42 @@ reutiliza para ambos campos así no hay riesgo de discrepancia.
 | `expiration_time` | Optional ISO duration. Manejamos TTL server-side con `MP_INTENTO_TTL_MS`. |
 | `marketplace_fee` | Optional. Opción A (sin comisión Sylvora). |
 | `integration_data` | Optional. Lo agregamos cuando hagamos onboarding con MP Partners. |
+
+---
+
+## 20. Cierre manual_sandbox / preview
+
+### Alcance
+
+`MP_MODE=manual_sandbox` es un modo temporal para preview/dev con
+credenciales de prueba. Está bloqueado en `MP_ENV=production` y no debe
+usarse para comercios reales ni para deploys productivos.
+
+### QR Orders y webhooks
+
+El schema actual de `POST /v1/orders` para QR dinámico rechaza
+`notification_url` con `additionalProperties '$.notification_url' not
+allowed`. Por eso Sylvora no manda ese campo en Orders API.
+
+En sandbox/manual_sandbox, el flujo E2E no depende de que Mercado Pago
+entregue un webhook real. El polling de `GET /api/mp/cobros/:id`
+consulta de forma canónica `GET /v1/orders/{order_id_mp}` cuando el
+intento sigue `pendiente`, y actualiza el intento a `aprobado` o
+`rechazado` según el estado de la Order y su payment.
+
+### Logs de producción
+
+Los logs productivos deben conservar:
+
+- creación de intento/Order sin payload QR ni tokens;
+- actualización de estado por polling o webhook;
+- errores de MP/Supabase con códigos y request ids cuando existan.
+
+No deben loguear:
+
+- access tokens, refresh tokens, secrets o claves de cifrado;
+- `qr_data`, previews de QR, raw body completo del webhook;
+- response completo de Mercado Pago salvo errores 4xx sanitizados.
 
 ---
 

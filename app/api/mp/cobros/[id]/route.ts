@@ -165,12 +165,6 @@ export async function GET(
 
     if (!recentlyUpdated && !recentlyPolled) {
       lastMpOrderPollAt.set(actual.id, now)
-      console.log(JSON.stringify({
-        event: 'mp_poll_order_start',
-        intentoId: actual.id,
-        orderIdMp: actual.order_id_mp,
-        comercioId: actual.comercio_id,
-      }))
 
       try {
         const token = await resolveAccessToken({
@@ -182,26 +176,7 @@ export async function GET(
           path: `/v1/orders/${encodeURIComponent(actual.order_id_mp)}`,
           operation: 'poll-order-status',
         })
-        console.log(JSON.stringify({
-          event: 'mp_poll_order_success',
-          intentoId: actual.id,
-          orderIdMp: actual.order_id_mp,
-          orderStatus: order.status,
-          orderStatusDetail: order.status_detail ?? null,
-          totalPaidAmount: order.total_paid_amount ?? null,
-          paymentStatus: order.transactions?.payments?.[0]?.status ?? null,
-          paymentStatusDetail: order.transactions?.payments?.[0]?.status_detail ?? null,
-        }))
-
         const nuevoEstado = mapOrderStatus(order)
-        console.log(JSON.stringify({
-          event: 'mp_poll_order_status_mapped',
-          intentoId: actual.id,
-          orderIdMp: actual.order_id_mp,
-          estadoAnterior: actual.estado,
-          estadoNuevo: nuevoEstado,
-          paymentReferenceId: order.transactions?.payments?.[0]?.reference_id ?? null,
-        }))
 
         if (nuevoEstado === 'aprobado') {
           const paymentId = getPaymentReferenceId(order)
@@ -217,6 +192,8 @@ export async function GET(
             orderIdMp: actual.order_id_mp,
             estadoNuevo: actual.estado,
             paymentId,
+            orderStatus: order.status,
+            orderStatusDetail: order.status_detail ?? null,
           }))
         } else if (nuevoEstado === 'rechazado') {
           const paymentId = getPaymentReferenceId(order)
@@ -231,6 +208,8 @@ export async function GET(
             orderIdMp: actual.order_id_mp,
             estadoNuevo: actual.estado,
             paymentId,
+            orderStatus: order.status,
+            orderStatusDetail: order.status_detail ?? null,
           }))
         }
       } catch (e) {
