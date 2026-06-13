@@ -30,6 +30,8 @@ export type Permission =
   | 'reporte.ver_completo'       // admin + encargado — /reportes
   // Usuarios
   | 'usuario.gestionar'          // admin only — listar/cambiar rol/eliminar otros perfiles
+  // Integraciones
+  | 'mp.gestionar'               // admin only - conectar/desconectar Mercado Pago
 
 const PERMISSIONS_BY_ROL: Record<Rol, ReadonlySet<Permission>> = {
   admin: new Set<Permission>([
@@ -40,6 +42,7 @@ const PERMISSIONS_BY_ROL: Record<Rol, ReadonlySet<Permission>> = {
     'venta.crear', 'venta.anular',
     'reporte.ver_completo',
     'usuario.gestionar',
+    'mp.gestionar',
   ]),
   encargado: new Set<Permission>([
     'caja.cerrar', 'caja.egreso',
