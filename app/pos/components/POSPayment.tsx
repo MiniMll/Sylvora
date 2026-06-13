@@ -18,6 +18,7 @@ import { guardarVenta, esErrorStockInsuficiente, esErrorDriftLotes, type Guardar
 import { getComercio } from '@/lib/supabase/_base'
 import { TicketReceipt } from '@/components/TicketReceipt'
 import { MPCobroModal } from '@/components/pos/MPCobroModal'
+import { MPPaymentChoiceModal } from '@/components/pos/MPPaymentChoiceModal'
 import { asociarVentaAIntentoMP, marcarCobroRequiereRevision } from '@/lib/mp/client-fetch'
 import type { MetodoPago } from '@/types'
 import type { Venta, Comercio } from '@/types/database'
@@ -58,9 +59,10 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
   // suficiente para una sesión completa de cobros.
   const [comercio, setComercio] = useState<Comercio | null>(null)
   // Estado del flow MP. Cuando metodoPago='mercadopago' y el cajero
-  // aprieta Cobrar, se abre el modal en vez de llamar guardarVenta
-  // directamente. La venta se persiste recién cuando el modal nos
-  // avisa onAprobado.
+  // aprieta Cobrar, primero elige entre QR automático y confirmación
+  // manual. El QR persiste recién cuando MP aprueba; el manual usa el
+  // flow normal de venta sin crear intento ni llamar APIs MP.
+  const [mpChoiceOpen, setMpChoiceOpen] = useState(false)
   const [mpModalOpen, setMpModalOpen] = useState(false)
 
   useEffect(() => {
@@ -230,16 +232,40 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
       return
     }
 
-    // Camino MP: abrir modal en vez de persistir. La persistencia ocurre
-    // cuando el modal confirma el cobro (onAprobado → ejecutarVenta).
+    // Camino MP: primero elegir entre QR dinámico y cobro manual.
     if (store.metodoPago === 'mercadopago') {
-      setMpModalOpen(true)
+      setMpChoiceOpen(true)
       return
     }
 
     store.setCargandoVenta(true)
     try {
       await ejecutarVenta()
+    } finally {
+      store.setCargandoVenta(false)
+    }
+  }
+
+  const onMPGenerarQR = () => {
+    setMpChoiceOpen(false)
+    setMpModalOpen(true)
+  }
+
+  const onMPManualConfirmado = async () => {
+    store.setCargandoVenta(true)
+    try {
+      const res = await ejecutarVenta()
+      if (res.ok) {
+        setMpChoiceOpen(false)
+      } else {
+        setMpChoiceOpen(false)
+        if (!res.razon.startsWith('stock_insuficiente') && res.razon !== 'drift_lotes') {
+          toast.error('No pudimos registrar la venta. Revisá el ticket y probá de nuevo.', {
+            id: 'pos-cobrar',
+            duration: 6000,
+          })
+        }
+      }
     } finally {
       store.setCargandoVenta(false)
     }
@@ -470,7 +496,20 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
         </div>
       )}
 
-      {/* Modal de cobro Mercado Pago. Se abre cuando el cajero aprieta
+      {/* Selector Mercado Pago. Permite QR automático o confirmación manual
+          sin crear intento ni llamar APIs MP. */}
+      {mpChoiceOpen && (
+        <MPPaymentChoiceModal
+          open
+          monto={totalActual}
+          loading={guardando}
+          onGenerarQR={onMPGenerarQR}
+          onConfirmarManual={onMPManualConfirmado}
+          onClose={() => setMpChoiceOpen(false)}
+        />
+      )}
+
+      {/* Modal de cobro Mercado Pago. Se abre cuando el cajero elige QR.
           Cobrar con metodoPago='mercadopago'. La venta NO se persiste
           hasta que el modal confirma estado='aprobado' via onAprobado.
           Render condicional para que cada apertura monte un component

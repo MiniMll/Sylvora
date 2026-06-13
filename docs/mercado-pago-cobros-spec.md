@@ -1056,6 +1056,34 @@ No deben loguear:
 
 ---
 
+## 21. Cobro manual Mercado Pago
+
+Desde el POS, al elegir `Mercado Pago`, el cajero puede elegir entre dos
+modos:
+
+1. **Generar QR**: usa el flujo automático de V1. Crea Order, muestra QR,
+   espera aprobación de Mercado Pago y recién entonces registra la venta.
+2. **Ya cobré con Mercado Pago**: se usa cuando el cliente ya pagó por un
+   QR impreso, QR de mesa, transferencia de Mercado Pago o Point.
+
+El modo manual:
+
+- no crea Order;
+- no crea `intentos_cobro_mp`;
+- no llama APIs de Mercado Pago;
+- no usa polling ni webhook;
+- requiere confirmación explícita del cajero;
+- registra la venta inmediatamente con `metodo_pago='mercadopago'`;
+- descuenta stock usando el mismo flujo atómico de ventas que efectivo,
+  débito y crédito.
+
+La conciliación automática de movimientos, transferencias por monto o
+pagos de Point queda fuera de V1. V1.5 deberá incorporar un panel de
+conciliación contra movimientos reales de Mercado Pago antes de automatizar
+este caso.
+
+---
+
 ## 18. Estado `requiere_revision` (Commit 12a)
 
 ### Por qué existe
