@@ -26,6 +26,8 @@ type DashboardComercial = {
     ventas_mes_total: number
     ventas_mes_cantidad: number
     ticket_promedio_mes: number
+    gastos_mes_total: number
+    ganancia_estimada_mes: number
     stock_critico_cantidad: number
   }
   top_productos: Array<{
@@ -368,6 +370,20 @@ export default function DashboardPage() {
           value={formatPeso(data.kpis.ticket_promedio_mes)}
           sub="Mes actual"
           Icon={ReceiptText}
+        />
+        <KpiCard
+          label="Gastos mes"
+          value={formatPeso(data.kpis.gastos_mes_total)}
+          sub="Costos operativos"
+          Icon={ReceiptText}
+          tone={data.kpis.gastos_mes_total > 0 ? 'danger' : 'default'}
+        />
+        <KpiCard
+          label="Ganancia estimada"
+          value={formatPeso(data.kpis.ganancia_estimada_mes)}
+          sub="Ventas mes - gastos mes"
+          Icon={ShoppingBag}
+          tone={data.kpis.ganancia_estimada_mes < 0 ? 'danger' : 'default'}
         />
         <KpiCard
           label="Stock crítico"

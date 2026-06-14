@@ -33,6 +33,10 @@ export interface ReporteKpis {
   tickets_total: number
   /** ventas_total / tickets_total. NULL si tickets_total = 0. */
   ticket_promedio: number | null
+  /** SUM(gastos.monto) en el rango. */
+  gastos_total: number
+  /** ventas_total - gastos_total. Estimado simple V1. */
+  ganancia_estimada: number
   /** SUM(items_venta.cantidad) en el rango.
    *  Para productos por unidad cuenta unidades exactas. Para productos
    *  por peso (kg/L/m), cantidad típicamente es 1 (el peso real va en

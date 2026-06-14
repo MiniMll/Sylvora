@@ -290,6 +290,19 @@ export default function ReportesPage() {
           value={String(kpis.unidades_total)}
           accent="var(--w)"
         />
+        <KpiCard
+          icon={Receipt}
+          label={labelKpi('Gastos', rango)}
+          value={formatPeso(kpis.gastos_total)}
+          accent="var(--r)"
+        />
+        <KpiCard
+          icon={TrendingUp}
+          label={labelKpi('Ganancia', rango)}
+          value={formatPeso(kpis.ganancia_estimada)}
+          accent={kpis.ganancia_estimada < 0 ? 'var(--r)' : 'var(--g)'}
+          subtle="Ventas menos gastos"
+        />
       </div>
 
       {/* Gráfico de ventas por día — escondido cuando rango='hoy'

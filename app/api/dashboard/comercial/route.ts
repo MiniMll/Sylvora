@@ -36,6 +36,10 @@ type ProductoStockRow = {
   unidad_venta: string
 }
 
+type GastoRow = {
+  monto: number | string
+}
+
 function zonedParts(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone,
@@ -201,10 +205,18 @@ export async function GET() {
     .gt('stock_minimo', 0)
     .order('stock_actual', { ascending: true })
 
-  const [ventasPeriodoRes, ultimasVentasRes, stockRes] = await Promise.all([
+  const gastosMesQuery = supabase
+    .from('gastos')
+    .select('monto')
+    .eq('comercio_id', comercioId)
+    .gte('fecha', mesInicio.toISOString().slice(0, 10))
+    .lte('fecha', now.toISOString().slice(0, 10))
+
+  const [ventasPeriodoRes, ultimasVentasRes, stockRes, gastosMesRes] = await Promise.all([
     ventasPeriodoQuery,
     ultimasVentasQuery,
     stockQuery,
+    gastosMesQuery,
   ])
 
   if (ventasPeriodoRes.error) {
@@ -219,11 +231,17 @@ export async function GET() {
     console.error('[dashboard/comercial] stockCritico falló:', stockRes.error)
     return NextResponse.json({ error: 'No pudimos leer el stock crítico' }, { status: 500 })
   }
+  if (gastosMesRes.error) {
+    console.error('[dashboard/comercial] gastosMes falló:', gastosMesRes.error)
+    return NextResponse.json({ error: 'No pudimos leer los gastos del mes' }, { status: 500 })
+  }
 
   const ventasPeriodo = (ventasPeriodoRes.data ?? []) as VentaPeriodoRow[]
   const ventasHoy = sumVentas(ventasPeriodo, hoyInicio, now)
   const ventas7Dias = sumVentas(ventasPeriodo, sieteDiasInicio, now)
   const ventasMes = sumVentas(ventasPeriodo, mesInicio, now)
+  const gastosMes = ((gastosMesRes.data ?? []) as GastoRow[])
+    .reduce((sum, g) => sum + (Number(g.monto) || 0), 0)
   const stockCritico = ((stockRes.data ?? []) as ProductoStockRow[])
     .filter(p => Number(p.stock_actual) <= Number(p.stock_minimo))
     .sort((a, b) => {
@@ -247,6 +265,8 @@ export async function GET() {
       ventas_mes_total: ventasMes.total,
       ventas_mes_cantidad: ventasMes.cantidad,
       ticket_promedio_mes: ventasMes.cantidad > 0 ? ventasMes.total / ventasMes.cantidad : 0,
+      gastos_mes_total: gastosMes,
+      ganancia_estimada_mes: ventasMes.total - gastosMes,
       stock_critico_cantidad: stockCritico.length,
     },
     top_productos: topProductosMes(ventasPeriodo, mesInicio, now),
