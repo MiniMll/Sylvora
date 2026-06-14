@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   LayoutDashboard, ShoppingCart, History, Package, ArchiveX,
   PlusCircle, Wallet, BarChart2, Download,
-  TrendingUp, Settings, Users, BookOpen,
+  TrendingUp, Settings, Users, BookOpen, ReceiptText,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { invalidarCacheComercio } from '@/lib/supabase/_base'
@@ -23,6 +23,7 @@ const nav: NavItem[] = [
   { href: '/productos/nuevo', label: 'Nuevo Producto',     icon: PlusCircle,      section: 'Inventario', requierePermiso: 'producto.crear' },
   { href: '/precios',         label: 'Actualizar Precios', icon: TrendingUp,      section: 'Inventario', requierePermiso: 'precio.actualizar_masivo' },
   { href: '/caja',            label: 'Caja Diaria',        icon: Wallet,          section: 'Finanzas' },
+  { href: '/gastos',          label: 'Gastos',             icon: ReceiptText,     section: 'Finanzas',   requierePermiso: 'gasto.ver' },
   { href: '/reportes',        label: 'Reportes',           icon: BarChart2,       section: 'Finanzas',   requierePermiso: 'reporte.ver_completo' },
   { href: '/exportar',        label: 'Exportar',           icon: Download,        section: 'Finanzas' },
   { href: '/usuarios',        label: 'Usuarios',           icon: Users,           section: 'Cuenta',     requierePermiso: 'usuario.gestionar' },
