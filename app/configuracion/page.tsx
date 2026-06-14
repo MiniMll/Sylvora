@@ -1,17 +1,19 @@
 'use client'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Building2, User, CreditCard, Users, type LucideIcon } from 'lucide-react'
+import { Building2, User, CreditCard, Users, WalletCards, type LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { esComercioDemo } from '@/lib/demo'
-import type { Comercio } from '@/types/database'
+import { rolPuede } from '@/lib/permissions'
+import type { Comercio, Rol } from '@/types/database'
 
 import { TabComercio } from './components/TabComercio'
 import { TabCuenta }   from './components/TabCuenta'
 import { TabPlan }     from './components/TabPlan'
 import { TabEquipo }   from './components/TabEquipo'
+import { TabMercadoPago } from './components/TabMercadoPago'
 
 // /configuracion — shell con tabs comercio/cuenta/plan/equipo.
 //
@@ -26,21 +28,23 @@ import { TabEquipo }   from './components/TabEquipo'
 // no se puede tener pre-render por tab. Aceptable porque toda la
 // data viene del cliente authenticado de Supabase.
 
-type TabId = 'comercio' | 'cuenta' | 'plan' | 'equipo'
+type TabId = 'comercio' | 'cuenta' | 'plan' | 'equipo' | 'mercado-pago'
 
 const TABS: { id: TabId; label: string; Icon: LucideIcon }[] = [
-  { id: 'comercio', label: 'Comercio', Icon: Building2  },
-  { id: 'cuenta',   label: 'Cuenta',   Icon: User       },
-  { id: 'plan',     label: 'Plan',     Icon: CreditCard },
-  { id: 'equipo',   label: 'Equipo',   Icon: Users      },
+  { id: 'comercio',      label: 'Comercio',     Icon: Building2  },
+  { id: 'cuenta',        label: 'Cuenta',       Icon: User       },
+  { id: 'plan',          label: 'Plan',         Icon: CreditCard },
+  { id: 'equipo',        label: 'Equipo',       Icon: Users      },
+  { id: 'mercado-pago',  label: 'Mercado Pago', Icon: WalletCards },
 ]
 
-const TAB_IDS: TabId[] = ['comercio', 'cuenta', 'plan', 'equipo']
+const TAB_IDS: TabId[] = ['comercio', 'cuenta', 'plan', 'equipo', 'mercado-pago']
 
 interface DataConfiguracion {
   userId:        string
   userEmail:     string
   perfilNombre:  string | null
+  rol:           Rol
   comercio:      Comercio | null
   comercioId:    string | null
 }
@@ -50,10 +54,16 @@ function ConfiguracionShell() {
   const searchParams = useSearchParams()
 
   const tabParam = searchParams.get('tab') as TabId | null
-  const tabActivo: TabId = tabParam && TAB_IDS.includes(tabParam) ? tabParam : 'comercio'
 
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<DataConfiguracion | null>(null)
+
+  const puedeGestionarMP = Boolean(data && rolPuede(data.rol, 'mp.gestionar'))
+  const tabsVisibles = TABS.filter(t => t.id !== 'mercado-pago' || puedeGestionarMP)
+  const tabActivo: TabId =
+    tabParam && TAB_IDS.includes(tabParam) && (tabParam !== 'mercado-pago' || puedeGestionarMP)
+      ? tabParam
+      : 'comercio'
 
   const cargar = useCallback(async () => {
     const supabase = createClient()
@@ -94,6 +104,7 @@ function ConfiguracionShell() {
       userId:       user.id,
       userEmail:    user.email ?? '',
       perfilNombre: perfil.nombre,
+      rol:          perfil.rol as Rol,
       comercio:     (perfil.comercios as Comercio | null) ?? null,
       comercioId:   perfil.comercio_id ?? null,
     })
@@ -143,7 +154,7 @@ function ConfiguracionShell() {
           Configuración
         </h1>
         <p style={{ color: 'var(--text2)', fontSize: 13, margin: '4px 0 0' }}>
-          Tu comercio, cuenta, plan y equipo
+          Tu comercio, cuenta, plan, equipo e integraciones
         </p>
       </div>
 
@@ -157,7 +168,7 @@ function ConfiguracionShell() {
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
       }}>
-        {TABS.map(t => {
+        {tabsVisibles.map(t => {
           const active = tabActivo === t.id
           const Icon = t.Icon
           return (
@@ -225,6 +236,9 @@ function ConfiguracionShell() {
         )}
         {tabActivo === 'equipo' && (
           <TabEquipo />
+        )}
+        {tabActivo === 'mercado-pago' && puedeGestionarMP && (
+          <TabMercadoPago />
         )}
       </div>
     </div>
