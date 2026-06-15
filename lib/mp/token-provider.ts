@@ -17,8 +17,13 @@
 // SERVER-ONLY. Lee env vars sensibles. No importar desde 'use client'.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getMPEnv } from './config'
-import { obtenerCredencialesPorComercio } from '@/lib/supabase/mp'
+import { getMPEnv, MP_TOKEN_REFRESH_MARGIN_MS } from './config'
+import { refreshOAuthToken, MPOAuthError } from './oauth'
+import {
+  actualizarCredenciales,
+  obtenerCredencialesPorComercio,
+} from '@/lib/supabase/mp'
+import { getServiceClient } from '@/lib/supabase/server-admin'
 
 // ════════════════════════════════════════════════════════════════════
 // Tipos
@@ -44,6 +49,7 @@ export interface ResolveAccessTokenOptions {
    *  (si lo llama el webhook handler, aunque típico es que el webhook
    *  use obtenerCredencialesPorUserIdMp directo y no pase por acá). */
   supabase: SupabaseClient
+  supabaseService?: SupabaseClient
   /** Override del modo. Si no se pasa, lee MP_MODE del env. */
   mode?: MPMode
 }
@@ -62,6 +68,7 @@ export interface ResolveAccessTokenOptions {
 
 export type MPTokenProviderErrorCode =
   | 'no_credentials'
+  | 'mp_reconnect_required'
   | 'mode_blocked'
   | 'comercio_mismatch'
   | 'missing_env'
@@ -74,6 +81,20 @@ export class MPTokenProviderError extends Error {
     this.name = 'MPTokenProviderError'
     this.code = code
   }
+}
+
+function tokenProviderLog(
+  level: 'info' | 'warn' | 'error',
+  event: string,
+  fields: Record<string, unknown> = {},
+) {
+  const fn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log
+  fn(JSON.stringify({
+    level,
+    component: 'mp/token-provider',
+    event,
+    ...fields,
+  }))
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -176,9 +197,9 @@ function resolveManualSandbox(comercioId: string): MPTokenResolution {
 
 async function resolveOAuth(
   comercioId: string,
-  supabase: SupabaseClient,
+  supabaseService: SupabaseClient,
 ): Promise<MPTokenResolution> {
-  const cred = await obtenerCredencialesPorComercio(supabase, comercioId)
+  const cred = await obtenerCredencialesPorComercio(supabaseService, comercioId)
   if (!cred) {
     throw new MPTokenProviderError(
       'no_credentials',
@@ -186,6 +207,56 @@ async function resolveOAuth(
       `Configuración → Mercado Pago y completar el OAuth.`,
     )
   }
+  const expiraMs = new Date(cred.expira_en).getTime()
+  const shouldRefresh =
+    !Number.isFinite(expiraMs) ||
+    expiraMs - Date.now() <= MP_TOKEN_REFRESH_MARGIN_MS
+
+  if (shouldRefresh) {
+    tokenProviderLog('info', 'oauth_token_refresh_start', {
+      comercioId,
+      userIdMp: cred.user_id_mp,
+      expiraEn: cred.expira_en,
+    })
+
+    try {
+      const refreshed = await refreshOAuthToken(cred.refresh_token)
+      const expiraEn = new Date(Date.now() + refreshed.expires_in * 1000)
+
+      await actualizarCredenciales(supabaseService, comercioId, {
+        access_token: refreshed.access_token,
+        refresh_token: refreshed.refresh_token,
+        expira_en: expiraEn,
+        public_key: refreshed.public_key,
+      })
+
+      tokenProviderLog('info', 'oauth_token_refresh_success', {
+        comercioId,
+        userIdMp: refreshed.user_id,
+        expiraEn: expiraEn.toISOString(),
+      })
+
+      return {
+        accessToken: refreshed.access_token,
+        userIdMp: refreshed.user_id,
+        externalPosId: cred.external_pos_id,
+        source: 'oauth',
+      }
+    } catch (e) {
+      tokenProviderLog('warn', 'oauth_token_refresh_failed', {
+        comercioId,
+        userIdMp: cred.user_id_mp,
+        errorName: e instanceof Error ? e.name : 'unknown',
+        code: e instanceof MPOAuthError ? e.code : null,
+        status: e instanceof MPOAuthError ? e.status : null,
+      })
+      throw new MPTokenProviderError(
+        'mp_reconnect_required',
+        'Mercado Pago necesita reconectarse. Pedile al administrador que vuelva a conectar la cuenta.',
+      )
+    }
+  }
+
   return {
     accessToken: cred.access_token,
     userIdMp: cred.user_id_mp,
@@ -221,5 +292,5 @@ export async function resolveAccessToken(
   if (mode === 'manual_sandbox') {
     return resolveManualSandbox(opts.comercioId)
   }
-  return resolveOAuth(opts.comercioId, opts.supabase)
+  return resolveOAuth(opts.comercioId, opts.supabaseService ?? getServiceClient())
 }

@@ -153,6 +153,15 @@ export async function POST(req: Request) {
           { status: 409 },
         )
       }
+      if (e.code === 'mp_reconnect_required') {
+        return NextResponse.json(
+          {
+            error: 'Mercado Pago necesita reconectarse. Pedile al administrador que vuelva a conectar la cuenta.',
+            code: 'mp_reconnect_required',
+          },
+          { status: 409 },
+        )
+      }
       // mode_blocked / comercio_mismatch / missing_env / invalid_mode:
       // configuración del servidor. Log con el code, mensaje genérico
       // al frontend.
