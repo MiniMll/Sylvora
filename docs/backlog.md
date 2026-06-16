@@ -9,6 +9,24 @@ Para bugs, hallazgos de QA y checklist de validación → ver `qa-review.md`.
 
 ## Features pendientes
 
+### feat(caja): dia operativo configurable
+
+Configurar por comercio como se calcula el corte de caja diaria y los
+reportes por dia operativo.
+
+**Notas de alcance:**
+
+- Agregar `comercios.settings` JSONB si no existe.
+- Guardar `caja_24hs`.
+- Guardar `hora_apertura_caja`.
+- Guardar `hora_cierre_caja`.
+- Soportar horarios que cruzan medianoche, por ejemplo 20:00-04:00.
+- Corregir el uso de fecha UTC en caja para respetar Argentina.
+- Actualizar el grafico de caja para usar el rango configurado.
+- Agregar smokes de calculo: 08:00-19:00, 24hs y 20:00-04:00.
+
+---
+
 ### Editar lote (completo)
 
 Hoy un lote solo se puede crear o borrar. Falta poder editarlo.
