@@ -65,6 +65,10 @@ DECLARE
   v_ventas_dia  jsonb;
   v_top         jsonb;
   v_stock       jsonb;
+  v_gastos      numeric := 0;
+  v_ventas      numeric := 0;
+  v_tickets     bigint := 0;
+  v_unidades    numeric := 0;
 BEGIN
   -- ───── 1. Resolver comercio del caller ──────────────────────────
   v_comercio := get_comercio_id();
@@ -91,30 +95,45 @@ BEGIN
   -- Una sola pasada sobre ventas filtradas. Subquery anidada para
   -- unidades_total porque agrega sobre items_venta (otra tabla).
   -- ticket_promedio: NULL si no hubo tickets (división por cero).
-  SELECT jsonb_build_object(
-    'ventas_total',   COALESCE(SUM(total), 0),
-    'tickets_total',  COUNT(*),
-    'ticket_promedio',
-      CASE
-        WHEN COUNT(*) > 0
-        THEN ROUND(SUM(total) / COUNT(*), 2)
-        ELSE NULL
-      END,
-    'unidades_total', (
-      SELECT COALESCE(SUM(iv.cantidad), 0)
-      FROM items_venta iv
-      JOIN ventas v2 ON v2.id = iv.venta_id
-      WHERE v2.comercio_id = v_comercio
-        AND v2.estado = 'completada'
-        AND v2.created_at >= v_desde
-        AND v2.created_at <= v_hasta
-    )
-  ) INTO v_kpis
+  SELECT
+    COALESCE(SUM(total), 0),
+    COUNT(*)
+  INTO v_ventas, v_tickets
   FROM ventas
   WHERE comercio_id = v_comercio
     AND estado = 'completada'
     AND created_at >= v_desde
     AND created_at <= v_hasta;
+
+  SELECT COALESCE(SUM(iv.cantidad), 0)
+  INTO v_unidades
+  FROM items_venta iv
+  JOIN ventas v2 ON v2.id = iv.venta_id
+  WHERE v2.comercio_id = v_comercio
+    AND v2.estado = 'completada'
+    AND v2.created_at >= v_desde
+    AND v2.created_at <= v_hasta;
+
+  SELECT COALESCE(SUM(monto), 0)
+  INTO v_gastos
+  FROM gastos
+  WHERE comercio_id = v_comercio
+    AND fecha >= (v_desde AT TIME ZONE p_tz)::date
+    AND fecha <= (v_hasta AT TIME ZONE p_tz)::date;
+
+  SELECT jsonb_build_object(
+    'ventas_total',      v_ventas,
+    'tickets_total',     v_tickets,
+    'ticket_promedio',
+      CASE
+        WHEN v_tickets > 0
+        THEN ROUND(v_ventas / v_tickets, 2)
+        ELSE NULL
+      END,
+    'gastos_total',      v_gastos,
+    'ganancia_estimada', v_ventas - v_gastos,
+    'unidades_total',    v_unidades
+  ) INTO v_kpis;
 
   -- ───── 4. Serie temporal — ventas por día ──────────────────────
   -- generate_series produce los días del rango EN TZ del usuario.

@@ -7,6 +7,15 @@
 export type UnidadVenta = 'unidad' | 'kg' | 'litro' | 'metro'
 export type EstadoVenta = 'completada' | 'anulada' | 'pendiente'
 export type TipoMovimientoCaja = 'ingreso' | 'egreso'
+export type CategoriaGasto =
+  | 'alquiler'
+  | 'servicios'
+  | 'proveedores'
+  | 'impuestos'
+  | 'sueldos'
+  | 'mantenimiento'
+  | 'transporte'
+  | 'otros'
 
 export interface Producto {
   id: string
@@ -148,6 +157,18 @@ export interface CierreCaja {
    *  no se arrastra como fondo del día siguiente. */
   retiro_efectivo?: number | null
   created_at: string
+}
+
+export interface Gasto {
+  id: string
+  comercio_id: string
+  descripcion: string
+  monto: number
+  categoria: CategoriaGasto
+  fecha: string
+  observaciones: string | null
+  creado_por: string | null
+  creado_en: string
 }
 
 /** Comercio = "tenant" del sistema. Cada perfil/producto/venta pertenece

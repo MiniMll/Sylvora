@@ -28,8 +28,15 @@ export type Permission =
   | 'venta.anular'               // admin + encargado
   // Reportes
   | 'reporte.ver_completo'       // admin + encargado — /reportes
+  // Gastos
+  | 'gasto.ver'                  // admin + encargado
+  | 'gasto.crear'                // admin + encargado
+  | 'gasto.editar'               // admin + encargado
+  | 'gasto.eliminar'             // admin + encargado
   // Usuarios
   | 'usuario.gestionar'          // admin only — listar/cambiar rol/eliminar otros perfiles
+  // Integraciones
+  | 'mp.gestionar'               // admin only - conectar/desconectar Mercado Pago
 
 const PERMISSIONS_BY_ROL: Record<Rol, ReadonlySet<Permission>> = {
   admin: new Set<Permission>([
@@ -39,7 +46,9 @@ const PERMISSIONS_BY_ROL: Record<Rol, ReadonlySet<Permission>> = {
     'precio.actualizar_masivo',
     'venta.crear', 'venta.anular',
     'reporte.ver_completo',
+    'gasto.ver', 'gasto.crear', 'gasto.editar', 'gasto.eliminar',
     'usuario.gestionar',
+    'mp.gestionar',
   ]),
   encargado: new Set<Permission>([
     'caja.cerrar', 'caja.egreso',
@@ -48,6 +57,7 @@ const PERMISSIONS_BY_ROL: Record<Rol, ReadonlySet<Permission>> = {
     'precio.actualizar_masivo',
     'venta.crear', 'venta.anular',
     'reporte.ver_completo',
+    'gasto.ver', 'gasto.crear', 'gasto.editar', 'gasto.eliminar',
     // NO: caja.reabrir, producto.eliminar, usuario.gestionar
   ]),
   cajero: new Set<Permission>([
