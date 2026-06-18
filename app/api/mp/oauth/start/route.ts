@@ -7,6 +7,7 @@ import {
   MPRouteAuthError,
 } from '../../_auth'
 import { buildMPAuthorizationUrl, MPOAuthError } from '@/lib/mp/oauth'
+import { getMPEnv } from '@/lib/mp/config'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,11 +19,50 @@ function secureCookie(req: NextRequest): boolean {
   return new URL(req.url).protocol === 'https:' || process.env.NODE_ENV === 'production'
 }
 
+function sanitizeOAuthUrlForLog(value: string): string {
+  try {
+    const url = new URL(value)
+    if (url.searchParams.has('state')) {
+      url.searchParams.set('state', '<present>')
+    }
+    return url.toString()
+  } catch {
+    return '<invalid-url>'
+  }
+}
+
+function logOAuthStartUrl(redirectUrl: string) {
+  const url = new URL(redirectUrl)
+  const state = url.searchParams.get('state')
+  const scopeParam = url.searchParams.get('scope')
+  const scopes = scopeParam
+    ? scopeParam.split(/[\s,]+/).map(s => s.trim()).filter(Boolean)
+    : []
+
+  console.log(JSON.stringify({
+    level: 'info',
+    component: 'mp/oauth/start',
+    event: 'mp_oauth_start_url_generated',
+    mpEnv: getMPEnv(),
+    oauthHost: url.host,
+    responseType: url.searchParams.get('response_type'),
+    platformId: url.searchParams.get('platform_id'),
+    clientId: url.searchParams.get('client_id'),
+    redirectUri: url.searchParams.get('redirect_uri'),
+    scopeParamPresent: scopeParam !== null,
+    scopes,
+    statePresent: Boolean(state),
+    stateLength: state?.length ?? 0,
+    oauthUrlSanitized: sanitizeOAuthUrlForLog(redirectUrl),
+  }))
+}
+
 export async function GET(req: NextRequest) {
   try {
     await requireMPGestionar()
     const state = generateState()
     const redirectUrl = buildMPAuthorizationUrl(state)
+    logOAuthStartUrl(redirectUrl)
     const response = NextResponse.redirect(redirectUrl)
     response.cookies.set(MP_OAUTH_STATE_COOKIE, state, {
       httpOnly: true,
