@@ -50,7 +50,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 async function main() {
   await check('authorization URL incluye state, client_id y redirect_uri exacta', () => {
     const url = new URL(buildMPAuthorizationUrl('STATE_123'))
-    assert.equal(url.origin + url.pathname, 'https://auth.mercadopago.com.ar/authorization')
+    assert.equal(url.origin + url.pathname, 'https://auth.mercadopago.com/authorization')
     assert.equal(url.searchParams.get('client_id'), 'APP_123')
     assert.equal(url.searchParams.get('response_type'), 'code')
     assert.equal(url.searchParams.get('platform_id'), 'mp')
@@ -111,6 +111,14 @@ async function main() {
       if (url.endsWith('/users/3385834545/stores')) {
         const body = JSON.parse(String(init?.body)) as Record<string, unknown>
         assert.equal(body.external_id, 'SYLVORA_STORE_520197BDAC2C4FFDA46E7701')
+        assert.deepEqual(body.location, {
+          street_name: 'Av Test',
+          street_number: '123',
+          city_name: 'Belgrano',
+          state_name: 'Capital Federal',
+          latitude: -34.5627,
+          longitude: -58.4583,
+        })
         return jsonResponse({
           id: 987,
           name: 'Kiosco Test',

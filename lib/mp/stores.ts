@@ -3,7 +3,7 @@
 // El callback OAuth llama a ensureStoreAndPOS() antes de guardar la
 // conexion como activa. Si esto falla, no queda mp_credenciales a medias.
 
-import { MPApiError, mpGet, mpPost } from './api-client'
+import { MPApiError, mpGet, mpPost, sanitizeForLog } from './api-client'
 import type { MPPOSCreateBody, MPPOSResponse, MPStoreCreateBody, MPStoreResponse } from './types'
 import type { Comercio } from '@/types/database'
 
@@ -71,6 +71,22 @@ function splitStreet(direccion: string | null): { street_name: string; street_nu
   }
 }
 
+function buildStoreLocation(comercio: Pick<Comercio, 'direccion'>): MPStoreCreateBody['location'] {
+  const street = splitStreet(comercio.direccion)
+  return {
+    street_name: street.street_name,
+    street_number: street.street_number,
+    // Mercado Pago valida city_name contra su catalogo. Como Sylvora
+    // todavia no tiene ciudad/localidad estructurada por comercio,
+    // usamos un fallback conocido para CABA en vez de "Buenos Aires",
+    // que MP rechaza como location.city_name invalid.
+    city_name: 'Belgrano',
+    state_name: 'Capital Federal',
+    latitude: -34.5627,
+    longitude: -58.4583,
+  }
+}
+
 async function findStoreByExternalId(
   accessToken: string,
   userIdMp: number,
@@ -105,19 +121,17 @@ async function createStore(
   comercio: Pick<Comercio, 'nombre' | 'direccion'>,
   externalId: string,
 ): Promise<MPStoreResponse> {
-  const street = splitStreet(comercio.direccion)
   const body: MPStoreCreateBody = {
     name: normalizeName(comercio.nombre, 'Sylvora'),
     external_id: externalId,
-    location: {
-      street_name: street.street_name,
-      street_number: street.street_number,
-      city_name: 'Buenos Aires',
-      state_name: 'Buenos Aires',
-      latitude: -34.6037,
-      longitude: -58.3816,
-    },
+    location: buildStoreLocation(comercio),
   }
+
+  mpOnboardingLog('info', 'store_create_payload', {
+    userIdMp,
+    externalId,
+    payload: sanitizeForLog(body),
+  })
 
   return mpPost<MPStoreResponse>({
     accessToken,
