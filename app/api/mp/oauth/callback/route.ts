@@ -126,6 +126,12 @@ export async function GET(req: NextRequest) {
       externalPosId: setup.externalPosId,
       expiraEn: expiraEn.toISOString(),
     })
+    callbackLog('info', 'callback_success', {
+      comercioId: context.perfil.comercioId,
+      userIdMp: token.user_id,
+      storeIdMp: setup.storeIdMp,
+      externalPosId: setup.externalPosId,
+    })
     return redirectClearingState(req, 'connected')
   } catch (e) {
     if (e instanceof MPOAuthError) {

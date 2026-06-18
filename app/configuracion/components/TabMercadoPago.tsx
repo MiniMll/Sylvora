@@ -26,7 +26,7 @@ type MPStatusResponse =
 type EstadoVista = 'loading' | 'no_conectado' | 'conectado' | 'error'
 
 const MP_CALLBACK_MESSAGES: Record<string, { type: 'success' | 'error'; text: string }> = {
-  connected: { type: 'success', text: 'Mercado Pago conectado' },
+  connected: { type: 'success', text: 'Cuenta conectada correctamente' },
   denied: { type: 'error', text: 'La conexión con Mercado Pago fue cancelada' },
   state_error: { type: 'error', text: 'No pudimos validar la conexión. Intentá de nuevo.' },
   auth_required: { type: 'error', text: 'Iniciá sesión para conectar Mercado Pago' },
@@ -153,12 +153,19 @@ export function TabMercadoPago() {
   useEffect(() => {
     const status = searchParams.get('mp')
     if (!status || callbackToastShown.current === status) return
+    if (status !== 'connected' && estado === 'loading') return
     callbackToastShown.current = status
-    const message = MP_CALLBACK_MESSAGES[status]
+    const message =
+      status !== 'connected' && estado === 'conectado'
+        ? MP_CALLBACK_MESSAGES.connected
+        : MP_CALLBACK_MESSAGES[status]
     if (!message) return
     if (message.type === 'success') toast.success(message.text)
     else toast.error(message.text)
-  }, [searchParams])
+    const cleanUrl = new URL(window.location.href)
+    cleanUrl.searchParams.delete('mp')
+    window.history.replaceState(null, '', `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`)
+  }, [estado, searchParams])
 
   const conectar = () => {
     window.location.assign('/api/mp/oauth/start')
@@ -236,7 +243,7 @@ export function TabMercadoPago() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CheckCircle2 size={16} color="var(--g)" strokeWidth={2.3} />
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
-                  Cuenta conectada
+                  Cuenta conectada correctamente
                 </div>
               </div>
               <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>
