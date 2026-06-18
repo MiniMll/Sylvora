@@ -37,16 +37,26 @@ function mpOnboardingLog(
   }))
 }
 
+type ExternalIdTipo = 'STORE' | 'POS'
+
 function suffixFromComercio(comercioId: string): string {
-  return comercioId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 24).toUpperCase()
+  const suffix = comercioId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+  if (!suffix) {
+    throw new Error('[mp/stores] comercio_id no permite generar external_id MP')
+  }
+  return suffix
+}
+
+export function buildExternalId(tipo: ExternalIdTipo, comercioId: string): string {
+  return `SYLVORA${tipo}${suffixFromComercio(comercioId)}`
 }
 
 export function buildMPStoreExternalId(comercioId: string): string {
-  return `SYLVORA_STORE_${suffixFromComercio(comercioId)}`
+  return buildExternalId('STORE', comercioId)
 }
 
 export function buildMPPOSExternalId(comercioId: string): string {
-  return `SYLVORA_POS_${suffixFromComercio(comercioId)}`
+  return buildExternalId('POS', comercioId)
 }
 
 function asStoreId(store: MPStoreResponse): string {
@@ -149,6 +159,10 @@ async function ensureStore(
   comercio: Pick<Comercio, 'id' | 'nombre' | 'direccion'>,
 ): Promise<MPStoreResponse> {
   const externalId = buildMPStoreExternalId(comercio.id)
+  mpOnboardingLog('info', 'store_external_id', {
+    comercioId: comercio.id,
+    externalId,
+  })
   const existing = await findStoreByExternalId(accessToken, userIdMp, externalId)
   if (existing) {
     mpOnboardingLog('info', 'store_reused', {
@@ -232,6 +246,10 @@ async function ensurePOS(
   comercio: Pick<Comercio, 'id' | 'nombre'>,
 ): Promise<MPPOSResponse> {
   const externalId = buildMPPOSExternalId(comercio.id)
+  mpOnboardingLog('info', 'pos_external_id', {
+    comercioId: comercio.id,
+    externalId,
+  })
   const existing = await findPOSByExternalId(accessToken, externalId)
   if (existing) {
     mpOnboardingLog('info', 'pos_reused', {

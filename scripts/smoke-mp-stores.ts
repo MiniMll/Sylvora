@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import {
   buildMPPOSExternalId,
   buildMPStoreExternalId,
+  buildExternalId,
   ensureStoreAndPOS,
 } from '../lib/mp/stores'
 
@@ -42,8 +43,9 @@ function parseBody(init?: RequestInit): Record<string, unknown> {
 async function main() {
   await check('external ids Store/POS son deterministicos', () => {
     const comercioId = '520197bd-ac2c-4ffd-a46e-77015b4714b6'
-    assert.equal(buildMPStoreExternalId(comercioId), 'SYLVORA_STORE_520197BDAC2C4FFDA46E7701')
-    assert.equal(buildMPPOSExternalId(comercioId), 'SYLVORA_POS_520197BDAC2C4FFDA46E7701')
+    assert.equal(buildExternalId('STORE', comercioId), 'SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6')
+    assert.equal(buildMPStoreExternalId(comercioId), 'SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6')
+    assert.equal(buildMPPOSExternalId(comercioId), 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6')
   })
 
   await check('ensureStoreAndPOS crea Store con location fallback valida para MP', async () => {
@@ -55,7 +57,7 @@ async function main() {
       if (url.endsWith('/users/3385834545/stores')) {
         const body = parseBody(init)
         assert.equal(body.name, 'Kiosco Test')
-        assert.equal(body.external_id, 'SYLVORA_STORE_520197BDAC2C4FFDA46E7701')
+        assert.equal(body.external_id, 'SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6')
         assert.deepEqual(body.location, {
           street_name: 'Av Test',
           street_number: '123',
@@ -74,7 +76,7 @@ async function main() {
       if (url.includes('/pos?')) return jsonResponse({ results: [] })
       if (url.endsWith('/pos')) {
         const body = parseBody(init)
-        assert.equal(body.external_id, 'SYLVORA_POS_520197BDAC2C4FFDA46E7701')
+        assert.equal(body.external_id, 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6')
         assert.equal(body.store_id, '987')
         assert.equal(body.fixed_amount, false)
         return jsonResponse({
@@ -99,7 +101,7 @@ async function main() {
     })
 
     assert.equal(result.storeIdMp, '987')
-    assert.equal(result.externalPosId, 'SYLVORA_POS_520197BDAC2C4FFDA46E7701')
+    assert.equal(result.externalPosId, 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6')
     assert.equal(calls.length, 4)
   })
 
@@ -159,7 +161,7 @@ async function main() {
           results: [{
             id: 987,
             name: 'Kiosco Test',
-            external_id: 'SYLVORA_STORE_520197BDAC2C4FFDA46E7701',
+            external_id: 'SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6',
             user_id: 3385834545,
           }],
         })
@@ -169,7 +171,7 @@ async function main() {
           results: [{
             id: 654,
             name: 'Kiosco Test - Sylvora',
-            external_id: 'SYLVORA_POS_520197BDAC2C4FFDA46E7701',
+            external_id: 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6',
             store_id: '987',
             user_id: 3385834545,
           }],
@@ -189,7 +191,7 @@ async function main() {
     })
 
     assert.equal(result.storeIdMp, '987')
-    assert.equal(result.externalPosId, 'SYLVORA_POS_520197BDAC2C4FFDA46E7701')
+    assert.equal(result.externalPosId, 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6')
     assert.equal(calls.length, 2)
   })
 }
