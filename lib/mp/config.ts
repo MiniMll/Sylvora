@@ -91,7 +91,7 @@ export function getMPTokenEncryptionKey(): string {
 export const MP_API_BASE = 'https://api.mercadopago.com'
 
 /** Base URL del flow OAuth (authorization endpoint). */
-export const MP_OAUTH_AUTHORIZE_URL = 'https://auth.mercadopago.com.ar/authorization'
+export const MP_OAUTH_AUTHORIZE_URL = 'https://auth.mercadopago.com/authorization'
 
 /** Endpoint para intercambiar el code por tokens. */
 export const MP_OAUTH_TOKEN_URL = `${MP_API_BASE}/oauth/token`
