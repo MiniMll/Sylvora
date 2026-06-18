@@ -22,6 +22,7 @@ async function check(name: string, fn: () => void) {
 }
 
 const ALPHANUMERIC_RE = /^[A-Z0-9]+$/
+const MAX_EXTERNAL_ID_LEN = 30
 
 function assertAlphanumeric(value: string) {
   assert.match(value, ALPHANUMERIC_RE)
@@ -36,10 +37,16 @@ async function main() {
     const storeId = buildMPStoreExternalId(comercioId)
     const posId = buildMPPOSExternalId(comercioId)
 
-    assert.equal(storeId, 'SYLVORASTOREA4DC774A50C7426EB42006996D71E06B')
-    assert.equal(posId, 'SYLVORAPOSA4DC774A50C7426EB42006996D71E06B')
+    assert.equal(storeId, 'SYLVORASTOREA4DC774A50C7426E')
+    assert.equal(posId, 'SYLVORAPOSA4DC774A50C7426E')
     assertAlphanumeric(storeId)
     assertAlphanumeric(posId)
+  })
+
+  check('Store y POS respetan longitud maxima conservadora', () => {
+    const comercioId = 'a4dc774a-50c7-426e-b420-06996d71e06b'
+    assert.ok(buildMPStoreExternalId(comercioId).length <= MAX_EXTERNAL_ID_LEN)
+    assert.ok(buildMPPOSExternalId(comercioId).length <= MAX_EXTERNAL_ID_LEN)
   })
 
   check('external_id mantiene unicidad por comercio y tipo', () => {

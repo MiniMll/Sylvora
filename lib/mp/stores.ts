@@ -38,6 +38,7 @@ function mpOnboardingLog(
 }
 
 type ExternalIdTipo = 'STORE' | 'POS'
+const EXTERNAL_ID_SUFFIX_LEN = 16
 
 function suffixFromComercio(comercioId: string): string {
   const suffix = comercioId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
@@ -48,6 +49,10 @@ function suffixFromComercio(comercioId: string): string {
 }
 
 export function buildExternalId(tipo: ExternalIdTipo, comercioId: string): string {
+  return `SYLVORA${tipo}${suffixFromComercio(comercioId).slice(0, EXTERNAL_ID_SUFFIX_LEN)}`
+}
+
+function buildLegacyExternalId(tipo: ExternalIdTipo, comercioId: string): string {
   return `SYLVORA${tipo}${suffixFromComercio(comercioId)}`
 }
 
@@ -162,6 +167,7 @@ async function ensureStore(
   mpOnboardingLog('info', 'store_external_id', {
     comercioId: comercio.id,
     externalId,
+    store_external_id_length: externalId.length,
   })
   const existing = await findStoreByExternalId(accessToken, userIdMp, externalId)
   if (existing) {
@@ -171,6 +177,19 @@ async function ensureStore(
       storeIdMp: asStoreId(existing),
     })
     return existing
+  }
+
+  const legacyExternalId = buildLegacyExternalId('STORE', comercio.id)
+  if (legacyExternalId !== externalId) {
+    const legacyExisting = await findStoreByExternalId(accessToken, userIdMp, legacyExternalId)
+    if (legacyExisting) {
+      mpOnboardingLog('info', 'store_reused_legacy_external_id', {
+        userIdMp,
+        externalId: legacyExternalId,
+        storeIdMp: asStoreId(legacyExisting),
+      })
+      return legacyExisting
+    }
   }
 
   try {
@@ -249,6 +268,7 @@ async function ensurePOS(
   mpOnboardingLog('info', 'pos_external_id', {
     comercioId: comercio.id,
     externalId,
+    pos_external_id_length: externalId.length,
   })
   const existing = await findPOSByExternalId(accessToken, externalId)
   if (existing) {

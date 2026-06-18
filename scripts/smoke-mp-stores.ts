@@ -43,9 +43,9 @@ function parseBody(init?: RequestInit): Record<string, unknown> {
 async function main() {
   await check('external ids Store/POS son deterministicos', () => {
     const comercioId = '520197bd-ac2c-4ffd-a46e-77015b4714b6'
-    assert.equal(buildExternalId('STORE', comercioId), 'SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6')
-    assert.equal(buildMPStoreExternalId(comercioId), 'SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6')
-    assert.equal(buildMPPOSExternalId(comercioId), 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6')
+    assert.equal(buildExternalId('STORE', comercioId), 'SYLVORASTORE520197BDAC2C4FFD')
+    assert.equal(buildMPStoreExternalId(comercioId), 'SYLVORASTORE520197BDAC2C4FFD')
+    assert.equal(buildMPPOSExternalId(comercioId), 'SYLVORAPOS520197BDAC2C4FFD')
   })
 
   await check('ensureStoreAndPOS crea Store con location fallback valida para MP', async () => {
@@ -57,7 +57,7 @@ async function main() {
       if (url.endsWith('/users/3385834545/stores')) {
         const body = parseBody(init)
         assert.equal(body.name, 'Kiosco Test')
-        assert.equal(body.external_id, 'SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6')
+        assert.equal(body.external_id, 'SYLVORASTORE520197BDAC2C4FFD')
         assert.deepEqual(body.location, {
           street_name: 'Av Test',
           street_number: '123',
@@ -76,7 +76,7 @@ async function main() {
       if (url.includes('/pos?')) return jsonResponse({ results: [] })
       if (url.endsWith('/pos')) {
         const body = parseBody(init)
-        assert.equal(body.external_id, 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6')
+        assert.equal(body.external_id, 'SYLVORAPOS520197BDAC2C4FFD')
         assert.equal(body.store_id, '987')
         assert.equal(body.fixed_amount, false)
         return jsonResponse({
@@ -101,8 +101,8 @@ async function main() {
     })
 
     assert.equal(result.storeIdMp, '987')
-    assert.equal(result.externalPosId, 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6')
-    assert.equal(calls.length, 4)
+    assert.equal(result.externalPosId, 'SYLVORAPOS520197BDAC2C4FFD')
+    assert.equal(calls.length, 5)
   })
 
   await check('direccion sin numero usa street_number fallback sin romper Store', async () => {
@@ -161,7 +161,7 @@ async function main() {
           results: [{
             id: 987,
             name: 'Kiosco Test',
-            external_id: 'SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6',
+            external_id: 'SYLVORASTORE520197BDAC2C4FFD',
             user_id: 3385834545,
           }],
         })
@@ -171,7 +171,7 @@ async function main() {
           results: [{
             id: 654,
             name: 'Kiosco Test - Sylvora',
-            external_id: 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6',
+            external_id: 'SYLVORAPOS520197BDAC2C4FFD',
             store_id: '987',
             user_id: 3385834545,
           }],
@@ -191,8 +191,57 @@ async function main() {
     })
 
     assert.equal(result.storeIdMp, '987')
-    assert.equal(result.externalPosId, 'SYLVORAPOS520197BDAC2C4FFDA46E77015B4714B6')
+    assert.equal(result.externalPosId, 'SYLVORAPOS520197BDAC2C4FFD')
     assert.equal(calls.length, 2)
+  })
+
+  await check('Store legacy largo se reutiliza y POS se crea con external_id corto', async () => {
+    const calls: FetchCall[] = []
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(input), init })
+      const url = String(input)
+      if (url.includes('/stores/search')) {
+        if (url.includes('SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6')) {
+          return jsonResponse({
+            results: [{
+              id: 78132833,
+              name: 'Kiosco Test',
+              external_id: 'SYLVORASTORE520197BDAC2C4FFDA46E77015B4714B6',
+              user_id: 3385834545,
+            }],
+          })
+        }
+        return jsonResponse({ results: [] })
+      }
+      if (url.includes('/pos?')) return jsonResponse({ results: [] })
+      if (url.endsWith('/pos')) {
+        const body = parseBody(init)
+        assert.equal(body.external_id, 'SYLVORAPOS520197BDAC2C4FFD')
+        assert.equal(body.store_id, '78132833')
+        return jsonResponse({
+          id: 654,
+          name: body.name,
+          external_id: body.external_id,
+          store_id: body.store_id,
+          user_id: 3385834545,
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url}`)
+    }
+
+    const result = await ensureStoreAndPOS({
+      accessToken: 'AT_123',
+      userIdMp: 3385834545,
+      comercio: {
+        id: '520197bd-ac2c-4ffd-a46e-77015b4714b6',
+        nombre: 'Kiosco Test',
+        direccion: 'Av Test 123',
+      },
+    })
+
+    assert.equal(result.storeIdMp, '78132833')
+    assert.equal(result.externalPosId, 'SYLVORAPOS520197BDAC2C4FFD')
+    assert.equal(calls.length, 4)
   })
 }
 
