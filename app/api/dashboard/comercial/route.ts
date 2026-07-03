@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { esRolValido, rolPuede } from '@/lib/permissions'
+import {
+  obtenerDiaOperativoActual,
+  obtenerRangoUltimosDiasOperativos,
+  obtenerRangoMesOperativoActual,
+  TZ_ARGENTINA,
+} from '@/lib/operacion/diaOperativo'
 
 export const dynamic = 'force-dynamic'
-
-const TZ = 'America/Argentina/Buenos_Aires'
 
 type VentaPeriodoRow = {
   id: string
@@ -40,63 +44,9 @@ type GastoRow = {
   monto: number | string
 }
 
-function zonedParts(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).formatToParts(date)
-  const get = (type: string) => Number(parts.find(p => p.type === type)?.value)
-  return {
-    year: get('year'),
-    month: get('month'),
-    day: get('day'),
-    hour: get('hour'),
-    minute: get('minute'),
-    second: get('second'),
-  }
-}
-
-function offsetMs(date: Date, timeZone: string): number {
-  const p = zonedParts(date, timeZone)
-  const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second)
-  return asUtc - date.getTime()
-}
-
-function zonedTimeToUtc(
-  parts: { year: number; month: number; day: number; hour?: number; minute?: number; second?: number },
-  timeZone: string,
-): Date {
-  const guess = new Date(Date.UTC(
-    parts.year,
-    parts.month - 1,
-    parts.day,
-    parts.hour ?? 0,
-    parts.minute ?? 0,
-    parts.second ?? 0,
-  ))
-  return new Date(guess.getTime() - offsetMs(guess, timeZone))
-}
-
-function addDays(parts: { year: number; month: number; day: number }, days: number) {
-  const d = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days))
-  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }
-}
-
-function rangeStarts(now: Date) {
-  const today = zonedParts(now, TZ)
-  const todayDate = { year: today.year, month: today.month, day: today.day }
-  const hoyInicio = zonedTimeToUtc(todayDate, TZ)
-  const sieteDiasInicio = zonedTimeToUtc(addDays(todayDate, -6), TZ)
-  const mesInicio = zonedTimeToUtc({ year: today.year, month: today.month, day: 1 }, TZ)
-  const periodoInicio = new Date(Math.min(sieteDiasInicio.getTime(), mesInicio.getTime()))
-  return { hoyInicio, sieteDiasInicio, mesInicio, periodoInicio }
-}
+// La definición de "día" NO vive acá: sale de lib/operacion/diaOperativo.ts
+// a partir de comercios.settings — misma fuente que usa Caja. Este endpoint
+// solo suma dentro de rangos [inicio, fin) que le da el helper.
 
 function sumVentas(rows: VentaPeriodoRow[], desde: Date, hasta: Date) {
   let cantidad = 0
@@ -105,7 +55,7 @@ function sumVentas(rows: VentaPeriodoRow[], desde: Date, hasta: Date) {
   const hastaMs = hasta.getTime()
   for (const v of rows) {
     const ts = new Date(v.created_at).getTime()
-    if (ts >= desdeMs && ts <= hastaMs) {
+    if (ts >= desdeMs && ts < hastaMs) {
       cantidad += 1
       total += Number(v.total) || 0
     }
@@ -113,7 +63,7 @@ function sumVentas(rows: VentaPeriodoRow[], desde: Date, hasta: Date) {
   return { cantidad, total }
 }
 
-function topProductosMes(rows: VentaPeriodoRow[], mesInicio: Date, now: Date) {
+function topProductosMes(rows: VentaPeriodoRow[], mesInicio: Date, hastaFin: Date) {
   const map = new Map<string, {
     producto_id: string | null
     nombre: string
@@ -121,11 +71,11 @@ function topProductosMes(rows: VentaPeriodoRow[], mesInicio: Date, now: Date) {
     facturacion: number
   }>()
   const desde = mesInicio.getTime()
-  const hasta = now.getTime()
+  const hasta = hastaFin.getTime()
 
   for (const venta of rows) {
     const ts = new Date(venta.created_at).getTime()
-    if (ts < desde || ts > hasta) continue
+    if (ts < desde || ts >= hasta) continue
     for (const item of venta.items_venta ?? []) {
       const key = item.producto_id ?? `nombre:${item.nombre_producto}`
       const current = map.get(key) ?? {
@@ -176,9 +126,30 @@ export async function GET() {
     return NextResponse.json({ error: 'No tenés permiso para ver métricas comerciales' }, { status: 403 })
   }
 
-  const now = new Date()
-  const { hoyInicio, sieteDiasInicio, mesInicio, periodoInicio } = rangeStarts(now)
   const comercioId = perfil.comercio_id
+
+  // Settings del comercio → día operativo. Misma definición que Caja.
+  const { data: comercio, error: comercioError } = await supabase
+    .from('comercios')
+    .select('settings')
+    .eq('id', comercioId)
+    .single()
+  if (comercioError) {
+    console.error('[dashboard/comercial] comercio falló:', comercioError)
+    return NextResponse.json({ error: 'No pudimos leer la configuración del comercio' }, { status: 500 })
+  }
+
+  const now = new Date()
+  const settings = comercio?.settings ?? null
+  // "Hoy" = día operativo actual. Para una pizzería 18-02 a la 01:30,
+  // esto es el día que abrió ayer a las 18:00 — igual que en Caja.
+  const dia = obtenerDiaOperativoActual(settings, now)
+  const hoyInicio = dia.inicio
+  const hoyFin = dia.fin
+  // 7 días / mes: anclados al día operativo actual, no al calendario.
+  const sieteDiasInicio = obtenerRangoUltimosDiasOperativos(settings, 7, now).inicio
+  const mesInicio = obtenerRangoMesOperativoActual(settings, now).inicio
+  const periodoInicio = new Date(Math.min(sieteDiasInicio.getTime(), mesInicio.getTime()))
 
   const ventasPeriodoQuery = supabase
     .from('ventas')
@@ -186,7 +157,7 @@ export async function GET() {
     .eq('comercio_id', comercioId)
     .eq('estado', 'completada')
     .gte('created_at', periodoInicio.toISOString())
-    .lte('created_at', now.toISOString())
+    .lt('created_at', hoyFin.toISOString())
     .order('created_at', { ascending: false })
 
   const ultimasVentasQuery = supabase
@@ -205,12 +176,17 @@ export async function GET() {
     .gt('stock_minimo', 0)
     .order('stock_actual', { ascending: true })
 
+  // gastos.fecha es DATE (sin hora): comparamos contra fechas OPERATIVAS,
+  // no contra la fecha UTC del server (now.toISOString() era fecha UTC —
+  // a partir de las 21:00 AR ya contaba el "mañana" y podía excluir
+  // gastos del día). El mes operativo va del día 1 al día operativo actual.
+  const primerDiaMesOperativo = `${dia.fechaOperativa.slice(0, 7)}-01`
   const gastosMesQuery = supabase
     .from('gastos')
     .select('monto')
     .eq('comercio_id', comercioId)
-    .gte('fecha', mesInicio.toISOString().slice(0, 10))
-    .lte('fecha', now.toISOString().slice(0, 10))
+    .gte('fecha', primerDiaMesOperativo)
+    .lte('fecha', dia.fechaOperativa)
 
   const [ventasPeriodoRes, ultimasVentasRes, stockRes, gastosMesRes] = await Promise.all([
     ventasPeriodoQuery,
@@ -237,9 +213,9 @@ export async function GET() {
   }
 
   const ventasPeriodo = (ventasPeriodoRes.data ?? []) as VentaPeriodoRow[]
-  const ventasHoy = sumVentas(ventasPeriodo, hoyInicio, now)
-  const ventas7Dias = sumVentas(ventasPeriodo, sieteDiasInicio, now)
-  const ventasMes = sumVentas(ventasPeriodo, mesInicio, now)
+  const ventasHoy = sumVentas(ventasPeriodo, hoyInicio, hoyFin)
+  const ventas7Dias = sumVentas(ventasPeriodo, sieteDiasInicio, hoyFin)
+  const ventasMes = sumVentas(ventasPeriodo, mesInicio, hoyFin)
   const gastosMes = ((gastosMesRes.data ?? []) as GastoRow[])
     .reduce((sum, g) => sum + (Number(g.monto) || 0), 0)
   const stockCritico = ((stockRes.data ?? []) as ProductoStockRow[])
@@ -253,8 +229,13 @@ export async function GET() {
   return NextResponse.json({
     generado_en: now.toISOString(),
     rango: {
-      tz: TZ,
+      tz: TZ_ARGENTINA,
+      fecha_operativa: dia.fechaOperativa,
+      // true cuando el comercio configuró horario propio (no 24hs).
+      // La UI usa esto para etiquetar "día operativo" sin exponer horas.
+      usa_dia_operativo: !dia.config.caja_24hs,
       hoy_inicio: hoyInicio.toISOString(),
+      hoy_fin: hoyFin.toISOString(),
       siete_dias_inicio: sieteDiasInicio.toISOString(),
       mes_inicio: mesInicio.toISOString(),
     },
@@ -269,7 +250,7 @@ export async function GET() {
       ganancia_estimada_mes: ventasMes.total - gastosMes,
       stock_critico_cantidad: stockCritico.length,
     },
-    top_productos: topProductosMes(ventasPeriodo, mesInicio, now),
+    top_productos: topProductosMes(ventasPeriodo, mesInicio, hoyFin),
     stock_critico: stockCritico.slice(0, 10).map(p => ({
       producto_id: p.id,
       nombre: p.nombre,

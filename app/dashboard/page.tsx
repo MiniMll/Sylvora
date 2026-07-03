@@ -19,6 +19,16 @@ import { formatPeso } from '@/lib/utils'
 
 type DashboardComercial = {
   generado_en: string
+  rango?: {
+    tz: string
+    fecha_operativa: string
+    /** true si el comercio configuró horario propio (no 24hs). */
+    usa_dia_operativo: boolean
+    hoy_inicio: string
+    hoy_fin: string
+    siete_dias_inicio: string
+    mes_inicio: string
+  }
   kpis: {
     ventas_hoy_cantidad: number
     ventas_hoy_total: number
@@ -342,15 +352,25 @@ export default function DashboardPage() {
     data.kpis.ventas_mes_cantidad > 0 ||
     data.stock_critico.length > 0
 
+  // Cuando el comercio configuró horario propio, "hoy" es el día
+  // OPERATIVO (para un nocturno a la 01:30, el día que abrió ayer).
+  // El label y el sub lo reflejan sin exponer los horarios.
+  const usaDiaOperativo = data.rango?.usa_dia_operativo === true
+  const fechaOperativaLabel = usaDiaOperativo && data.rango
+    ? new Date(`${data.rango.fecha_operativa}T12:00:00`).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })
+    : null
+
   return (
     <div className="page-in" style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
       <PageHeader />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginBottom: 16 }}>
         <KpiCard
-          label="Ventas hoy"
+          label={usaDiaOperativo ? 'Ventas del día operativo' : 'Ventas hoy'}
           value={formatPeso(data.kpis.ventas_hoy_total)}
-          sub={`${data.kpis.ventas_hoy_cantidad} ventas`}
+          sub={fechaOperativaLabel
+            ? `${data.kpis.ventas_hoy_cantidad} ventas · ${fechaOperativaLabel}`
+            : `${data.kpis.ventas_hoy_cantidad} ventas`}
           Icon={TrendingUp}
         />
         <KpiCard
