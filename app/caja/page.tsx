@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { getCajaHoy, agregarEgreso, cerrarCaja, getCierresCaja, reabrirCaja, getResponsableNombre } from '@/lib/supabase/caja'
+import { crearBucketsDiaOperativo, type DiaOperativo } from '@/lib/operacion/diaOperativo'
 import { formatPeso } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingDown, CheckCircle, AlertCircle, Banknote, Smartphone, CreditCard, RotateCcw, ShoppingCart } from 'lucide-react'
@@ -37,11 +38,16 @@ export default function CajaPage() {
   // Nombre del responsable del cierre actual (si hay). Se resuelve en
   // un effect aparte porque no viene en el JOIN del SELECT.
   const [responsable, setResponsable] = useState<string | null>(null)
+  // Día operativo resuelto por getCajaHoy a partir de comercios.settings.
+  // ÚNICA fuente de "qué día es" en esta page — no usar new Date()
+  // para derivar fechas de caja.
+  const [dia, setDia] = useState<DiaOperativo | null>(null)
 
   useEffect(() => {
-    getCajaHoy().then(({ ventas, movimientos }) => {
+    getCajaHoy().then(({ ventas, movimientos, dia }) => {
       setVentas(ventas)
       setMovimientos(movimientos)
+      setDia(dia)
       setCargando(false)
     })
   }, [])
@@ -50,17 +56,17 @@ export default function CajaPage() {
     getCierresCaja().then(data => setCierresAnteriores(data))
   }, [])
 
-  // Resolver el nombre del responsable del cierre de hoy.
+  // Resolver el nombre del responsable del cierre del día operativo.
   // V1 single-user: en la práctica es el mismo usuario actual, pero
   // esto queda listo para multi-user/roles sin más cambios en la page.
   // Derivamos cierreHoy inline acá (no usamos el const de más abajo)
   // porque las declaraciones derivadas viven después del early return.
   useEffect(() => {
-    const hoyStr = new Date().toISOString().split('T')[0]
-    const usuarioId = cierresAnteriores.find(c => c.fecha === hoyStr)?.usuario_id
+    if (!dia) { setResponsable(null); return }
+    const usuarioId = cierresAnteriores.find(c => c.fecha === dia.fechaOperativa)?.usuario_id
     if (!usuarioId) { setResponsable(null); return }
     getResponsableNombre(usuarioId).then(setResponsable)
-  }, [cierresAnteriores])
+  }, [cierresAnteriores, dia])
 
   if (cargando) return <Spinner texto="Cargando caja..." />
 
@@ -73,17 +79,25 @@ export default function CajaPage() {
   const totalEgresos = movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + Number(m.monto), 0)
   const saldo = totalVentas - totalEgresos
 
-  // Flujo por hora
-  const flujo = Array.from({ length: 12 }, (_, i) => {
-    const hora = i + 8
-    const ingresosHora = ventasActivas
-      .filter(v => new Date(v.created_at).getHours() === hora)
-      .reduce((s, v) => s + Number(v.total), 0)
-    const egresosHora = movimientos
-      .filter(m => m.tipo === 'egreso' && new Date(m.created_at).getHours() === hora)
-      .reduce((s, m) => s + Number(m.monto), 0)
-    return { hora: `${hora}h`, ingresos: ingresosHora, egresos: egresosHora }
-  })
+  // Flujo por hora — buckets derivados del día operativo (antes eran
+  // horas 8-19 hardcodeadas, inútiles para un comercio nocturno). Cada
+  // bucket es 1 hora del rango [inicio, fin) del día operativo; los
+  // timestamps se comparan como instantes UTC, sin getHours() local.
+  const flujo = dia
+    ? crearBucketsDiaOperativo(dia).map(b => {
+        const enBucket = (ts: string) => {
+          const t = new Date(ts).getTime()
+          return t >= b.inicio.getTime() && t < b.fin.getTime()
+        }
+        const ingresosHora = ventasActivas
+          .filter(v => enBucket(v.created_at))
+          .reduce((s, v) => s + Number(v.total), 0)
+        const egresosHora = movimientos
+          .filter(m => m.tipo === 'egreso' && enBucket(m.created_at))
+          .reduce((s, m) => s + Number(m.monto), 0)
+        return { hora: b.label, ingresos: ingresosHora, egresos: egresosHora }
+      })
+    : []
 
   // Por método de pago
   const porMetodo: Record<string, number> = {}
@@ -104,15 +118,21 @@ export default function CajaPage() {
     ? null
     : contadoNum - efectivoEsperado
 
-  // Estado de caja derivado (spec): el cierre de hoy ES el estado actual.
-  // Si existe un cierre con fecha hoy → caja cerrada. Si no → abierta.
-  // No hay columna de estado en DB ni acto explícito de "abrir caja".
-  const hoyStr = new Date().toISOString().split('T')[0]
-  const cierreHoy = cierresAnteriores.find(c => c.fecha === hoyStr) ?? null
+  // Estado de caja derivado (spec): el cierre del DÍA OPERATIVO actual
+  // ES el estado. Si existe un cierre con esa fecha operativa → caja
+  // cerrada. Si no → abierta. No hay columna de estado en DB ni acto
+  // explícito de "abrir caja". La fecha sale del helper, nunca de
+  // new Date(): para un nocturno 18-02 a la 01:30, el "hoy" operativo
+  // sigue siendo ayer calendario.
+  const fechaOperativaStr = dia?.fechaOperativa ?? ''
+  const cierreHoy = cierresAnteriores.find(c => c.fecha === fechaOperativaStr) ?? null
   const estadoCaja: 'abierta' | 'cerrada' = cierreHoy ? 'cerrada' : 'abierta'
-  // El historial muestra SOLO cierres anteriores. El de hoy va arriba
-  // en el bloque de estado.
-  const cierresPasados = cierresAnteriores.filter(c => c.fecha !== hoyStr)
+  // El historial muestra SOLO cierres anteriores. El del día operativo
+  // actual va arriba en el bloque de estado.
+  const cierresPasados = cierresAnteriores.filter(c => c.fecha !== fechaOperativaStr)
+  // ¿El comercio configuró horario propio? (para el label del header:
+  // "Día operativo" solo cuando difiere del día calendario).
+  const usaDiaOperativo = dia !== null && !dia.config.caja_24hs
 
   // Preview del retiro mientras el cajero llena el modal de cierre.
   const retiroNum = retiroEfectivo.trim() === '' ? null : Number(retiroEfectivo)
@@ -230,7 +250,14 @@ export default function CajaPage() {
               </>
             )}
             <span style={{ fontSize: 12, color: 'var(--text2)' }}>
-              · {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {/* Fecha del DÍA OPERATIVO (no calendario). Para un nocturno
+                  a la 01:30 muestra la fecha de ayer — es la caja que sigue
+                  abierta. El "T12:00:00" evita el shift de un día al parsear
+                  YYYY-MM-DD como UTC-midnight en husos negativos. */}
+              · {usaDiaOperativo && 'Día operativo · '}
+              {dia
+                ? new Date(`${dia.fechaOperativa}T12:00:00`).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+                : ''}
             </span>
           </div>
 
@@ -468,7 +495,9 @@ export default function CajaPage() {
                 return (
                   <tr key={c.id} className="row-hover" style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '11px 14px', color: 'var(--text)' }}>
-                      {new Date(c.fecha).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      {/* T12:00:00: sin esto, new Date('YYYY-MM-DD') parsea
+                          UTC-midnight y en AR (-3) muestra el día anterior. */}
+                      {new Date(`${c.fecha}T12:00:00`).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
                     </td>
                     <td style={{ padding: '11px 14px', fontFamily: 'DM Mono, monospace', color: 'var(--g)', fontWeight: 600 }}>
                       ${Number(c.total_ventas).toLocaleString('es-AR')}

@@ -192,6 +192,10 @@ export interface Comercio {
   /** Fin del período de prueba. Para `plan='trial'`, si now > trial_ends_at
    *  el comercio queda en soft-lock (ver lib/trial.ts). */
   trial_ends_at: string | null
+  /** Configuraciones operativas del comercio. V1 usa:
+   *  caja_24hs, hora_apertura_caja y hora_cierre_caja.
+   *  Si falta, el default efectivo es caja_24hs=true. */
+  settings: Record<string, unknown> | null
   created_at: string
 }
 

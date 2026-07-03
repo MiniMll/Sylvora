@@ -1,31 +1,52 @@
-import { getBrowserClient, getComercioId } from './_base'
+import { getBrowserClient, getComercioId, getComercio } from './_base'
+import { obtenerDiaOperativoActual, type DiaOperativo } from '@/lib/operacion/diaOperativo'
 import type { Venta, MovimientoCaja, CierreCaja } from '@/types/database'
 
-export async function getCajaHoy(): Promise<{ ventas: Venta[]; movimientos: MovimientoCaja[] }> {
+/**
+ * Ventas + movimientos del DÍA OPERATIVO actual del comercio.
+ *
+ * El "día" ya no es el día calendario del browser: sale de
+ * comercios.settings via lib/operacion/diaOperativo.ts. Para un
+ * comercio 24hs (default) equivale al día calendario en TZ Argentina;
+ * para un nocturno (ej. 18:00–02:00), a la 01:30 la caja sigue siendo
+ * la del día anterior.
+ *
+ * Devuelve también el DiaOperativo usado, para que la page derive
+ * estado (cierreHoy, labels) con la MISMA fecha operativa y no
+ * recalcule con new Date() por su cuenta.
+ */
+export async function getCajaHoy(): Promise<{
+  ventas: Venta[]
+  movimientos: MovimientoCaja[]
+  dia: DiaOperativo | null
+}> {
   const supabase = getBrowserClient()
   const comercioId = await getComercioId()
-  if (!comercioId) return { ventas: [], movimientos: [] }
+  if (!comercioId) return { ventas: [], movimientos: [], dia: null }
 
-  const hoy = new Date()
-  hoy.setHours(0, 0, 0, 0)
+  const comercio = await getComercio()
+  const dia = obtenerDiaOperativoActual(comercio?.settings ?? null)
 
   const { data: ventas } = await supabase
     .from('ventas')
     .select('*')
     .eq('comercio_id', comercioId)
-    .gte('created_at', hoy.toISOString())
+    .gte('created_at', dia.inicio.toISOString())
+    .lt('created_at', dia.fin.toISOString())
     .order('created_at', { ascending: false })
 
   const { data: movimientos } = await supabase
     .from('movimientos_caja')
     .select('*')
     .eq('comercio_id', comercioId)
-    .gte('created_at', hoy.toISOString())
+    .gte('created_at', dia.inicio.toISOString())
+    .lt('created_at', dia.fin.toISOString())
     .order('created_at', { ascending: false })
 
   return {
     ventas: (ventas ?? []) as Venta[],
     movimientos: (movimientos ?? []) as MovimientoCaja[],
+    dia,
   }
 }
 
@@ -86,10 +107,18 @@ export async function cerrarCaja(resumen: CerrarCajaInput): Promise<CerrarCajaRe
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  // La fecha del cierre es la FECHA OPERATIVA, no la calendario.
+  // Para una pizzería 18-02 que cierra a la 01:45, el cierre queda
+  // registrado con la fecha del día que abrió (ayer calendario).
+  // El UNIQUE(comercio_id, fecha) sigue garantizando 1 cierre por
+  // día operativo.
+  const comercio = await getComercio()
+  const dia = obtenerDiaOperativoActual(comercio?.settings ?? null)
+
   const payload: Record<string, any> = {
     comercio_id: comercioId,
     usuario_id: user?.id ?? null,
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: dia.fechaOperativa,
     total_ventas: resumen.total_ventas,
     total_egresos: resumen.total_egresos,
     saldo_neto: resumen.saldo_neto,

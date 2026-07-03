@@ -177,7 +177,7 @@ export async function getComercio(): Promise<Comercio | null> {
 
         const { data: comercio } = await supabase
           .from('comercios')
-          .select('id, nombre, tipo, telefono, email, direccion, plan, trial_ends_at, created_at')
+          .select('id, nombre, tipo, telefono, email, direccion, plan, trial_ends_at, settings, created_at')
           .eq('id', perfil.comercio_id)
           .single()
         return (comercio as Comercio | null) ?? null

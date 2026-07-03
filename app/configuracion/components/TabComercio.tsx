@@ -7,6 +7,10 @@ import { invalidarCacheComercio } from '@/lib/supabase/_base'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { DemoLockNotice } from '@/components/ui/DemoLockNotice'
+import {
+  normalizarConfigDiaOperativo,
+  serializeConfigDiaOperativo,
+} from '@/lib/operacion/diaOperativo'
 import type { Comercio } from '@/types/database'
 
 // Tab "Comercio" — datos del negocio que aparecen en tickets, PDFs
@@ -27,12 +31,16 @@ interface Props {
 }
 
 export function TabComercio({ comercio, onSaved, bloqueado = false }: Props) {
+  const configCaja = normalizarConfigDiaOperativo(comercio.settings)
   const [form, setForm] = useState({
     nombre:    comercio.nombre || '',
     tipo:      comercio.tipo || 'almacen',
     telefono:  comercio.telefono || '',
     email:     comercio.email || '',
     direccion: comercio.direccion || '',
+    caja_24hs: configCaja.caja_24hs,
+    hora_apertura_caja: configCaja.hora_apertura_caja,
+    hora_cierre_caja: configCaja.hora_cierre_caja,
   })
   const [guardando, setGuardando] = useState(false)
 
@@ -48,6 +56,15 @@ export function TabComercio({ comercio, onSaved, bloqueado = false }: Props) {
         telefono:  form.telefono.trim() || null,
         email:     form.email.trim() || null,
         direccion: form.direccion.trim() || null,
+        settings: {
+          ...(comercio.settings ?? {}),
+          ...serializeConfigDiaOperativo({
+            caja_24hs: form.caja_24hs,
+            hora_apertura_caja: form.hora_apertura_caja,
+            hora_cierre_caja: form.hora_cierre_caja,
+            timezone: 'America/Argentina/Buenos_Aires',
+          }),
+        },
       })
       .eq('id', comercio.id)
       .select()
@@ -108,6 +125,39 @@ export function TabComercio({ comercio, onSaved, bloqueado = false }: Props) {
             onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))}
             placeholder="Av. Corrientes 1234, CABA" />
         </Field>
+        <Field label="Caja diaria" full>
+          <Select
+            size="md"
+            value={form.caja_24hs ? '24hs' : 'horario'}
+            disabled={bloqueado}
+            onChange={e => setForm(f => ({ ...f, caja_24hs: e.target.value === '24hs' }))}
+          >
+            <option value="24hs">DÃ­a calendario Argentina (24 horas)</option>
+            <option value="horario">Horario operativo personalizado</option>
+          </Select>
+        </Field>
+        {!form.caja_24hs && (
+          <>
+            <Field label="Apertura de caja">
+              <Input
+                size="md"
+                type="time"
+                value={form.hora_apertura_caja}
+                disabled={bloqueado}
+                onChange={e => setForm(f => ({ ...f, hora_apertura_caja: e.target.value }))}
+              />
+            </Field>
+            <Field label="Cierre de caja">
+              <Input
+                size="md"
+                type="time"
+                value={form.hora_cierre_caja}
+                disabled={bloqueado}
+                onChange={e => setForm(f => ({ ...f, hora_cierre_caja: e.target.value }))}
+              />
+            </Field>
+          </>
+        )}
       </div>
 
       <div style={{ marginTop: 24 }}>
