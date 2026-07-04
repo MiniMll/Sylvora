@@ -1,18 +1,25 @@
-import { getBrowserClient } from './_base'
+import { getBrowserClient, getComercio } from './_base'
+import {
+  obtenerDiaOperativoActual,
+  obtenerRangoDiaOperativo,
+  sumarDiasYmd,
+} from '@/lib/operacion/diaOperativo'
 
 // Capa cliente para el dashboard de /reportes.
 //
-// Una sola RPC server-side (get_reporte_dashboard) devuelve KPIs,
+// Una sola RPC server-side (get_reporte_dashboard V3) devuelve KPIs,
 // top productos y stock crítico en un único round-trip. Ver
-// scripts/migration-reportes-rpc.sql para la implementación de la RPC.
+// scripts/migration-reportes-dia-operativo.sql para la RPC.
 //
-// Diseño:
-//   - Cero lógica de fechas en el cliente — la RPC computa todo según
-//     su TZ. Default 'America/Argentina/Buenos_Aires'.
-//   - Snake_case en los tipos para matchear el JSON de la RPC sin
-//     transformaciones. Coherente con el resto de types/database.ts.
-//   - Sin SWR/react-query — useState + useEffect en la página alcanza
-//     para V1. Si en V2 agregamos auto-refresh + revalidación, ahí sí.
+// Diseño (V3 — día operativo):
+//   - La RPC NO sabe qué significa "hoy". TODOS los rangos se calculan
+//     acá con lib/operacion/diaOperativo.ts (misma fuente que Caja y
+//     Dashboard) y se pasan como parámetros explícitos.
+//   - La serie "ventas por día" usa buckets de días OPERATIVOS: para
+//     un nocturno 18-02, el bucket del viernes cubre [vie 18:00,
+//     sáb 02:00) — imposible con date_trunc server-side.
+//   - Snake_case en los tipos para matchear el JSON de la RPC.
+//   - Sin SWR/react-query — useState + useEffect en la página alcanza.
 
 // ───── Rango ────────────────────────────────────────────────────────
 
@@ -99,6 +106,64 @@ export interface ReporteDashboard {
   stock_critico: ReporteStockCritico[]
 }
 
+// ───── Construcción de rangos (única definición de "día") ──────────
+
+const DIAS_POR_RANGO: Record<RangoReporte, number> = {
+  hoy: 1,
+  semana: 7,
+  mes: 30,
+}
+
+export interface RangosReporte {
+  /** Fecha operativa del día actual — la misma que ven Caja y Dashboard. */
+  fechaOperativa: string
+  /** Inicio del rango completo (inicio del primer día operativo). */
+  desde: Date
+  /** Fin del rango completo (fin del día operativo actual). EXCLUSIVE. */
+  hasta: Date
+  /** Buckets [inicio, fin) de cada día operativo, para la serie del
+   *  gráfico. Longitud = 1 | 7 | 30 según el rango. */
+  dias: Array<{ fecha: string; inicio: Date; fin: Date }>
+  /** Rango de fechas operativas para gastos (columna DATE, inclusive). */
+  gastosDesde: string
+  gastosHasta: string
+}
+
+/**
+ * Calcula todos los rangos que la RPC V3 recibe como parámetros.
+ *
+ * Función PURA (settings + now → rangos) y exportada a propósito:
+ * el smoke de consistencia la usa para verificar que la fechaOperativa
+ * de Reportes coincide con la de Caja/Dashboard para el mismo
+ * timestamp — los tres módulos derivan del mismo helper, y este
+ * export permite testear la derivación de Reportes sin mockear
+ * Supabase.
+ */
+export function construirRangosReporte(
+  settings: unknown,
+  rango: RangoReporte,
+  now: Date = new Date(),
+): RangosReporte {
+  const actual = obtenerDiaOperativoActual(settings, now)
+  const n = DIAS_POR_RANGO[rango]
+
+  const dias: Array<{ fecha: string; inicio: Date; fin: Date }> = []
+  for (let i = n - 1; i >= 0; i--) {
+    const fecha = sumarDiasYmd(actual.fechaOperativa, -i)
+    const r = obtenerRangoDiaOperativo(fecha, settings)
+    dias.push({ fecha, inicio: r.inicio, fin: r.fin })
+  }
+
+  return {
+    fechaOperativa: actual.fechaOperativa,
+    desde: dias[0].inicio,
+    hasta: actual.fin,
+    dias,
+    gastosDesde: dias[0].fecha,
+    gastosHasta: actual.fechaOperativa,
+  }
+}
+
 // ───── Cliente ──────────────────────────────────────────────────────
 
 /** Trae el dashboard de reportes en una sola request.
@@ -106,16 +171,27 @@ export interface ReporteDashboard {
  *  debería mostrar un toast de error. El detalle del error va al
  *  console.error para inspección.
  *
- *  El TZ default coincide con el que usa la RPC. Lo expongo como
- *  parámetro opcional por si en algún test queremos override. */
+ *  V3: los rangos se calculan acá (día operativo del comercio) y la
+ *  RPC solo agrega dentro de ellos. */
 export async function getReporteDashboard(
   rango: RangoReporte,
-  tz: string = 'America/Argentina/Buenos_Aires',
 ): Promise<ReporteDashboard | null> {
   const supabase = getBrowserClient()
+
+  const comercio = await getComercio()
+  const rangos = construirRangosReporte(comercio?.settings ?? null, rango)
+
   const { data, error } = await supabase.rpc('get_reporte_dashboard', {
-    p_rango: rango,
-    p_tz:    tz,
+    p_rango_tipo:   rango,
+    p_desde:        rangos.desde.toISOString(),
+    p_hasta:        rangos.hasta.toISOString(),
+    p_dias:         rangos.dias.map(d => ({
+      fecha:  d.fecha,
+      inicio: d.inicio.toISOString(),
+      fin:    d.fin.toISOString(),
+    })),
+    p_gastos_desde: rangos.gastosDesde,
+    p_gastos_hasta: rangos.gastosHasta,
   })
   if (error) {
     console.error('[getReporteDashboard] RPC falló:', error)

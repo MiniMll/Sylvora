@@ -25,6 +25,7 @@ import {
   sumarDiasYmd,
   fechaLocalArgentina,
 } from '../lib/operacion/diaOperativo'
+import { construirRangosReporte } from '../lib/supabase/reportes'
 
 let passed = 0, failed = 0
 function check(name: string, fn: () => void) {
@@ -187,6 +188,61 @@ check('A4. CAJA 18-02: venta a las 02:01 → cae en la caja del día NUEVO', () 
   // Sáb 13/6 02:01 AR = 05:01 UTC. Ya pasó el cierre de las 02:00.
   const f = fechaOperativaDeTimestamp(ts('2026-06-13T05:01:00Z'), CFG_PIZZERIA)
   assert(f === '2026-06-13', `f: ${f}`)
+})
+
+// ── CONSISTENCIA ENTRE MÓDULOS: Caja == Dashboard == Reportes ──────
+// Los tres módulos derivan el día del mismo helper; estos tests
+// verifican que sus PUNTOS DE ENTRADA (getCajaHoy / route dashboard /
+// construirRangosReporte) resuelven la misma fechaOperativa para el
+// mismo timestamp. Si alguien reintroduce una definición local de
+// "hoy" en Reportes, C1-C3 rompen.
+
+check('C1. pizzería 01:30 sáb: fechaOperativa Caja == Dashboard == Reportes == viernes', () => {
+  const NOW = ts('2026-06-13T04:30:00Z')  // sáb 13/6 01:30 AR
+  // Caja: getCajaHoy → obtenerDiaOperativoActual(settings).fechaOperativa
+  const caja = obtenerDiaOperativoActual(CFG_PIZZERIA, NOW).fechaOperativa
+  // Dashboard: /api/dashboard/comercial → misma llamada
+  const dashboard = obtenerDiaOperativoActual(CFG_PIZZERIA, NOW).fechaOperativa
+  // Reportes: construirRangosReporte (lo que la RPC V3 recibe)
+  const reportes = construirRangosReporte(CFG_PIZZERIA, 'hoy', NOW).fechaOperativa
+  assert(caja === '2026-06-12', `caja: ${caja}`)
+  assert(caja === dashboard, `caja(${caja}) != dashboard(${dashboard})`)
+  assert(caja === reportes, `caja(${caja}) != reportes(${reportes})`)
+})
+
+check('C2. reportes rango "hoy": bucket único idéntico al rango de Caja', () => {
+  const NOW = ts('2026-06-13T04:30:00Z')
+  const caja = obtenerDiaOperativoActual(CFG_PIZZERIA, NOW)
+  const r = construirRangosReporte(CFG_PIZZERIA, 'hoy', NOW)
+  assert(r.dias.length === 1, `dias: ${r.dias.length}`)
+  assert(r.dias[0].fecha === caja.fechaOperativa, 'fecha bucket != caja')
+  assert(r.dias[0].inicio.getTime() === caja.inicio.getTime(), 'inicio != caja')
+  assert(r.dias[0].fin.getTime() === caja.fin.getTime(), 'fin != caja')
+  assert(r.desde.getTime() === caja.inicio.getTime(), 'desde != caja.inicio')
+  assert(r.hasta.getTime() === caja.fin.getTime(), 'hasta != caja.fin')
+})
+
+check('C3. reportes rango "semana": 7 buckets operativos contiguos, último = hoy operativo', () => {
+  const NOW = ts('2026-06-13T04:30:00Z')
+  const r = construirRangosReporte(CFG_PIZZERIA, 'semana', NOW)
+  assert(r.dias.length === 7, `dias: ${r.dias.length}`)
+  assert(r.dias[6].fecha === '2026-06-12', `último bucket: ${r.dias[6].fecha}`)
+  assert(r.dias[0].fecha === '2026-06-06', `primer bucket: ${r.dias[0].fecha}`)
+  // Contiguos: fin del bucket i == inicio del bucket i+1 NO aplica a
+  // horarios con gap (pizzería cierra 02:00, abre 18:00) — pero las
+  // fechas sí deben ser consecutivas.
+  for (let i = 1; i < 7; i++) {
+    assert(r.dias[i].fecha === sumarDiasYmd(r.dias[i - 1].fecha, 1), `gap entre ${r.dias[i - 1].fecha} y ${r.dias[i].fecha}`)
+  }
+  // gastos: fechas operativas inclusive.
+  assert(r.gastosDesde === '2026-06-06' && r.gastosHasta === '2026-06-12', `gastos: ${r.gastosDesde}..${r.gastosHasta}`)
+})
+
+check('C4. consistencia también en 24hs (default): los 3 módulos = día calendario', () => {
+  const NOW = ts('2026-06-13T04:30:00Z')  // sáb 01:30 AR
+  const caja = obtenerDiaOperativoActual(CFG_24HS, NOW).fechaOperativa
+  const reportes = construirRangosReporte(CFG_24HS, 'hoy', NOW).fechaOperativa
+  assert(caja === '2026-06-13' && reportes === '2026-06-13', `caja=${caja} reportes=${reportes}`)
 })
 
 // ── sumarDiasYmd edge cases ─────────────────────────────────────────
