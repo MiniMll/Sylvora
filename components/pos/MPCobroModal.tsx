@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { formatPeso } from '@/lib/utils'
+import type { SnapshotVentaMP } from '@/lib/mp/snapshot'
 import {
   crearCobroMP,
   obtenerEstadoCobroMP,
@@ -48,6 +49,10 @@ export interface MPCobroModalProps {
   monto: number
   /** Descripción opcional (mostrar en ticket MP). */
   descripcion?: string
+  /** Snapshot del carrito congelado al abrir el modal. Se persiste
+   *  con el intento para poder recrear la venta desde la cola de
+   *  revisión si crear_venta falla post-aprobación. */
+  itemsSnapshot?: SnapshotVentaMP
   /** Se llama cuando el cobro es aprobado por MP. El caller debe
    *  ejecutar el flow de crear_venta y, si OK, llamar onClose. */
   onAprobado: (intentoId: string) => Promise<void> | void
@@ -67,7 +72,7 @@ function estadoToFase(e: EstadoIntentoCobro): FaseModal {
   }
 }
 
-export function MPCobroModal({ open, monto, descripcion, onAprobado, onClose }: MPCobroModalProps) {
+export function MPCobroModal({ open, monto, descripcion, itemsSnapshot, onAprobado, onClose }: MPCobroModalProps) {
   const [fase, setFase] = useState<FaseModal>('creando')
   const [intentoId, setIntentoId] = useState<string | null>(null)
   const [qrData, setQrData] = useState<string | null>(null)
@@ -101,7 +106,7 @@ export function MPCobroModal({ open, monto, descripcion, onAprobado, onClose }: 
     if (!open) return
     let cancelled = false
 
-    crearCobroMP(monto, descripcion).then(res => {
+    crearCobroMP(monto, descripcion, itemsSnapshot).then(res => {
       if (cancelled) return
       setIntentoId(res.intento_id)
       setQrData(res.qr_data)
@@ -133,6 +138,10 @@ export function MPCobroModal({ open, monto, descripcion, onAprobado, onClose }: 
     })
 
     return () => { cancelled = true; stopPolling() }
+    // itemsSnapshot fuera de deps a propósito: se congela al montar
+    // (el parent monta el modal fresh en cada apertura) — un cambio
+    // de referencia del objeto no debe re-crear el cobro.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, monto, descripcion, stopPolling])
 
   // ── Renderizar QR en canvas cuando llega qr_data ──────────────────

@@ -62,16 +62,22 @@ COMMENT ON CONSTRAINT intentos_cobro_mp_estado_check ON intentos_cobro_mp IS
   'Estados del lifecycle. requiere_revision: MP cobró pero la venta no se registró. resuelto: un admin lo resolvió vía resolver_intento_mp (auditoría en mp_resoluciones_cobro).';
 
 -- ───── 2. Snapshot del carrito ──────────────────────────────────────
--- Poblado por POST /api/mp/cobros (Commit 3). Formato:
---   [{ "producto_id": uuid|null, "nombre": text, "cantidad": num,
---      "precio_unitario": num, "subtotal": num }, ...]
--- Sin datos sensibles: solo lo que ya viaja en items_venta.
+-- Poblado por POST /api/mp/cobros (Commit 3). Formato versionado
+-- (ver lib/mp/snapshot.ts — fuente de verdad de tipos y sanitizado):
+--   { "version": 1,
+--     "subtotal": num, "descuento_porcentaje": num, "descuento_monto": num,
+--     "recargo_porcentaje": num, "recargo_monto": num, "total": num,
+--     "items": [{ "producto_id": uuid|null, "nombre_producto": text,
+--                 "precio_unitario": num, "cantidad": num,
+--                 "subtotal": num, "peso_kg"?: num }, ...] }
+-- Contiene TODO lo necesario para reconstruir la venta sin depender
+-- del carrito. Sin datos sensibles: mismo contenido que items_venta.
 
 ALTER TABLE intentos_cobro_mp
   ADD COLUMN IF NOT EXISTS items_snapshot jsonb;
 
 COMMENT ON COLUMN intentos_cobro_mp.items_snapshot IS
-  'Snapshot del carrito al crear el cobro. Permite recrear la venta si crear_venta falla post-aprobación. NULL en intentos previos a la épica de revisión.';
+  'Snapshot versionado del carrito al crear el cobro: {version, subtotal, descuento_*, recargo_*, total, items[]} — ver lib/mp/snapshot.ts. Permite recrear la venta si crear_venta falla post-aprobación. NULL en intentos previos a la épica de revisión.';
 
 -- ───── 3. Tabla de auditoría — INSERT-only ──────────────────────────
 

@@ -20,6 +20,7 @@ import { TicketReceipt } from '@/components/TicketReceipt'
 import { MPCobroModal } from '@/components/pos/MPCobroModal'
 import { MPPaymentChoiceModal } from '@/components/pos/MPPaymentChoiceModal'
 import { asociarVentaAIntentoMP, marcarCobroRequiereRevision } from '@/lib/mp/client-fetch'
+import type { SnapshotVentaMP } from '@/lib/mp/snapshot'
 import type { MetodoPago } from '@/types'
 import type { Venta, Comercio } from '@/types/database'
 
@@ -91,6 +92,31 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
     }
     return false
   }
+
+  // Snapshot del carrito para el intento de cobro MP. Se congela al
+  // abrir el modal y viaja al server, que lo persiste (sanitizado) en
+  // intentos_cobro_mp.items_snapshot. Si crear_venta falla después de
+  // que MP cobró, la cola de revisión puede recrear la venta con estos
+  // items exactos — sin depender de que el carrito siga vivo. Mismo
+  // mapeo de items que ejecutarVenta (split del sufijo '_' en
+  // producto_id de productos pesables).
+  const construirSnapshotVenta = (): SnapshotVentaMP => ({
+    version: 1,
+    subtotal: store.subtotal(),
+    descuento_porcentaje: store.descuentoPct,
+    descuento_monto: store.descuentoMonto(),
+    recargo_porcentaje: store.recargoPct,
+    recargo_monto: store.recargoMonto(),
+    total: store.total(),
+    items: store.items.map(i => ({
+      producto_id: i.producto_id.includes('_') ? i.producto_id.split('_')[0] : i.producto_id,
+      nombre_producto: i.nombre,
+      precio_unitario: i.precio_unitario,
+      cantidad: i.cantidad,
+      subtotal: i.subtotal,
+      ...(i.peso_kg !== undefined ? { peso_kg: i.peso_kg } : {}),
+    })),
+  })
 
   // Ejecuta el flow de persistencia de la venta + UX de éxito/error.
   // Se invoca desde el camino sincrónico (efectivo/débito/crédito) y
@@ -542,6 +568,7 @@ function POSPaymentImpl({ onStockSync }: POSPaymentProps) {
         <MPCobroModal
           open
           monto={totalActual}
+          itemsSnapshot={construirSnapshotVenta()}
           onAprobado={onMPAprobado}
           onClose={() => setMpModalOpen(false)}
         />

@@ -24,6 +24,7 @@
 
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js'
 import { encryptToken, decryptToken } from '@/lib/mp/crypto'
+import type { SnapshotVentaMP } from '@/lib/mp/snapshot'
 
 // ════════════════════════════════════════════════════════════════════
 // Tipos
@@ -141,6 +142,10 @@ export interface IntentoCobroMP {
   mp_payment_id: number | null
   mp_status_detail: string | null
   pagado_en: string | null
+  /** Snapshot del carrito al crear el cobro (ver lib/mp/snapshot.ts).
+   *  NULL en intentos previos a la épica de revisión — esos solo
+   *  ofrecen reembolso/descarte/asociación como resolución. */
+  items_snapshot: SnapshotVentaMP | null
   creado_por: string
   creado_en: string
   expira_en: string
@@ -161,6 +166,10 @@ export interface CrearIntentoCobroInput {
   order_id_mp?: string
   qr_data?: string
   checkout_url?: string
+  /** Snapshot SANITIZADO del carrito (el endpoint lo valida con
+   *  sanitizarSnapshotVenta antes de llegar acá). Opcional: si el
+   *  cliente no lo mandó o era inválido, queda NULL. */
+  items_snapshot?: SnapshotVentaMP | null
 }
 
 /** Patch para actualizar un intento. Lo usa el webhook handler
@@ -391,7 +400,7 @@ export async function desconectarMP(
 // ════════════════════════════════════════════════════════════════════
 
 const INTENTO_SELECT =
-  'id, comercio_id, venta_id, external_reference, order_id_mp, qr_data, checkout_url, monto, metodo, estado, mp_payment_id, mp_status_detail, pagado_en, creado_por, creado_en, expira_en, actualizado_en'
+  'id, comercio_id, venta_id, external_reference, order_id_mp, qr_data, checkout_url, monto, metodo, estado, mp_payment_id, mp_status_detail, pagado_en, items_snapshot, creado_por, creado_en, expira_en, actualizado_en'
 
 /**
  * Crea un intento pendiente. La venta NO se persiste todavía — se
@@ -415,6 +424,7 @@ export async function crearIntentoCobro(
     order_id_mp: input.order_id_mp ?? null,
     qr_data: input.qr_data ?? null,
     checkout_url: input.checkout_url ?? null,
+    items_snapshot: input.items_snapshot ?? null,
     // estado='pendiente' lo pone el DEFAULT del schema.
   }
 

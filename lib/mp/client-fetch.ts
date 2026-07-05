@@ -2,7 +2,10 @@
 // y con mensajes de error human-readable.
 //
 // CLIENT-SAFE. No importa nada de lib/mp/* que dependa de env del
-// server. Solo hace HTTP a /api/mp/*.
+// server. Solo hace HTTP a /api/mp/*. (lib/mp/snapshot.ts es puro —
+// tipos compartidos, sin env.)
+
+import type { SnapshotVentaMP } from '@/lib/mp/snapshot'
 
 export type EstadoIntentoCobro =
   | 'pendiente'
@@ -95,11 +98,12 @@ export interface AsociarVentaResponse {
 export async function crearCobroMP(
   monto: number,
   descripcion?: string,
+  itemsSnapshot?: SnapshotVentaMP,
 ): Promise<CrearCobroResponse> {
   const res = await fetch('/api/mp/cobros', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ monto, descripcion }),
+    body: JSON.stringify({ monto, descripcion, items_snapshot: itemsSnapshot }),
   })
   return (await parseJsonOrThrow(res)) as CrearCobroResponse
 }

@@ -37,6 +37,7 @@ import {
   actualizarIntentoCobro,
 } from '@/lib/supabase/mp'
 import { resolveAccessToken, MPTokenProviderError } from '@/lib/mp/token-provider'
+import { sanitizarSnapshotVenta, type SnapshotVentaMP } from '@/lib/mp/snapshot'
 import { generateExternalReference } from '@/lib/mp/identifiers'
 import { crearOrderQR } from '@/lib/mp/orders'
 import { MP_INTENTO_TTL_MS, MP_MIN_AMOUNT_ARS } from '@/lib/mp/config'
@@ -53,6 +54,9 @@ interface CrearCobroBody {
   monto?: unknown
   metodo?: unknown
   descripcion?: unknown
+  /** Snapshot del carrito (ver lib/mp/snapshot.ts). Se sanitiza
+   *  server-side — un snapshot inválido NO bloquea el cobro. */
+  items_snapshot?: unknown
 }
 
 interface CrearCobroResponse {
@@ -100,6 +104,26 @@ export async function POST(req: Request) {
     typeof body.descripcion === 'string' && body.descripcion.trim()
       ? body.descripcion.trim().slice(0, 200)
       : undefined
+
+  // Snapshot del carrito para poder recrear la venta si crear_venta
+  // falla post-aprobación (cola de revisión). Sanitizado server-side:
+  // shape, tipos, límites y consistencia aritmética contra el monto.
+  // Un snapshot inválido NO bloquea el cobro — se guarda NULL con
+  // warn (el dinero importa más que el snapshot, y la cola ofrece
+  // resolución sin snapshot).
+  let itemsSnapshot: SnapshotVentaMP | null = null
+  if (body.items_snapshot !== undefined && body.items_snapshot !== null) {
+    const san = sanitizarSnapshotVenta(body.items_snapshot, monto)
+    if (san.ok) {
+      itemsSnapshot = san.snapshot
+    } else {
+      console.warn(JSON.stringify({
+        event: 'mp_snapshot_invalido',
+        motivo: san.motivo,
+        monto,
+      }))
+    }
+  }
 
   // ── 2. Resolver session ─────────────────────────────────────────
   const cookieStore = await cookies()
@@ -193,6 +217,7 @@ export async function POST(req: Request) {
       metodo: 'qr',
       expira_en: expiraEn,
       creado_por: perfil.id,
+      items_snapshot: itemsSnapshot,
     })
   } catch (e) {
     console.error(JSON.stringify({
