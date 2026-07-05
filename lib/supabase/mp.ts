@@ -715,3 +715,199 @@ export async function marcarPagoPostCancelacion(
   if (!fresco) return { ok: false, reason: 'not_found' }
   return { ok: false, reason: 'not_cancelado_ni_expirado', intento: fresco }
 }
+
+// ════════════════════════════════════════════════════════════════════
+// Cola de revisión (épica requiere_revision, Commit 4)
+// ════════════════════════════════════════════════════════════════════
+
+/**
+ * Lazy-promote de huérfanos silenciosos (clases B/C del audit):
+ * intentos APROBADOS sin venta asociada cuyo pago tiene más de
+ * `umbralMs` de antigüedad. El cajero nunca completó crear_venta
+ * (cerró el navegador, se cortó la conexión, el marcado a revisión
+ * falló) — sin este barrido quedarían invisibles para siempre.
+ *
+ * UPDATE atómico multi-fila: WHERE estado='aprobado' AND venta_id IS
+ * NULL AND pagado_en < cutoff. Motivo fijo 'huerfano_detectado'.
+ *
+ * IDEMPOTENTE: una segunda corrida no matchea nada (ya están en
+ * requiere_revision). Race-safe con el flujo normal: si el cajero
+ * asocia la venta en paralelo, el venta_id IS NULL del WHERE deja
+ * la fila afuera.
+ *
+ * Nota: intentos aprobados con pagado_en NULL no existen por diseño
+ * (todos los caminos de aprobación lo setean) y el .lt() los deja
+ * afuera de todos modos — nunca se promueve sin timestamp de pago.
+ *
+ * Se invoca al abrir la cola (GET /api/mp/revision) — mismo patrón
+ * lazy que marcarExpiradoSiCorresponde, sin cron.
+ */
+export async function promoverHuerfanosSilenciosos(
+  supabase: SupabaseClient,
+  comercioId: string,
+  umbralMs: number,
+  now: Date = new Date(),
+): Promise<IntentoCobroMP[]> {
+  const cutoffIso = new Date(now.getTime() - umbralMs).toISOString()
+
+  const { data, error } = await supabase
+    .from('intentos_cobro_mp')
+    .update({ estado: 'requiere_revision', mp_status_detail: 'huerfano_detectado' })
+    .eq('comercio_id', comercioId)
+    .eq('estado', 'aprobado')
+    .is('venta_id', null)
+    .lt('pagado_en', cutoffIso)
+    .select(INTENTO_SELECT)
+
+  if (error) throw pgError('promoverHuerfanosSilenciosos', error)
+  return (data ?? []) as IntentoCobroMP[]
+}
+
+/**
+ * Lista los intentos en la cola de revisión del comercio, más
+ * recientes primero. Correr promoverHuerfanosSilenciosos ANTES para
+ * que la lista incluya los huérfanos recién detectados.
+ */
+export async function listarIntentosRevision(
+  supabase: SupabaseClient,
+  comercioId: string,
+): Promise<IntentoCobroMP[]> {
+  const { data, error } = await supabase
+    .from('intentos_cobro_mp')
+    .select(INTENTO_SELECT)
+    .eq('comercio_id', comercioId)
+    .eq('estado', 'requiere_revision')
+    .order('actualizado_en', { ascending: false })
+
+  if (error) throw pgError('listarIntentosRevision', error)
+  return (data ?? []) as IntentoCobroMP[]
+}
+
+/** Fila del historial de resoluciones, con joins embebidos para la UI
+ *  (nombre del admin que resolvió, ticket de la venta si existe, y
+ *  monto/payment del intento original). */
+export interface ResolucionCobroMP {
+  id: string
+  intento_id: string
+  accion: AccionResolucionMP
+  venta_id: string | null
+  nota: string | null
+  created_at: string
+  resuelto_por_nombre: string | null
+  venta_numero_ticket: number | null
+  intento_monto: number | null
+  intento_mp_payment_id: number | null
+}
+
+/**
+ * Historial de resoluciones del comercio, más recientes primero.
+ * RLS: solo el admin del comercio ve las filas.
+ */
+export async function listarResolucionesCobro(
+  supabase: SupabaseClient,
+  comercioId: string,
+  limit = 20,
+): Promise<ResolucionCobroMP[]> {
+  const { data, error } = await supabase
+    .from('mp_resoluciones_cobro')
+    .select('id, intento_id, accion, venta_id, nota, created_at, perfil:resuelto_por(nombre), venta:venta_id(numero_ticket), intento:intento_id(monto, mp_payment_id)')
+    .eq('comercio_id', comercioId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw pgError('listarResolucionesCobro', error)
+
+  type RawRes = {
+    id: string
+    intento_id: string
+    accion: AccionResolucionMP
+    venta_id: string | null
+    nota: string | null
+    created_at: string
+    perfil: { nombre: string | null } | null
+    venta: { numero_ticket: number } | null
+    intento: { monto: number; mp_payment_id: number | null } | null
+  }
+
+  return ((data ?? []) as unknown as RawRes[]).map(r => ({
+    id: r.id,
+    intento_id: r.intento_id,
+    accion: r.accion,
+    venta_id: r.venta_id,
+    nota: r.nota,
+    created_at: r.created_at,
+    resuelto_por_nombre: r.perfil?.nombre ?? null,
+    venta_numero_ticket: r.venta?.numero_ticket ?? null,
+    intento_monto: r.intento !== null ? Number(r.intento.monto) : null,
+    intento_mp_payment_id: r.intento?.mp_payment_id ?? null,
+  }))
+}
+
+/** Acciones de resolución. Match con el CHECK de mp_resoluciones_cobro. */
+export type AccionResolucionMP =
+  | 'venta_registrada'
+  | 'venta_asociada'
+  | 'reembolsado'
+  | 'descartado'
+
+/** Resultado discriminado del wrapper de la RPC resolver_intento_mp.
+ *  Los codes agrupan las EXCEPTIONs de la RPC para que el endpoint
+ *  mapee a HTTP sin parsear strings. */
+export type ResolverIntentoResult =
+  | { ok: true; resolucionId: string; intentoId: string }
+  | { ok: false; code: 'solo_admin' | 'no_encontrado' | 'estado_invalido' | 'validacion' | 'error'; message: string }
+
+/**
+ * ÚNICA vía para resolver un intento en revisión. Llama la RPC
+ * resolver_intento_mp (transaccional: auditoría + cierre en una tx,
+ * con validación de rol admin ADENTRO). Nunca hacer UPDATE manual
+ * del estado 'resuelto' desde la app.
+ */
+export async function resolverIntentoMP(
+  supabase: SupabaseClient,
+  args: {
+    intentoId: string
+    accion: AccionResolucionMP
+    ventaId?: string | null
+    nota?: string | null
+  },
+): Promise<ResolverIntentoResult> {
+  const { data, error } = await supabase.rpc('resolver_intento_mp', {
+    p_intento_id: args.intentoId,
+    p_accion: args.accion,
+    p_venta_id: args.ventaId ?? null,
+    p_nota: args.nota ?? null,
+  })
+
+  if (error) {
+    const msg = error.message || ''
+    // La RPC comunica el caso vía RAISE EXCEPTION '<token>'. Mapeamos
+    // a codes estables para el endpoint. Sin details/hint en el log
+    // (pueden incluir data del row).
+    if (msg.includes('solo_admin')) {
+      return { ok: false, code: 'solo_admin', message: 'Solo un administrador puede resolver cobros en revisión.' }
+    }
+    if (msg.includes('intento_no_encontrado')) {
+      return { ok: false, code: 'no_encontrado', message: 'El intento no existe o no pertenece a tu comercio.' }
+    }
+    if (msg.includes('estado_invalido') || msg.includes('race_detectada')) {
+      return { ok: false, code: 'estado_invalido', message: 'El intento ya no está en revisión (puede haberlo resuelto otro administrador).' }
+    }
+    if (
+      msg.includes('accion_invalida') || msg.includes('venta_requerida') ||
+      msg.includes('venta_no_encontrada') || msg.includes('venta_no_corresponde') ||
+      msg.includes('nota_requerida')
+    ) {
+      return { ok: false, code: 'validacion', message: msg }
+    }
+    console.error('[mp:resolverIntentoMP]', error.code, '-', msg)
+    return { ok: false, code: 'error', message: 'No pudimos resolver el cobro. Probá de nuevo.' }
+  }
+
+  const result = data as { resolucion_id?: string; intento_id?: string } | null
+  return {
+    ok: true,
+    resolucionId: result?.resolucion_id ?? '',
+    intentoId: result?.intento_id ?? args.intentoId,
+  }
+}

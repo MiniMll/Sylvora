@@ -117,6 +117,14 @@ export const MP_POLL_INTERVAL_MS = 2_000
  *  muy bajos; validamos antes de crear intentos para dar UX clara. */
 export const MP_MIN_AMOUNT_ARS = 15
 
+/** Umbral para considerar "huérfano silencioso" a un intento aprobado
+ *  sin venta asociada: si pasaron más de estos ms desde pagado_en y
+ *  venta_id sigue NULL, el cajero nunca completó crear_venta (cerró
+ *  el navegador, se cortó la luz, el marcado a revisión falló). El
+ *  lazy-promote de GET /api/mp/revision lo pasa a requiere_revision.
+ *  Decisión de producto aprobada: 15 minutos. */
+export const MP_HUERFANO_UMBRAL_MS = 15 * 60 * 1000
+
 /** Safety check: monto máximo permitido en sandbox para evitar
  *  errores costosos si un dev pega producción por error. En prod
  *  se ignora. */
