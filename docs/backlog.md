@@ -101,3 +101,23 @@ Mejoras que no son bugs críticos pero suman. Sin prioridad asignada todavía.
 
 - **Migrar a tokens del design system**: hoy tienen surfaces fijo-light
   y branding shadow propio, no tokenizados. Migración completa = PR aparte.
+
+### Mercado Pago
+
+- **Endpoint dedicado para "Registrar venta" desde la cola de revisión**
+  (`POST /api/mp/revision/:id/registrar-venta`): hoy la UI llama
+  `guardarVenta()` directo y después resuelve vía RPC. Funciona, pero
+  registrar una venta nueva desde el POS y reconstruir una venta ya
+  cobrada son casos de negocio distintos aunque compartan
+  implementación — el endpoint debería encapsular ambos pasos
+  (crear venta + resolver) server-side y de forma atómica ante fallas
+  de red del admin. Decisión del product owner, anotada en el Commit 5
+  de la épica requiere_revision.
+- **Re-check activo contra MP** de intentos cancelados/expirados de
+  las últimas 48 h con `order_id_mp`: cubre el único riesgo residual
+  de la épica (webhook app-level roto permanentemente + pago tardío).
+  Ver "Riesgos residuales" en docs/mp-revision-recuperacion.md.
+- **Refund vía API MP** desde la acción "reembolsado" (hoy el admin lo
+  hace en el panel MP y Sylvora solo registra).
+- **Notificación push/email** al admin cuando un cobro entra a la cola
+  (hoy: banner en dashboard al navegar).
