@@ -32,13 +32,15 @@ import { encryptToken, decryptToken } from '@/lib/mp/crypto'
 /** Estados posibles del intento de cobro. Match con el CHECK constraint.
  *
  *  Lifecycle:
- *    pendiente → aprobado     → requiere_revision (crear_venta falló)
+ *    pendiente → aprobado    → requiere_revision → resuelto
  *              → rechazado
- *              → cancelado
- *              → expirado
+ *              → cancelado  ─┐ (webhook 'approved' tardío)
+ *              → expirado   ─┴→ requiere_revision → resuelto
  *
- *  requiere_revision: terminal en V1. MP cobró pero crear_venta falló
- *  (stock cambió, RPC error, etc.). Visible para resolución manual. */
+ *  requiere_revision: MP cobró pero la venta no se registró. Visible
+ *  en la cola de revisión (admin-only).
+ *  resuelto: un admin lo resolvió vía la RPC resolver_intento_mp —
+ *  la auditoría queda en mp_resoluciones_cobro. Terminal absoluto. */
 export type EstadoIntentoMP =
   | 'pendiente'
   | 'aprobado'
@@ -46,6 +48,7 @@ export type EstadoIntentoMP =
   | 'cancelado'
   | 'expirado'
   | 'requiere_revision'
+  | 'resuelto'
 
 /** Método del intento. Match con el CHECK constraint. */
 export type MetodoIntentoMP = 'qr' | 'link'
@@ -650,4 +653,55 @@ export async function marcarIntentoRequiereRevision(
   const fresco = await obtenerIntentoCobroPorId(supabase, id)
   if (!fresco) return { ok: false, reason: 'not_found' }
   return { ok: false, reason: 'not_in_aprobado', intento: fresco }
+}
+
+/** Resultado discriminado de marcarPagoPostCancelacion. */
+export type PagoPostCancelacionResult =
+  | { ok: true; intento: IntentoCobroMP }
+  | { ok: false; reason: 'not_found' | 'not_cancelado_ni_expirado'; intento?: IntentoCobroMP }
+
+/**
+ * Clase A de huérfanos: MP confirmó un pago sobre un intento que ya
+ * estaba CANCELADO o EXPIRADO (el cliente pagó justo después de que
+ * el cajero canceló, o después de que el QR venció).
+ *
+ * El dinero ENTRÓ a la cuenta MP del comerciante — no puede quedar
+ * invisible. Transición atómica cancelado|expirado → requiere_revision
+ * con motivo fijo 'pago_post_cancelacion' en mp_status_detail, y se
+ * persisten mp_payment_id + pagado_en para trazabilidad con el
+ * dashboard MP.
+ *
+ * Atómico: UPDATE ... WHERE estado IN ('cancelado','expirado'). Si
+ * hubo race (otro proceso lo movió), devuelve el estado real sin
+ * pisar nada — el caller decide (típicamente no-op idempotente).
+ */
+export async function marcarPagoPostCancelacion(
+  supabase: SupabaseClient,
+  id: string,
+  args: { mp_payment_id: number | null; pagado_en?: Date | string | null },
+): Promise<PagoPostCancelacionResult> {
+  const pagadoIso = args.pagado_en instanceof Date
+    ? args.pagado_en.toISOString()
+    : (args.pagado_en ?? new Date().toISOString())
+
+  const { data, error } = await supabase
+    .from('intentos_cobro_mp')
+    .update({
+      estado: 'requiere_revision',
+      mp_status_detail: 'pago_post_cancelacion',
+      mp_payment_id: args.mp_payment_id,
+      pagado_en: pagadoIso,
+    })
+    .eq('id', id)
+    .in('estado', ['cancelado', 'expirado'])
+    .select(INTENTO_SELECT)
+    .maybeSingle()
+
+  if (error) throw pgError('marcarPagoPostCancelacion', error)
+  if (data) {
+    return { ok: true, intento: data as IntentoCobroMP }
+  }
+  const fresco = await obtenerIntentoCobroPorId(supabase, id)
+  if (!fresco) return { ok: false, reason: 'not_found' }
+  return { ok: false, reason: 'not_cancelado_ni_expirado', intento: fresco }
 }

@@ -42,6 +42,7 @@ import {
   obtenerIntentoCobroPorExternalReference,
   aprobarIntentoCobro,
   actualizarIntentoCobro,
+  marcarPagoPostCancelacion,
   type EstadoIntentoMP,
 } from '@/lib/supabase/mp'
 import { mapMPStatusToIntentoEstado, type MPWebhookPayload, type MPPaymentDetail } from './types'
@@ -77,16 +78,25 @@ export interface ProcessWebhookResult {
   }
 }
 
-// Estados terminales del intento — si ya está acá, no reprocesar.
-// Incluye requiere_revision: una vez que el frontend lo marcó (MP
-// cobró pero crear_venta falló), un webhook posterior no debe pisar
-// el estado. La resolución es manual.
+// Estados terminales ABSOLUTOS del intento — si ya está acá, ningún
+// webhook los pisa:
+//   - aprobado / rechazado: resultado normal del cobro.
+//   - requiere_revision: en la cola de revisión; la resolución es
+//     manual (RPC resolver_intento_mp).
+//   - resuelto: un admin ya lo resolvió con auditoría. Intocable.
+//
+// cancelado y expirado NO están acá desde la épica de revisión:
+// un payment 'approved' que llega sobre esos estados significa que
+// el cliente pagó justo después de la cancelación/expiración — el
+// dinero entró y NO puede quedar invisible. Se manejan explícitamente
+// antes de este check (transición a requiere_revision con motivo
+// pago_post_cancelacion). Cualquier otro status sobre cancelado/
+// expirado sigue siendo no-op.
 const FINAL_STATES: ReadonlySet<EstadoIntentoMP> = new Set([
   'aprobado',
   'rechazado',
-  'cancelado',
-  'expirado',
   'requiere_revision',
+  'resuelto',
 ])
 
 type WebhookCredenciales = {
@@ -484,7 +494,83 @@ export async function processMPWebhookNotification(
     ventaId: intento.venta_id,
   }))
 
-  // ── 6. Idempotencia: ya en estado final → no reprocesar ──────────
+  // ── 6.a. Caso especial: pago aprobado sobre cancelado/expirado ───
+  // El cliente pagó justo después de que el cajero canceló, o después
+  // de que el QR venció (webhook tardío). El dinero ENTRÓ a la cuenta
+  // MP del comerciante — antes esto era un no-op "ya_final" y el cobro
+  // quedaba invisible. Ahora: requiere_revision con motivo fijo
+  // 'pago_post_cancelacion' → aparece en la cola del admin.
+  const estadoOrigen = intento.estado
+  if (estadoOrigen === 'cancelado' || estadoOrigen === 'expirado') {
+    const mapeo = mapMPStatusToIntentoEstado(payment.status)
+    if (mapeo !== 'aprobado') {
+      // rejected/cancelled/pending sobre un cancelado/expirado: nada
+      // que hacer — el intento ya está terminado y no entró dinero.
+      return ok(
+        'mp_webhook_intento_ya_final',
+        {
+          intentoId: intento.id,
+          estadoActual: estadoOrigen,
+          paymentStatus: payment.status,
+        },
+      )
+    }
+
+    let marcado: Awaited<ReturnType<typeof marcarPagoPostCancelacion>>
+    try {
+      marcado = await marcarPagoPostCancelacion(opts.supabase, intento.id, {
+        mp_payment_id: payment.id,
+        pagado_en: payment.date_approved ?? new Date(),
+      })
+    } catch (e) {
+      // Error de DB → 500 para que MP reintente. La transición es
+      // atómica e idempotente, el retry es seguro.
+      return {
+        status: 500,
+        body: { error: 'internal' },
+        log: {
+          level: 'error',
+          event: 'mp_webhook_db_error_post_cancelacion',
+          intentoId: intento.id,
+          errorMessage: e instanceof Error ? e.message : 'unknown',
+        },
+      }
+    }
+
+    if (marcado.ok) {
+      // Level 'error' a propósito: es una alerta operativa — hay
+      // dinero cobrado sin venta que un admin tiene que resolver.
+      return ok(
+        'mp_webhook_pago_post_cancelacion',
+        {
+          intentoId: intento.id,
+          comercioId: cred.comercio_id,
+          paymentId,
+          estadoAnterior: estadoOrigen,
+          estadoNuevo: 'requiere_revision',
+          paymentStatus: payment.status,
+          paymentStatusDetail: payment.status_detail ?? null,
+          monto: intento.monto,
+        },
+        'error',
+      )
+    }
+    // Race: otro proceso lo movió entre el lookup y el UPDATE (p. ej.
+    // un retry del mismo webhook ya lo marcó). El WHERE atómico evitó
+    // pisar — no-op idempotente con el estado real.
+    return ok(
+      'mp_webhook_post_cancelacion_race',
+      {
+        intentoId: intento.id,
+        estadoActual: marcado.intento?.estado ?? 'desconocido',
+        paymentStatus: payment.status,
+      },
+    )
+  }
+
+  // ── 6.b. Idempotencia: ya en estado final absoluto → no reprocesar.
+  // Cubre aprobado, rechazado, requiere_revision y resuelto: approved
+  // repetido sobre cualquiera de estos es no-op.
   if (FINAL_STATES.has(intento.estado)) {
     return ok(
       'mp_webhook_intento_ya_final',

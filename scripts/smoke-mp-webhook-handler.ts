@@ -83,6 +83,8 @@ function createMockSupabase(opts?: { onUpdate?: (table: string) => 'throw' | nul
       return out
     }
 
+    const inFilters: Array<[string, unknown[]]> = []
+
     const q = {
       select(cols: string) {
         selectedCols = cols.split(',').map(c => c.trim())
@@ -91,6 +93,7 @@ function createMockSupabase(opts?: { onUpdate?: (table: string) => 'throw' | nul
         return q
       },
       eq(c: string, v: unknown) { filters.push([c, v]); return q },
+      in(c: string, vals: unknown[]) { inFilters.push([c, vals]); return q },
       insert(row: Row) { pendingOp = { kind: 'insert', row }; return q },
       upsert(row: Row, o: { onConflict: string }) {
         pendingOp = { kind: 'upsert', row, onConflict: o.onConflict }; return q
@@ -100,10 +103,15 @@ function createMockSupabase(opts?: { onUpdate?: (table: string) => 'throw' | nul
       async single() { return execute('single') },
     }
 
+    function matchesFilters(r: Row): boolean {
+      return filters.every(([k, v]) => r[k] === v) &&
+        inFilters.every(([k, vals]) => vals.includes(r[k]))
+    }
+
     function execute(mode: 'maybeSingle' | 'single') {
       const rows = store[table]
       if (pendingOp?.kind === 'select') {
-        const matched = rows.filter(r => filters.every(([k, v]) => r[k] === v))
+        const matched = rows.filter(matchesFilters)
         if (mode === 'maybeSingle') return { data: project(matched[0] ?? null), error: null }
         if (matched.length === 0) return { data: null, error: { code: 'PGRST116', message: 'no rows' } }
         return { data: project(matched[0]), error: null }
@@ -137,8 +145,14 @@ function createMockSupabase(opts?: { onUpdate?: (table: string) => 'throw' | nul
         if (opts?.onUpdate?.(table) === 'throw') {
           return { data: null, error: { code: 'X', message: 'DB caída simulada' } }
         }
-        const matched = rows.filter(r => filters.every(([k, v]) => r[k] === v))
-        if (matched.length === 0) return { data: null, error: { code: 'no_rows', message: 'no rows' } }
+        const matched = rows.filter(matchesFilters)
+        if (matched.length === 0) {
+          // Comportamiento real de Supabase: UPDATE sin match +
+          // maybeSingle → data null SIN error (así los WHERE atómicos
+          // de guards de estado detectan races). single → error.
+          if (mode === 'maybeSingle') return { data: null, error: null }
+          return { data: null, error: { code: 'no_rows', message: 'no rows' } }
+        }
         for (const r of matched) Object.assign(r, pendingOp.patch, { actualizado_en: new Date().toISOString() })
         return { data: project(matched[0]), error: null }
       }
@@ -440,6 +454,131 @@ async function run() {
     const stringified = JSON.stringify(r.log)
     assert(!stringified.includes(ACCESS_TOKEN_SENSIBLE), `LEAK del access_token en log: ${stringified}`)
     assert(!stringified.includes(SECRET), `LEAK del webhook secret: ${stringified}`)
+  })
+
+  // ── Épica requiere_revision — Commit 2: pago_post_cancelacion ─────
+
+  await check('15. approved sobre CANCELADO → requiere_revision con pago_post_cancelacion', async () => {
+    const { sb, store } = createMockSupabase()
+    await seedComercio(sb)
+    const intento = await seedIntento(sb, 'sy_pc_15')
+    const { actualizarIntentoCobro } = await import('../lib/supabase/mp')
+    await actualizarIntentoCobro(sb, intento.id, { estado: 'cancelado' })
+
+    setFetch(async () => jsonResponse(200, {
+      id: 1500, status: 'approved', status_detail: 'accredited',
+      transaction_amount: 1500, external_reference: 'sy_pc_15',
+      date_approved: '2026-07-04T12:00:00Z', date_created: 'x',
+    }))
+    const r = await processMPWebhookNotification({
+      dataId: '1500', headers: signedHeaders({ dataId: '1500' }),
+      rawBody: JSON.stringify({ type: 'payment', user_id: USER_ID_MP, data: { id: '1500' } }),
+      webhookSecret: SECRET, supabase: sb,
+    })
+    assert(r.status === 200, `status: ${r.status}`)
+    assert(r.log.event === 'mp_webhook_pago_post_cancelacion', `event: ${r.log.event}`)
+    assert(r.log.level === 'error', `level: ${r.log.level} (debe ser error — alerta operativa)`)
+    const row = store.intentos_cobro_mp.find(x => x.id === intento.id)!
+    assert(row.estado === 'requiere_revision', `estado: ${row.estado}`)
+    assert(row.mp_status_detail === 'pago_post_cancelacion', `detail: ${row.mp_status_detail}`)
+    assert(row.mp_payment_id === 1500, `payment_id: ${row.mp_payment_id}`)
+    assert(row.pagado_en === '2026-07-04T12:00:00Z', `pagado_en: ${row.pagado_en}`)
+  })
+
+  await check('16. approved sobre EXPIRADO → requiere_revision con pago_post_cancelacion', async () => {
+    const { sb, store } = createMockSupabase()
+    await seedComercio(sb)
+    const intento = await seedIntento(sb, 'sy_pc_16')
+    const { actualizarIntentoCobro } = await import('../lib/supabase/mp')
+    await actualizarIntentoCobro(sb, intento.id, { estado: 'expirado' })
+
+    setFetch(async () => jsonResponse(200, {
+      id: 1600, status: 'approved', status_detail: 'accredited',
+      transaction_amount: 1500, external_reference: 'sy_pc_16',
+      date_approved: null, date_created: 'x',
+    }))
+    const r = await processMPWebhookNotification({
+      dataId: '1600', headers: signedHeaders({ dataId: '1600' }),
+      rawBody: JSON.stringify({ type: 'payment', user_id: USER_ID_MP, data: { id: '1600' } }),
+      webhookSecret: SECRET, supabase: sb,
+    })
+    assert(r.status === 200, 'status')
+    assert(r.log.event === 'mp_webhook_pago_post_cancelacion', `event: ${r.log.event}`)
+    const row = store.intentos_cobro_mp.find(x => x.id === intento.id)!
+    assert(row.estado === 'requiere_revision', `estado: ${row.estado}`)
+    // Sin date_approved del payment → pagado_en se setea igual (now).
+    assert(typeof row.pagado_en === 'string' && row.pagado_en.length > 0, 'pagado_en quedó vacío')
+  })
+
+  await check('17. rejected sobre CANCELADO → no-op (no entró dinero)', async () => {
+    const { sb, store } = createMockSupabase()
+    await seedComercio(sb)
+    const intento = await seedIntento(sb, 'sy_pc_17')
+    const { actualizarIntentoCobro } = await import('../lib/supabase/mp')
+    await actualizarIntentoCobro(sb, intento.id, { estado: 'cancelado' })
+
+    setFetch(async () => jsonResponse(200, {
+      id: 1700, status: 'rejected', status_detail: 'cc_rejected_other',
+      transaction_amount: 1500, external_reference: 'sy_pc_17',
+      date_approved: null, date_created: 'x',
+    }))
+    const r = await processMPWebhookNotification({
+      dataId: '1700', headers: signedHeaders({ dataId: '1700' }),
+      rawBody: JSON.stringify({ type: 'payment', user_id: USER_ID_MP, data: { id: '1700' } }),
+      webhookSecret: SECRET, supabase: sb,
+    })
+    assert(r.status === 200, 'status')
+    assert(r.log.event === 'mp_webhook_intento_ya_final', `event: ${r.log.event}`)
+    const row = store.intentos_cobro_mp.find(x => x.id === intento.id)!
+    assert(row.estado === 'cancelado', `estado cambió: ${row.estado}`)
+  })
+
+  await check('18. approved sobre RESUELTO → no-op (no pisa la resolución)', async () => {
+    const { sb, store } = createMockSupabase()
+    await seedComercio(sb)
+    const intento = await seedIntento(sb, 'sy_pc_18')
+    const { actualizarIntentoCobro } = await import('../lib/supabase/mp')
+    await actualizarIntentoCobro(sb, intento.id, { estado: 'resuelto', venta_id: '00000000-0000-0000-0000-00000000v018' })
+
+    setFetch(async () => jsonResponse(200, {
+      id: 1800, status: 'approved', status_detail: 'accredited',
+      transaction_amount: 1500, external_reference: 'sy_pc_18',
+      date_approved: 'x', date_created: 'x',
+    }))
+    const r = await processMPWebhookNotification({
+      dataId: '1800', headers: signedHeaders({ dataId: '1800' }),
+      rawBody: JSON.stringify({ type: 'payment', user_id: USER_ID_MP, data: { id: '1800' } }),
+      webhookSecret: SECRET, supabase: sb,
+    })
+    assert(r.status === 200, 'status')
+    assert(r.log.event === 'mp_webhook_intento_ya_final', `event: ${r.log.event}`)
+    const row = store.intentos_cobro_mp.find(x => x.id === intento.id)!
+    assert(row.estado === 'resuelto', `estado pisado: ${row.estado}`)
+    assert(row.venta_id === '00000000-0000-0000-0000-00000000v018', 'venta_id pisado')
+  })
+
+  await check('19. approved sobre REQUIERE_REVISION → no-op (no pisa motivo)', async () => {
+    const { sb, store } = createMockSupabase()
+    await seedComercio(sb)
+    const intento = await seedIntento(sb, 'sy_pc_19')
+    const { actualizarIntentoCobro } = await import('../lib/supabase/mp')
+    await actualizarIntentoCobro(sb, intento.id, { estado: 'requiere_revision', mp_status_detail: 'motivo_original' })
+
+    setFetch(async () => jsonResponse(200, {
+      id: 1900, status: 'approved', status_detail: 'accredited',
+      transaction_amount: 1500, external_reference: 'sy_pc_19',
+      date_approved: 'x', date_created: 'x',
+    }))
+    const r = await processMPWebhookNotification({
+      dataId: '1900', headers: signedHeaders({ dataId: '1900' }),
+      rawBody: JSON.stringify({ type: 'payment', user_id: USER_ID_MP, data: { id: '1900' } }),
+      webhookSecret: SECRET, supabase: sb,
+    })
+    assert(r.status === 200, 'status')
+    assert(r.log.event === 'mp_webhook_intento_ya_final', `event: ${r.log.event}`)
+    const row = store.intentos_cobro_mp.find(x => x.id === intento.id)!
+    assert(row.estado === 'requiere_revision', `estado: ${row.estado}`)
+    assert(row.mp_status_detail === 'motivo_original', `motivo pisado: ${row.mp_status_detail}`)
   })
 
 }
