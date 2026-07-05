@@ -384,3 +384,31 @@ export async function anularVenta(venta: Venta): Promise<AnularVentaResult> {
 
   return { ok: true }
 }
+
+/**
+ * Busca una venta por número de ticket dentro del comercio actual.
+ * Usado por la cola de revisión MP ("asociar a venta existente"):
+ * el admin tipea el número del ticket y confirmamos el match antes
+ * de asociar. Devuelve null si no existe.
+ */
+export async function buscarVentaPorTicket(
+  numeroTicket: number,
+): Promise<Pick<Venta, 'id' | 'numero_ticket' | 'total' | 'metodo_pago' | 'estado' | 'created_at'> | null> {
+  if (!Number.isInteger(numeroTicket) || numeroTicket <= 0) return null
+  const supabase = getBrowserClient()
+  const comercioId = await getComercioId()
+  if (!comercioId) return null
+
+  const { data, error } = await supabase
+    .from('ventas')
+    .select('id, numero_ticket, total, metodo_pago, estado, created_at')
+    .eq('comercio_id', comercioId)
+    .eq('numero_ticket', numeroTicket)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[buscarVentaPorTicket]', error.code, '-', error.message)
+    return null
+  }
+  return data as Pick<Venta, 'id' | 'numero_ticket' | 'total' | 'metodo_pago' | 'estado' | 'created_at'> | null
+}

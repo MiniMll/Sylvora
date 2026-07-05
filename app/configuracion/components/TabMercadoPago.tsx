@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { SectionHeader } from './TabComercio'
+import { MPRevisionSection } from './MPRevisionSection'
 
 type MPCredencialesPublicas = {
   comercio_id: string
@@ -336,6 +337,11 @@ export function TabMercadoPago() {
           Los cobros QR dinámicos dejarán de estar disponibles hasta que vuelvas a conectar la cuenta.
         </p>
       </Modal>
+
+      {/* Cola de cobros a revisar (épica requiere_revision). Se
+          muestra siempre — incluso con MP desconectado puede haber
+          cobros históricos pendientes de resolución. */}
+      <MPRevisionSection />
     </div>
   )
 }

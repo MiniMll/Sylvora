@@ -294,11 +294,30 @@ function NoAccess() {
 }
 
 export default function DashboardPage() {
-  const { loading: permisosLoading, has } = usePermissions()
+  const { loading: permisosLoading, has, isAdmin } = usePermissions()
   const puedeVerDashboard = has('reporte.ver_completo')
   const [data, setData] = useState<DashboardComercial | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Cobros MP pendientes de revisión — banner ADMIN-ONLY. null =
+  // todavía no consultado / no aplica. El fetch al endpoint también
+  // dispara el lazy-promote server-side: entrar al dashboard ya
+  // detecta huérfanos, no hace falta abrir Configuración.
+  const [cobrosPendientes, setCobrosPendientes] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (permisosLoading || !isAdmin) return
+    let cancelled = false
+    fetch('/api/mp/revision', { cache: 'no-store' })
+      .then(res => res.ok ? res.json() : null)
+      .then((body: { intentos?: unknown[] } | null) => {
+        if (!cancelled && body && Array.isArray(body.intentos)) {
+          setCobrosPendientes(body.intentos.length)
+        }
+      })
+      .catch(() => { /* best-effort: sin banner si falla */ })
+    return () => { cancelled = true }
+  }, [permisosLoading, isAdmin])
 
   useEffect(() => {
     if (permisosLoading) return
@@ -363,6 +382,39 @@ export default function DashboardPage() {
   return (
     <div className="page-in" style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
       <PageHeader />
+
+      {/* Banner de cobros MP en revisión — solo admin, solo si hay
+          pendientes. Es la señal proactiva: sin esto la cola es un
+          cementerio que nadie mira. */}
+      {isAdmin && cobrosPendientes !== null && cobrosPendientes > 0 && (
+        <div style={{
+          background: 'rgba(255,184,0,0.10)',
+          border: '1px solid rgba(255,184,0,0.35)',
+          borderRadius: 12,
+          padding: '12px 16px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}>
+          <AlertTriangle size={18} color="var(--w)" strokeWidth={2} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1, minWidth: 220, fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>
+            Hay {cobrosPendientes} {cobrosPendientes === 1 ? 'cobro' : 'cobros'} de Mercado Pago que {cobrosPendientes === 1 ? 'requiere' : 'requieren'} revisión.
+          </span>
+          <Link
+            href="/configuracion?tab=mercado-pago"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 8,
+              background: 'var(--w)', color: '#1a1a1a',
+              fontSize: 12.5, fontWeight: 700, textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}>
+            Ir a revisar <ArrowRight size={13} strokeWidth={2.5} />
+          </Link>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginBottom: 16 }}>
         <KpiCard

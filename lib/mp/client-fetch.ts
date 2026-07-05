@@ -156,3 +156,77 @@ export async function asociarVentaAIntentoMP(
   })
   return (await parseJsonOrThrow(res)) as AsociarVentaResponse
 }
+
+// ────────────────────────────────────────────────────────────────────
+// Cola de revisión (épica requiere_revision)
+// ────────────────────────────────────────────────────────────────────
+
+export interface IntentoRevisionMP {
+  intento_id: string
+  monto: number
+  mp_payment_id: number | null
+  motivo: string | null
+  tipo: 'huerfano_detectado' | 'requiere_revision'
+  estado: string
+  pagado_en: string | null
+  antiguedad_minutos: number | null
+  creado_en: string
+  actualizado_en: string
+  external_reference: string
+  tiene_snapshot: boolean
+  items_snapshot: SnapshotVentaMP | null
+  venta_id: string | null
+}
+
+export interface ResolucionRevisionMP {
+  resolucion_id: string
+  intento_id: string
+  accion: 'venta_registrada' | 'venta_asociada' | 'reembolsado' | 'descartado'
+  nota: string | null
+  fecha: string
+  resuelto_por: string | null
+  venta_id: string | null
+  venta_numero_ticket: number | null
+  monto: number | null
+  mp_payment_id: number | null
+}
+
+export interface ColaRevisionResponse {
+  intentos: IntentoRevisionMP[]
+  resueltos: ResolucionRevisionMP[]
+  promovidos: number
+}
+
+/** Cola de cobros a revisar + historial. ADMIN-ONLY (403 para otros
+ *  roles — el caller debe manejarlo). Dispara el lazy-promote de
+ *  huérfanos server-side. */
+export async function obtenerColaRevisionMP(): Promise<ColaRevisionResponse> {
+  const res = await fetch('/api/mp/revision', { cache: 'no-store' })
+  return (await parseJsonOrThrow(res)) as ColaRevisionResponse
+}
+
+export interface ResolverRevisionResponse {
+  intento_id: string
+  resolucion_id: string
+  accion: string
+  estado: 'resuelto'
+}
+
+/** Resuelve un intento de la cola. Pasa por la RPC transaccional
+ *  server-side — acá solo viaja la intención. */
+export async function resolverCobroRevisionMP(
+  intentoId: string,
+  accion: 'venta_registrada' | 'venta_asociada' | 'reembolsado' | 'descartado',
+  opts?: { ventaId?: string; nota?: string },
+): Promise<ResolverRevisionResponse> {
+  const res = await fetch(`/api/mp/revision/${encodeURIComponent(intentoId)}/resolver`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      accion,
+      venta_id: opts?.ventaId,
+      nota: opts?.nota,
+    }),
+  })
+  return (await parseJsonOrThrow(res)) as ResolverRevisionResponse
+}
