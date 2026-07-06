@@ -282,28 +282,50 @@ export async function guardarVenta(venta: VentaInput): Promise<GuardarVentaResul
 }
 
 interface GetVentasOpts {
-  /** Fecha mínima inclusiva. Por defecto: sin filtro. */
+  /** Fecha mínima inclusiva (created_at >=). Por defecto: sin filtro. */
   desde?: Date
-  /** Límite opcional. Sin valor: trae todas las ventas del comercio. */
+  /** Fecha máxima inclusiva (created_at <=). Por defecto: sin filtro. */
+  hasta?: Date
+  /** Límite de filas. Sin valor: trae todas las ventas del comercio.
+   *  Los call sites de exportación SIEMPRE pasan un cap para no
+   *  descargar decenas de miles de filas al browser. */
   limit?: number
+  /** Si false, NO joina items_venta(*) — el join más pesado, ya que
+   *  arrastra todas las líneas de cada venta. Default true para no
+   *  romper call sites que sí los necesitan (historial /ventas, anular).
+   *  Los exports de ventas no usan items → pasan false. */
+  conItems?: boolean
 }
 
 /**
- * Devuelve ventas del comercio con sus items_venta.
- * Sin args trae todas las ventas (necesario para analytics correctos).
+ * Devuelve ventas del comercio, con o sin items_venta según opts.
+ * Sin args trae todas las ventas con items (comportamiento histórico).
  */
 export async function getVentas(opts: GetVentasOpts = {}): Promise<Venta[]> {
-  const supabase = getBrowserClient()
   const comercioId = await getComercioId()
   if (!comercioId) return []
+  return getVentasCon(getBrowserClient(), comercioId, opts)
+}
+
+/** Core de getVentas con client + comercioId inyectables — mismo patrón
+ *  que anularVentaCon. Los smokes testean el armado de la query acá; la
+ *  app usa el wrapper de arriba. */
+export async function getVentasCon(
+  supabase: ReturnType<typeof getBrowserClient>,
+  comercioId: string,
+  opts: GetVentasOpts = {},
+): Promise<Venta[]> {
+  const conItems = opts.conItems !== false
+  const columns = conItems ? '*, items_venta(*)' : '*'
 
   let query = supabase
     .from('ventas')
-    .select('*, items_venta(*)')
+    .select(columns)
     .eq('comercio_id', comercioId)
     .order('created_at', { ascending: false })
 
   if (opts.desde) query = query.gte('created_at', opts.desde.toISOString())
+  if (opts.hasta) query = query.lte('created_at', opts.hasta.toISOString())
   if (opts.limit) query = query.limit(opts.limit)
 
   const { data, error } = await query
@@ -311,7 +333,10 @@ export async function getVentas(opts: GetVentasOpts = {}): Promise<Venta[]> {
     console.error(error)
     return []
   }
-  return (data ?? []) as Venta[]
+  // Cast vía unknown: el select con string dinámico (por conItems)
+  // pierde el tipado literal del parser de Supabase. El shape en runtime
+  // es correcto — Venta con o sin items_venta según la columna pedida.
+  return (data ?? []) as unknown as Venta[]
 }
 
 interface AnularVentaResult {

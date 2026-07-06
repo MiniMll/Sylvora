@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { getProductos } from '@/lib/supabase/productos'
 import { getVentas } from '@/lib/supabase/ventas'
 import { getComercio } from '@/lib/supabase/_base'
+import type { PeriodoExport } from '@/lib/exportar/periodo'
+import { traerVentasParaExport } from '@/lib/exportar/ventas-export'
 import { toast } from 'sonner'
 import { FileText, Table, Receipt, BarChart2, AlertTriangle, Info, Package, ShoppingCart, Lightbulb } from 'lucide-react'
 import { formatPeso } from '@/lib/utils'
@@ -66,7 +68,7 @@ function dibujarFooter(doc: jsPDF) {
 
 
 export default function ExportarPage() {
-  const [periodo, setPeriodo] = useState('mes')
+  const [periodo, setPeriodo] = useState<PeriodoExport>('mes')
   const [cargando, setCargando] = useState<string | null>(null)
   // Datos del comercio para el header de los PDFs. Cached por sesión
   // via getComercio. Se carga una vez al montar la página.
@@ -85,10 +87,29 @@ export default function ExportarPage() {
   }, [])
 
   useEffect(() => {
-    Promise.all([getProductos(), getVentas()])
+    // Chequeo de existencia liviano: solo necesitamos saber si hay ≥1
+    // venta, no descargar todas con sus items. limit:1 + conItems:false
+    // trae 1 fila sin joins en vez del historial completo.
+    Promise.all([getProductos(), getVentas({ limit: 1, conItems: false })])
       .then(([productos, ventas]) => setHayDatos(productos.length > 0 || ventas.length > 0))
       .catch(() => setHayDatos(true)) // ante error, no bloqueamos la exportación
   }, [])
+
+  // Trae las ventas del período para exportar (sin items, con guarda de
+  // tamaño). Si el período es demasiado grande, avisa y devuelve null —
+  // preferimos CANCELAR la exportación antes que generar un archivo
+  // financiero incompleto.
+  const obtenerVentasOAbortar = async (): Promise<Awaited<ReturnType<typeof getVentas>> | null> => {
+    const res = await traerVentasParaExport(getVentas, periodo)
+    if (!res.ok) {
+      toast.error(
+        'El período seleccionado tiene demasiadas ventas para exportar de una vez. Elegí un rango más corto (por ejemplo, este mes) y volvé a intentar.',
+        { duration: 9000 },
+      )
+      return null
+    }
+    return res.ventas
+  }
 
   const exportar = async (id: string, fn: () => Promise<void>) => {
     setCargando(id)
@@ -197,7 +218,8 @@ export default function ExportarPage() {
 
   const exportarVentasPDF = async () => {
     setCargando('ventas-pdf')
-    const ventas = await getVentas()
+    const ventas = await obtenerVentasOAbortar()
+    if (!ventas) return   // período demasiado grande — cancelado, sin archivo
     const { default: jsPDF } = await import('jspdf')
     const { default: autoTable } = await import('jspdf-autotable')
     const doc = new jsPDF()
@@ -233,7 +255,8 @@ export default function ExportarPage() {
 
   const exportarVentasExcel = async () => {
     setCargando('ventas-excel')
-    const ventas = await getVentas()
+    const ventas = await obtenerVentasOAbortar()
+    if (!ventas) return   // período demasiado grande — cancelado, sin archivo
     const XLSX = await import('xlsx')
     const datos = ventas.map((v: any) => ({
       'Fecha': new Date(v.created_at).toLocaleString('es-AR'),
@@ -338,7 +361,7 @@ export default function ExportarPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
             <label style={{ fontSize: 11, color: 'var(--text2)', display: 'block', marginBottom: 4 }}>Período</label>
-            <Select value={periodo} onChange={e => setPeriodo(e.target.value)} style={{ padding: '8px 10px' }}>
+            <Select value={periodo} onChange={e => setPeriodo(e.target.value as PeriodoExport)} style={{ padding: '8px 10px' }}>
               <option value="hoy">Hoy</option>
               <option value="semana">Esta semana</option>
               <option value="mes">Este mes</option>
