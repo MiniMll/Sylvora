@@ -344,20 +344,52 @@ interface AnularVentaResult {
  *   - supabase-migracion-items-venta-peso.sql (idealmente)
  */
 export async function anularVenta(venta: Venta): Promise<AnularVentaResult> {
+  return anularVentaCon(getBrowserClient(), venta)
+}
+
+/** Core de anularVenta con client inyectable — mismo patrón que
+ *  lib/supabase/mp.ts. Los smokes lo testean con mock; la app usa
+ *  el wrapper de arriba. */
+export async function anularVentaCon(
+  supabase: ReturnType<typeof getBrowserClient>,
+  venta: Venta,
+): Promise<AnularVentaResult> {
   if (venta.estado === 'anulada') {
     return { ok: false, error: 'Esta venta ya está anulada' }
   }
 
-  const supabase = getBrowserClient()
+  // Ventas cobradas por Mercado Pago: el dinero YA entró a la cuenta
+  // MP del comerciante y Sylvora no ejecuta devoluciones (V1). El
+  // flag reembolso_mp_pendiente viaja en el MISMO update de anulación
+  // — atómico: no puede quedar anulada sin la marca.
+  const esMP = venta.metodo_pago === 'mercadopago'
+  const patch: Record<string, unknown> = { estado: 'anulada' }
+  if (esMP) patch.reembolso_mp_pendiente = true
 
   // Marcar anulada con guarda atómica de doble click / doble sesión.
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('ventas')
-    .update({ estado: 'anulada' })
+    .update(patch)
     .eq('id', venta.id)
     .eq('estado', 'completada')
     .select()
     .maybeSingle()
+
+  // Backward-compat con DBs sin migration-ventas-reembolso-mp.sql:
+  // si la columna no existe, reintentar sin el flag (mismo patrón que
+  // cerrarCaja). La anulación no se bloquea por la marca.
+  if (error && esMP && /reembolso_mp_pendiente/i.test(error.message || '')) {
+    console.warn('[anularVenta] columna reembolso_mp_pendiente ausente — correr migration-ventas-reembolso-mp.sql')
+    const retry = await supabase
+      .from('ventas')
+      .update({ estado: 'anulada' })
+      .eq('id', venta.id)
+      .eq('estado', 'completada')
+      .select()
+      .maybeSingle()
+    data = retry.data
+    error = retry.error
+  }
 
   if (error) {
     console.error(error)
@@ -383,6 +415,48 @@ export async function anularVenta(venta: Venta): Promise<AnularVentaResult> {
   }
 
   return { ok: true }
+}
+
+/**
+ * Marca como ejecutado el reembolso manual de una venta MP anulada.
+ * El comerciante lo confirma DESPUÉS de hacer la devolución desde el
+ * panel de Mercado Pago — Sylvora no devuelve dinero (V1).
+ *
+ * Atómico: UPDATE ... WHERE estado='anulada' AND
+ * reembolso_mp_pendiente=true. Si la venta no está en ese estado
+ * exacto (ya confirmado desde otra pestaña, o no era una anulación
+ * MP), devuelve false sin tocar nada.
+ *
+ * Permiso: mismo gate que anular (venta.anular — admin/encargado);
+ * la UI lo aplica y la RLS de UPDATE de ventas contiene.
+ */
+export async function marcarReembolsoMPHecho(ventaId: string): Promise<boolean> {
+  const comercioId = await getComercioId()
+  if (!comercioId) return false
+  return marcarReembolsoMPHechoCon(getBrowserClient(), comercioId, ventaId)
+}
+
+/** Core con client inyectable — ver anularVentaCon. */
+export async function marcarReembolsoMPHechoCon(
+  supabase: ReturnType<typeof getBrowserClient>,
+  comercioId: string,
+  ventaId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('ventas')
+    .update({ reembolso_mp_pendiente: false })
+    .eq('id', ventaId)
+    .eq('comercio_id', comercioId)
+    .eq('estado', 'anulada')
+    .eq('reembolso_mp_pendiente', true)
+    .select('id')
+    .maybeSingle()
+
+  if (error) {
+    console.error('[marcarReembolsoMPHecho]', error.code, '-', error.message)
+    return false
+  }
+  return data !== null
 }
 
 /**

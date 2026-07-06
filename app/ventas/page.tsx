@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { getVentas, anularVenta } from '@/lib/supabase/ventas'
+import { getVentas, anularVenta, marcarReembolsoMPHecho } from '@/lib/supabase/ventas'
 import { getComercio } from '@/lib/supabase/_base'
 import { formatPeso, formatTicketText, shareOrCopy, formatFechaTicket, labelMetodoPago } from '@/lib/utils'
-import { puedeAnularVenta } from '@/lib/permissions'
+import { puedeAnularVenta, rolPuede } from '@/lib/permissions'
 import { Search, TrendingUp, Receipt, Hash, X, AlertTriangle, Printer, Share2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { usePermissions } from '@/components/PermissionsProvider'
@@ -76,6 +76,7 @@ export default function VentasPage() {
   const handleAnular = async () => {
     if (!detalle || anulando) return
     setAnulando(true)
+    const esMP = detalle.metodo_pago === 'mercadopago'
     const r = await anularVenta(detalle)
     if (!r.ok) {
       toast.error(r.error || 'No se pudo anular la venta', { id: 'venta-anular' })
@@ -83,12 +84,41 @@ export default function VentasPage() {
       setConfirmarAnular(false)
       return
     }
-    // Update local — venta marcada como anulada en la lista y en el modal.
-    setVentas(prev => prev.map(v => v.id === detalle.id ? { ...v, estado: 'anulada' } : v))
-    setDetalle(prev => prev ? { ...prev, estado: 'anulada' } : null)
-    toast.success(`Ticket #${String(detalle.numero_ticket).padStart(4, '0')} anulado. Stock restituido.`, { id: 'venta-anular' })
+    // Update local — venta marcada como anulada en la lista y en el
+    // modal. Para MP, además queda con el reembolso pendiente (mismo
+    // valor que grabó anularVenta).
+    const patch = esMP
+      ? { estado: 'anulada' as const, reembolso_mp_pendiente: true }
+      : { estado: 'anulada' as const }
+    setVentas(prev => prev.map(v => v.id === detalle.id ? { ...v, ...patch } : v))
+    setDetalle(prev => prev ? { ...prev, ...patch } : null)
+    if (esMP) {
+      toast.warning(
+        `Ticket #${String(detalle.numero_ticket).padStart(4, '0')} anulado. Acordate de devolver ${formatPeso(detalle.total)} desde el panel de Mercado Pago.`,
+        { id: 'venta-anular', duration: 10000 },
+      )
+    } else {
+      toast.success(`Ticket #${String(detalle.numero_ticket).padStart(4, '0')} anulado. Stock restituido.`, { id: 'venta-anular' })
+    }
     setAnulando(false)
     setConfirmarAnular(false)
+  }
+
+  // Confirmación de que el comerciante YA devolvió el dinero desde el
+  // panel de MP. Atómico server-side (WHERE anulada + pendiente).
+  const [confirmandoReembolso, setConfirmandoReembolso] = useState(false)
+  const handleReembolsoHecho = async () => {
+    if (!detalle || confirmandoReembolso) return
+    setConfirmandoReembolso(true)
+    const ok = await marcarReembolsoMPHecho(detalle.id)
+    if (ok) {
+      setVentas(prev => prev.map(v => v.id === detalle.id ? { ...v, reembolso_mp_pendiente: false } : v))
+      setDetalle(prev => prev ? { ...prev, reembolso_mp_pendiente: false } : null)
+      toast.success('Reembolso registrado.', { id: 'venta-reembolso' })
+    } else {
+      toast.error('No pudimos registrarlo. Puede que ya esté confirmado — refrescá la página.', { id: 'venta-reembolso' })
+    }
+    setConfirmandoReembolso(false)
   }
 
   const totalFiltrado = ventasFiltradas.reduce((s, v) => s + Number(v.total), 0)
@@ -277,6 +307,19 @@ export default function VentasPage() {
                         <span style={{ width: 5, height: 5, borderRadius: '50%', background: isAnulada ? 'var(--r)' : 'var(--g)' }} />
                         {isAnulada ? 'Anulada' : v.estado}
                       </span>
+                      {/* Indicador de reembolso MP pendiente en la lista —
+                          sin esto habría que abrir cada anulada para
+                          descubrir qué devoluciones se deben. */}
+                      {isAnulada && v.reembolso_mp_pendiente && (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center',
+                          marginLeft: 6, padding: '3px 8px', borderRadius: 999,
+                          background: 'rgba(255,184,0,0.14)', color: 'var(--w)',
+                          fontSize: 10, fontWeight: 700, letterSpacing: '0.02em',
+                        }}>
+                          Reembolso MP
+                        </span>
+                      )}
                     </td>
                     <td style={{
                       padding: '9px 12px',
@@ -331,6 +374,40 @@ export default function VentasPage() {
                 <div style={{ fontSize: 12, color: 'var(--r)', fontWeight: 600 }}>
                   Esta venta fue anulada. El stock fue restituido al inventario.
                 </div>
+              </div>
+            )}
+
+            {/* Reembolso MP pendiente — visible hasta que el comerciante
+                confirme la devolución hecha desde el panel de MP. El
+                botón está gateado por el mismo permiso que anular. */}
+            {isAnulada && detalle.reembolso_mp_pendiente && (
+              <div style={{
+                background: 'rgba(255,184,0,0.10)',
+                borderBottom: '1px solid rgba(255,184,0,0.35)',
+                padding: '12px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                flexWrap: 'wrap',
+              }}>
+                <AlertTriangle size={16} color="var(--w)" strokeWidth={1.8} style={{ flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: 'var(--text)', fontWeight: 600, lineHeight: 1.5 }}>
+                  Reembolso de Mercado Pago pendiente: devolvé {formatPeso(detalle.total)} al
+                  cliente desde el panel de MP.
+                </div>
+                {/* Gate por rol directo — puedeAnularVenta devuelve
+                    allowed:false para anuladas (guard de doble
+                    anulación), no sirve acá. */}
+                {rolPuede(rol, 'venta.anular') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReembolsoHecho}
+                    loading={confirmandoReembolso}
+                  >
+                    Marcar como reembolsado
+                  </Button>
+                )}
               </div>
             )}
 
@@ -471,6 +548,27 @@ export default function VentasPage() {
               Se marcará el ticket #{String(detalle.numero_ticket).padStart(4, '0')} como anulado
               y se devolverá el stock al inventario.
             </div>
+            {detalle.metodo_pago === 'mercadopago' && (
+              <div style={{
+                fontSize: 12, color: 'var(--w)', fontWeight: 600,
+                background: 'rgba(255,184,0,0.10)',
+                border: '1px solid rgba(255,184,0,0.35)',
+                borderRadius: 8, padding: '10px 12px',
+                marginBottom: 8, textAlign: 'left', lineHeight: 1.5,
+              }}>
+                Esta venta se cobró por <b>Mercado Pago</b> ({formatPeso(detalle.total)}).
+                Al anular, Sylvora va a:
+                <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                  <li>marcar la venta como anulada,</li>
+                  <li>restituir el stock al inventario.</li>
+                </ul>
+                <div style={{ marginTop: 6 }}>
+                  Pero <b>NO devuelve el dinero automáticamente</b>: el reembolso lo tenés
+                  que hacer vos desde el panel de Mercado Pago. La venta va a quedar marcada
+                  como &quot;Reembolso MP pendiente&quot; hasta que lo confirmes.
+                </div>
+              </div>
+            )}
             <div style={{
               fontSize: 12, color: 'var(--r)',
               background: 'rgba(255,71,87,0.06)',

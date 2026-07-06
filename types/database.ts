@@ -113,6 +113,10 @@ export interface Venta {
   total: number
   metodo_pago: string
   estado: EstadoVenta
+  /** true = venta anulada que había sido cobrada por Mercado Pago y
+   *  cuya devolución manual (panel MP) todavía no fue confirmada.
+   *  Opcional para compat con rows cacheados pre-migración. */
+  reembolso_mp_pendiente?: boolean
   created_at: string
   items_venta?: ItemVenta[]
 }
