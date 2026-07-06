@@ -1,16 +1,26 @@
 'use client'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
 import { Brand } from '@/components/brand/Brand'
 
-export default function LoginPage() {
+// Mensajes que puede dejar /auth/callback al fallar el link de
+// recuperación (llega como ?auth=...).
+const AUTH_MENSAJES: Record<string, string> = {
+  link_invalido: 'El link de recuperación no es válido. Pedí uno nuevo.',
+  link_expirado: 'El link de recuperación venció. Pedí uno nuevo.',
+}
+
+function LoginInner() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const authAviso = AUTH_MENSAJES[searchParams.get('auth') ?? '']
 
   const handleLogin = async () => {
     setCargando(true)
@@ -73,6 +83,13 @@ export default function LoginPage() {
         <div style={{ fontSize: 21, fontWeight: 700, color: '#1a1a1e', letterSpacing: '-0.4px', marginBottom: 6 }}>Iniciar sesión</div>
         <div style={{ fontSize: 13.5, color: '#888898', marginBottom: 28, lineHeight: 1.5 }}>Ingresá con tu cuenta del comercio</div>
 
+        {authAviso && (
+          <div style={{ marginBottom: 20, background: 'rgba(255,184,0,0.1)', border: '1px solid rgba(255,184,0,0.3)', borderRadius: 10, padding: '9px 14px', fontSize: 12.5, color: '#8a6d00', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <AlertCircle size={13} style={{ flexShrink: 0 }} />
+            {authAviso}
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
             <label style={{ fontSize: 12, color: '#6b6b72', fontWeight: 600, display: 'block', marginBottom: 6, letterSpacing: '0.01em' }}>Email</label>
@@ -89,7 +106,12 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label style={{ fontSize: 12, color: '#6b6b72', fontWeight: 600, display: 'block', marginBottom: 6, letterSpacing: '0.01em' }}>Contraseña</label>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ fontSize: 12, color: '#6b6b72', fontWeight: 600, letterSpacing: '0.01em' }}>Contraseña</label>
+              <Link href="/recuperar" style={{ fontSize: 11.5, color: 'var(--ac)', textDecoration: 'none', fontWeight: 600 }}>
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
             <input
               type="password"
               value={password}
@@ -160,5 +182,18 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Suspense boundary — useSearchParams en Next 16 requiere que el
+// componente esté envuelto en Suspense para que el static render no
+// rompa. Fallback mínimo (mismo fondo) para no parpadear.
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="auth-light" style={{ minHeight: '100vh', background: 'linear-gradient(145deg, #f0eefc 0%, #f5f4f0 50%, #edf5f2 100%)' }} />
+    }>
+      <LoginInner />
+    </Suspense>
   )
 }

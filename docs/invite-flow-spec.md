@@ -113,10 +113,13 @@ SUPABASE_SERVICE_ROLE_KEY=<key del dashboard Supabase>
 - Agregar a `.env.local` para dev y al provider de hosting para prod.
 - Documentar en `.env.example` con valor placeholder.
 
-SMTP: Supabase tiene SMTP default que sirve para V1 (limitado a ~3
-emails/hora en proyectos free). Para producción seria conviene
-configurar SMTP propio (Resend, Postmark, etc.) en Supabase Auth
-Settings. Fuera de scope V1.
+SMTP: el SMTP default de Supabase (~3-4 emails/hora en proyectos free,
+deliverability pobre) alcanza solo para probar. **SMTP propio (Resend,
+Postmark, etc.) en Authentication → SMTP Settings es REQUISITO antes de
+producción, no opcional** — tanto las invitaciones (este flujo) como la
+recuperación de contraseña dependen de que el email llegue de forma
+confiable. Reclasificado con el hallazgo U4 (P1) de la auditoría QA
+jul-2026; ver `docs/qa-recuperacion-password.md` §8.
 
 ---
 
@@ -234,8 +237,9 @@ más sensible — vamos despacio ahí.
   Mitigación: doble check (cookies + perfil.rol via service role) en
   el handler. Test con cURL como empleado para validar.
 - **Email spam / rate limit**: SMTP default de Supabase tiene límite
-  estricto. Mitigación: documentar el límite, esperar SMTP custom en
-  prod.
+  estricto (~3-4/h). Mitigación: **SMTP propio es requisito antes de
+  producción** (hallazgo U4/P1) — no un "nice to have". Sin él, el 2º
+  invite de la hora no llega y el onboarding de equipo se rompe.
 - **Race condition crear user + crear perfil**: si el segundo paso
   falla, el primer paso queda zombie. Mitigación: rollback explícito
   (delete user) en el catch.

@@ -7,6 +7,7 @@ import { invalidarCacheComercio } from '@/lib/supabase/_base'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { DemoLockNotice } from '@/components/ui/DemoLockNotice'
+import { validarPasswordNueva } from '@/lib/auth/password'
 import { SectionHeader, Field } from './TabComercio'
 
 // Tab "Cuenta" — datos de TU cuenta (nombre + email login) +
@@ -66,12 +67,9 @@ export function TabCuenta({ perfilId, perfilNombre, email, onSaved, bloqueado = 
   }
 
   const cambiarPassword = async () => {
-    if (pwd1.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres')
-      return
-    }
-    if (pwd1 !== pwd2) {
-      toast.error('Las contraseñas no coinciden')
+    const v = validarPasswordNueva(pwd1, pwd2)
+    if (!v.ok) {
+      toast.error(v.error)
       return
     }
     setCambiandoPwd(true)
