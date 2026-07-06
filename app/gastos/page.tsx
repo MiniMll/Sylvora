@@ -25,6 +25,7 @@ import {
   listarGastos,
   type GastoInput,
 } from '@/lib/supabase/gastos'
+import { fechaLocalArgentina, mesLocalArgentina } from '@/lib/operacion/diaOperativo'
 import type { CategoriaGasto, Gasto } from '@/types/database'
 
 const PAGE_SIZE = 20
@@ -39,13 +40,26 @@ interface FormState {
   observaciones: string
 }
 
+// Fechas "actuales" del módulo Gastos en huso Argentina (no UTC).
+// Antes usaban toISOString().slice(0,10), que devuelve fecha UTC: desde
+// las 21:00 AR el default del form saltaba al día siguiente y el gasto
+// caía en el día/mes equivocado (hallazgo G1/P1 de la auditoría QA).
+// Se reusa el helper que resuelve la fecha CALENDARIO en TZ Argentina.
+//
+// DECISIÓN DE ARQUITECTURA (no borrar): los gastos usan fecha
+// calendario local, NO el día operativo configurable. Para comercios
+// 24hs es idéntico a lo que ven Caja y Dashboard. Para comercios
+// nocturnos (día operativo 18-02, etc.), un gasto a la 01:30 se imputa
+// al día calendario (hoy), no al día operativo (ayer). Alinear gastos
+// con fechaOperativaDeTimestamp(settings) es el hallazgo G2/P2, aparte
+// — ver docs/backlog.md §Gastos. Se dejó fuera de G1 para no mezclar
+// correcciones.
 function todayInputValue(): string {
-  return new Date().toISOString().slice(0, 10)
+  return fechaLocalArgentina()
 }
 
 function monthStartInputValue(): string {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+  return mesLocalArgentina()
 }
 
 function emptyForm(): FormState {

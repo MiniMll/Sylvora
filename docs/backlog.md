@@ -121,3 +121,20 @@ Mejoras que no son bugs críticos pero suman. Sin prioridad asignada todavía.
   hace en el panel MP y Sylvora solo registra).
 - **Notificación push/email** al admin cuando un cobro entra a la cola
   (hoy: banner en dashboard al navegar).
+
+### Gastos
+
+- **Imputación de gastos al día operativo configurable (hallazgo G2 /
+  P2 de la auditoría QA jul-2026)**: hoy el módulo Gastos usa fecha
+  CALENDARIO local Argentina (`fechaLocalArgentina` /
+  `mesLocalArgentina`) tanto para el default del form como para el
+  filtro de rango. Para comercios 24hs es idéntico a Caja/Dashboard.
+  Para comercios con día operativo configurable (ej. nocturno 18-02),
+  un gasto cargado a la 01:30 se imputa al día calendario (hoy), no al
+  día operativo (que sería ayer). Alinear gastos con
+  `fechaOperativaDeTimestamp(settings)` — mismo criterio que Caja,
+  Dashboard y Reportes — requiere leer `comercio.settings` en la page.
+  Decisión de arquitectura documentada al cerrar G1: el fix de la
+  fecha UTC (G1/P1) se hizo sin tocar esta imputación para no mezclar
+  correcciones. Ver comentario en app/gastos/page.tsx (helpers de
+  fecha) y docs/qa-auditoria-integral-2026-07.md §1.6.
