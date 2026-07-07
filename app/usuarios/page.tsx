@@ -124,7 +124,11 @@ export default function UsuariosPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        toast.success(`Invitación enviada a ${invEmail.trim()}`)
+        toast.success(
+          data.reenviada
+            ? `Invitación reenviada a ${invEmail.trim()}`
+            : `Invitación enviada a ${invEmail.trim()}`
+        )
         await refrescarUsuarios()
         resetInviteForm()
         setInvitarOpen(false)

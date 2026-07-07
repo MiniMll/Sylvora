@@ -1,23 +1,28 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Brand } from '@/components/brand/Brand'
 import { validarPasswordNueva } from '@/lib/auth/password'
 
-// /reset-password — pantalla final de la recuperación. Requiere la
-// sesión de recuperación que estableció /auth/callback. Setea la nueva
-// contraseña con updateUser y entra al dashboard.
+// /reset-password — pantalla de fijación de contraseña. Sirve a DOS flujos
+// (mismo código, distinto copy según ?bienvenida):
+//   - Recuperación (V1, default): "Nueva contraseña".
+//   - Invitación / primer acceso (U4, ?bienvenida=1): el empleado invitado
+//     fija su PRIMERA contraseña.
 //
-// Si se llega acá sin sesión (link vencido, o acceso directo), se
-// muestra el estado "link inválido" con salida a /recuperar.
+// En ambos requiere la sesión que estableció /auth/callback. Si se llega
+// sin sesión (link vencido/usado o acceso directo), muestra el estado
+// "link inválido" con la salida acorde al flujo.
 
 type Estado = 'verificando' | 'listo' | 'sin_sesion'
 
-export default function ResetPasswordPage() {
+function ResetPasswordInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const esBienvenida = searchParams.get('bienvenida') === '1'
   const [estado, setEstado] = useState<Estado>('verificando')
   const [pwd1, setPwd1] = useState('')
   const [pwd2, setPwd2] = useState('')
@@ -45,7 +50,7 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password: pwd1 })
     if (error) {
       console.warn('[reset-password] updateUser:', error.message)
-      setError('No pudimos actualizar la contraseña. Puede que el link haya vencido — pedí uno nuevo.')
+      setError('No pudimos guardar la contraseña. Puede que el link haya vencido — pedí uno nuevo.')
       setGuardando(false)
       return
     }
@@ -92,29 +97,44 @@ export default function ResetPasswordPage() {
       <>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
           <AlertCircle size={20} color="var(--r)" strokeWidth={2} />
-          <div style={{ fontSize: 19, fontWeight: 700, color: '#1a1a1e', letterSpacing: '-0.3px' }}>Link inválido o vencido</div>
+          <div style={{ fontSize: 19, fontWeight: 700, color: '#1a1a1e', letterSpacing: '-0.3px' }}>
+            {esBienvenida ? 'Invitación inválida o vencida' : 'Link inválido o vencido'}
+          </div>
         </div>
         <div style={{ fontSize: 13.5, color: '#888898', marginBottom: 24, lineHeight: 1.55 }}>
-          El link de recuperación no es válido o ya venció. Pedí uno nuevo para
-          crear tu contraseña.
+          {esBienvenida
+            ? 'El link de invitación no es válido o ya venció. Pedile al administrador de tu comercio que te reenvíe la invitación.'
+            : 'El link de recuperación no es válido o ya venció. Pedí uno nuevo para crear tu contraseña.'}
         </div>
-        <Link href="/recuperar" style={{ color: 'var(--ac)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
-          Pedir un nuevo link →
-        </Link>
+        {esBienvenida ? (
+          <Link href="/login" style={{ color: 'var(--ac)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
+            ← Ir a iniciar sesión
+          </Link>
+        ) : (
+          <Link href="/recuperar" style={{ color: 'var(--ac)', textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>
+            Pedir un nuevo link →
+          </Link>
+        )}
       </>
     )
   }
 
   return card(
     <>
-      <div style={{ fontSize: 21, fontWeight: 700, color: '#1a1a1e', letterSpacing: '-0.4px', marginBottom: 6 }}>Nueva contraseña</div>
+      <div style={{ fontSize: 21, fontWeight: 700, color: '#1a1a1e', letterSpacing: '-0.4px', marginBottom: 6 }}>
+        {esBienvenida ? '¡Te damos la bienvenida!' : 'Nueva contraseña'}
+      </div>
       <div style={{ fontSize: 13.5, color: '#888898', marginBottom: 28, lineHeight: 1.5 }}>
-        Elegí una contraseña nueva para tu cuenta.
+        {esBienvenida
+          ? 'Te invitaron a usar Sylvora. Creá una contraseña para entrar a tu cuenta.'
+          : 'Elegí una contraseña nueva para tu cuenta.'}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <label style={{ fontSize: 12, color: '#6b6b72', fontWeight: 600, display: 'block', marginBottom: 6 }}>Nueva contraseña</label>
+          <label style={{ fontSize: 12, color: '#6b6b72', fontWeight: 600, display: 'block', marginBottom: 6 }}>
+            {esBienvenida ? 'Contraseña' : 'Nueva contraseña'}
+          </label>
           <input type="password" value={pwd1} onChange={e => setPwd1(e.target.value)} placeholder="••••••••"
             onFocus={e => { e.target.style.borderColor = 'var(--ac)'; e.target.style.boxShadow = '0 0 0 3px rgba(91,76,255,0.1)' }}
             onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,0.12)'; e.target.style.boxShadow = 'none' }}
@@ -147,8 +167,20 @@ export default function ResetPasswordPage() {
         }}>
         {guardando
           ? <><Loader2 size={15} style={{ animation: 'spin 0.75s linear infinite' }} /> Guardando...</>
-          : <>Guardar contraseña <ArrowRight size={15} /></>}
+          : <>{esBienvenida ? 'Crear contraseña y entrar' : 'Guardar contraseña'} <ArrowRight size={15} /></>}
       </button>
     </>
+  )
+}
+
+// Suspense boundary — useSearchParams en Next 16 requiere el wrap para no
+// romper el static render. Fallback mínimo (mismo fondo) para no parpadear.
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="auth-light" style={{ minHeight: '100vh', background: 'linear-gradient(145deg, #f0eefc 0%, #f5f4f0 50%, #edf5f2 100%)' }} />
+    }>
+      <ResetPasswordInner />
+    </Suspense>
   )
 }

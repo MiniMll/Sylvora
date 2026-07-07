@@ -6,11 +6,13 @@ import Link from 'next/link'
 import { AlertCircle, ArrowRight, Loader2 } from 'lucide-react'
 import { Brand } from '@/components/brand/Brand'
 
-// Mensajes que puede dejar /auth/callback al fallar el link de
-// recuperación (llega como ?auth=...).
+// Mensajes que puede dejar /auth/callback al fallar el link (llega como
+// ?auth=...). Distingue recuperación (link_*) de invitación (invite_*).
 const AUTH_MENSAJES: Record<string, string> = {
   link_invalido: 'El link de recuperación no es válido. Pedí uno nuevo.',
   link_expirado: 'El link de recuperación venció. Pedí uno nuevo.',
+  invite_invalido: 'El link de invitación no es válido. Pedile al admin de tu comercio que te reenvíe la invitación.',
+  invite_expirado: 'El link de invitación venció. Pedile al admin de tu comercio que te reenvíe la invitación.',
 }
 
 function LoginInner() {

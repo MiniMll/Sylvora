@@ -86,8 +86,19 @@ export async function POST(req: Request) {
   //   - Email nuevo → crea user + manda magic link → success.
   //   - Email existente NO confirmado → reenvía magic link → success.
   //   - Email existente Y confirmado → error "already registered".
+  //
+  // redirectTo manda el link a /auth/callback?tipo=invitacion (misma
+  // pieza que recuperación, V1). El callback intercambia el code y lleva
+  // al invitado a /reset-password en modo "bienvenida" a fijar su primera
+  // contraseña. La URL base sale de NEXT_PUBLIC_APP_URL (sin dominios
+  // hardcodeados; ya la usa app/layout.tsx); fallback al origin del
+  // request. La URL debe estar en Redirect URLs de Supabase — es la MISMA
+  // entrada {SITE_URL}/auth/callback que ya requiere recuperación.
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin
   const { data: inviteData, error: inviteError } = await admin.auth.admin
-    .inviteUserByEmail(emailNorm)
+    .inviteUserByEmail(emailNorm, {
+      redirectTo: `${baseUrl}/auth/callback?tipo=invitacion`,
+    })
 
   if (inviteError) {
     const msg = (inviteError.message || '').toLowerCase()
@@ -127,10 +138,20 @@ export async function POST(req: Request) {
         .eq('id', userId)
         .single()
       const mismoComercio = perfilExistente?.comercio_id === callerPerfil.comercio_id
+
+      // REENVÍO: llegar acá con el perfil ya existente EN ESTE COMERCIO
+      // implica que el paso 4 (inviteUserByEmail) devolvió success, lo que
+      // solo pasa con un usuario NO confirmado (si estuviera confirmado, el
+      // paso 4 habría cortado con "already registered" → 409). O sea: es un
+      // invitado pendiente y Supabase acaba de REENVIARLE el magic link.
+      // No es un error: devolvemos 200 para que la UI diga "reenviada" en
+      // vez de "ya pertenece". No tocamos el rol existente — se cambia desde
+      // la tabla de usuarios si hace falta.
+      if (mismoComercio) {
+        return NextResponse.json({ ok: true, user_id: userId, reenviada: true }, { status: 200 })
+      }
       return NextResponse.json({
-        error: mismoComercio
-          ? 'Ese email ya pertenece a este comercio'
-          : 'Ese email ya tiene cuenta en otro comercio',
+        error: 'Ese email ya tiene cuenta en otro comercio',
       }, { status: 409 })
     }
 

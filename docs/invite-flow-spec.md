@@ -1,11 +1,41 @@
 # Spec — P2.2.1 Invite flow de usuarios
 
-Estado: **propuesta, pendiente de confirmar decisiones abiertas.**
+Estado: **implementado.** El endpoint y la UI existen; el hallazgo **U4**
+(Sprint QA-1, jul-2026) completó el primer acceso: `inviteUserByEmail` ahora
+manda `redirectTo` a `/auth/callback`, el invitado aterriza en
+`/reset-password` en modo "bienvenida" a fijar su primera contraseña, y el
+reenvío a un pendiente devuelve 200 en vez de 409. Ver
+`docs/qa-invitaciones.md` para el lifecycle completo y el QA.
 
 Sigue del rework de roles (`docs/roles-permissions-spec.md`). Hoy
 `/usuarios` lista y permite cambiar rol; agregar nuevos empleados
 requiere meter mano al dashboard de Supabase. Esta spec mete ese flow
 adentro de la app.
+
+---
+
+## Flujo de un vistazo (post-U4)
+
+```
+Invitación            Admin en /usuarios → "Invitar usuario" (email + rol)
+      │               POST /api/usuarios/invite (service role, admin-only)
+      ▼
+Email                 inviteUserByEmail con redirectTo al callback
+      │               (link de invitación al email del empleado)
+      ▼
+/auth/callback        ?tipo=invitacion → exchangeCodeForSession(code)
+      │               (setea cookies sb-* ⇒ crea la sesión)
+      ▼
+/reset-password       modo ?bienvenida=1 → el empleado fija su PRIMERA
+ (bienvenida)         contraseña (validarPasswordNueva → updateUser)
+      │
+      ▼
+/dashboard            entra autenticado, con su rol
+```
+
+Recuperación de contraseña usa exactamente las mismas piezas
+(`/auth/callback` → `/reset-password`), sin `tipo` ni `bienvenida`. Ver
+`docs/qa-invitaciones.md` para el lifecycle detallado y el QA.
 
 ---
 
@@ -165,9 +195,11 @@ jul-2026; ver `docs/qa-recuperacion-password.md` §8.
 
 ## 7. Out of scope V1 (futuros)
 
-- **Resend invitación**: si el user no aceptó, "reinvitar" reenvía el
-  magic link. Easy de implementar (Supabase reusa user existente) pero
-  agrega 1 botón + 1 endpoint. P2.2.2.
+- **Resend invitación**: **resuelto en U4.** Reinvitar el mismo email
+  pendiente reenvía el magic link y el endpoint devuelve 200
+  (`reenviada:true`) en vez de 409. Se hace desde el mismo modal "Invitar
+  usuario" (no hay botón dedicado por fila todavía — eso sí queda para
+  P2.2.2 junto con el badge de estado).
 - **Cancelar invitación**: para users que no aceptaron, "cancelar"
   borra el perfil + auth user. Cubierto cuando hagamos delete usuarios
   (P2.2.3).
