@@ -134,3 +134,76 @@ export const MP_SANDBOX_MAX_AMOUNT = 100_000   // pesos
 export function isMPSandbox(): boolean {
   return getMPEnv() === 'sandbox'
 }
+
+// ────────────────────────────────────────────────────────────────────
+// Guard de arranque para producción (M1)
+// ────────────────────────────────────────────────────────────────────
+
+/** Variables de sandbox que NUNCA deben estar presentes en producción. */
+const MP_SANDBOX_ENV_VARS = [
+  'MP_SANDBOX_ACCESS_TOKEN',
+  'MP_SANDBOX_USER_ID_MP',
+  'MP_SANDBOX_EXTERNAL_POS_ID',
+  'MP_SANDBOX_COMERCIO_ID',
+] as const
+
+/** Variables obligatorias cuando MP_ENV=production (OAuth real + webhook). */
+const MP_REQUIRED_PROD_ENV_VARS = [
+  'SYLVORA_MP_CLIENT_ID',
+  'SYLVORA_MP_CLIENT_SECRET',
+  'SYLVORA_MP_REDIRECT_URI',
+  'SYLVORA_MP_WEBHOOK_SECRET',
+  'SYLVORA_MP_TOKEN_ENCRYPTION_KEY',
+] as const
+
+function envPresente(name: string): boolean {
+  return (process.env[name]?.trim() ?? '') !== ''
+}
+
+/**
+ * Guard fail-loud de arranque (hallazgo M1). Con MP_ENV=production, aborta
+ * INMEDIATAMENTE si detecta una combinación insegura de configuración de MP
+ * o falta una variable obligatoria — en vez de descubrir la mala config
+ * cuando llega el primer cobro/webhook.
+ *
+ * Reúne TODOS los problemas en un solo mensaje (no corta en el primero) para
+ * que se puedan corregir de una. En MP_ENV != production es no-op (sandbox/dev
+ * pueden tener config parcial o de sandbox a propósito).
+ *
+ * Se invoca desde instrumentation.ts (register) al iniciar el server. Los
+ * hard-guards runtime (token-provider, webhook-handler) siguen ahí como
+ * defensa en profundidad — esto es la primera línea, no la única.
+ *
+ * @throws Error con el detalle de cada problema si la config es inválida.
+ */
+export function assertMPProductionConfig(): void {
+  if (getMPEnv() !== 'production') return
+
+  const problemas: string[] = []
+
+  if (process.env.MP_MODE?.toLowerCase().trim() === 'manual_sandbox') {
+    problemas.push('MP_MODE=manual_sandbox está prohibido en producción — usá oauth (o dejala sin setear).')
+  }
+
+  if (process.env.MP_WEBHOOK_ALLOW_UNSIGNED_SANDBOX?.toLowerCase().trim() === 'true') {
+    problemas.push('MP_WEBHOOK_ALLOW_UNSIGNED_SANDBOX no puede estar activo en producción — quitala del entorno.')
+  }
+
+  const sandboxPresentes = MP_SANDBOX_ENV_VARS.filter(envPresente)
+  if (sandboxPresentes.length > 0) {
+    problemas.push(`Variables de sandbox presentes en producción: ${sandboxPresentes.join(', ')} — quitalas del scope Production.`)
+  }
+
+  const faltantes = MP_REQUIRED_PROD_ENV_VARS.filter(v => !envPresente(v))
+  if (faltantes.length > 0) {
+    problemas.push(`Faltan variables obligatorias de producción: ${faltantes.join(', ')}.`)
+  }
+
+  if (problemas.length > 0) {
+    throw new Error(
+      '[mp/config] Configuración de Mercado Pago inválida para producción (MP_ENV=production):\n' +
+      problemas.map(p => `  - ${p}`).join('\n') +
+      '\nCorregí el entorno antes de deployar. Ver docs/mp-checklist-produccion.md §7.',
+    )
+  }
+}
